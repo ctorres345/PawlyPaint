@@ -23,7 +23,7 @@ class GalleryScreen extends StatelessWidget {
     final done = [
       for (final c in courses)
         for (final p in c.puzzles)
-          if (store.isCompleted(PlayMode.paint.key(p.id)) || store.isCompleted(PlayMode.sort.key(p.id))) (c, p),
+          if (store.isDone(p.id)) (c, p),
     ];
     final total = courses.fold(0, (s, c) => s + c.puzzles.length);
     return Scaffold(

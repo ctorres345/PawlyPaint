@@ -22,6 +22,9 @@ const _sizes = {Difficulty.easy: 16, Difficulty.medium: 24, Difficulty.hard: 32}
 /// shades and busy backdrops are what make it hard.
 const _minDistance = {Difficulty.easy: 22.0, Difficulty.medium: 16.0};
 
+/// Smallest CIEDE2000 difference between any two drill colors.
+const _minColorGap = {Difficulty.easy: 18.0, Difficulty.medium: 16.0, Difficulty.hard: 14.0};
+
 /// Every course, drawn once on first use.
 final List<Course> allCourses = buildCourses();
 
@@ -193,5 +196,6 @@ Course _course(
 
 Puzzle _forDifficulty(Puzzle p, Difficulty difficulty) {
   final minDistance = _minDistance[difficulty];
-  return minDistance == null ? p : simplifyPicture(p, minDistance: minDistance);
+  final simple = minDistance == null ? p : simplifyPicture(p, minDistance: minDistance);
+  return separateColors(simple, minDistance: _minColorGap[difficulty]!);
 }

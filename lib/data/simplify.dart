@@ -264,3 +264,125 @@ Color _fromLab((double, double, double) lab, Color like) {
     blue: gamma(x * 0.0557 - y * 0.2040 + z * 1.0570),
   );
 }
+
+/// CIEDE2000 color difference between two Lab colors. About 2 is the
+/// smallest difference people notice side by side; 10 and up reads as a
+/// different color at a glance.
+double _de2000((double, double, double) x, (double, double, double) y) {
+  final (l1, a1, b1) = x;
+  final (l2, a2, b2) = y;
+  const rad = math.pi / 180;
+  final c1 = math.sqrt(a1 * a1 + b1 * b1), c2 = math.sqrt(a2 * a2 + b2 * b2);
+  final cm7 = math.pow((c1 + c2) / 2, 7).toDouble();
+  final g = 0.5 * (1 - math.sqrt(cm7 / (cm7 + 6103515625.0)));
+  final ap1 = a1 * (1 + g), ap2 = a2 * (1 + g);
+  final cp1 = math.sqrt(ap1 * ap1 + b1 * b1), cp2 = math.sqrt(ap2 * ap2 + b2 * b2);
+  double hue(double b, double a) {
+    if (a == 0 && b == 0) return 0;
+    final h = math.atan2(b, a) / rad;
+    return h < 0 ? h + 360 : h;
+  }
+
+  final hp1 = hue(b1, ap1), hp2 = hue(b2, ap2);
+  final dl = l2 - l1, dc = cp2 - cp1;
+  var dh = 0.0;
+  if (cp1 * cp2 != 0) {
+    dh = hp2 - hp1;
+    if (dh > 180) dh -= 360;
+    if (dh < -180) dh += 360;
+  }
+  final dH = 2 * math.sqrt(cp1 * cp2) * math.sin(dh / 2 * rad);
+  final lm = (l1 + l2) / 2, cm = (cp1 + cp2) / 2;
+  var hm = hp1 + hp2;
+  if (cp1 * cp2 != 0) {
+    if ((hp1 - hp2).abs() > 180) hm += hm < 360 ? 360 : -360;
+    hm /= 2;
+  }
+  final t = 1 -
+      0.17 * math.cos((hm - 30) * rad) +
+      0.24 * math.cos(2 * hm * rad) +
+      0.32 * math.cos((3 * hm + 6) * rad) -
+      0.20 * math.cos((4 * hm - 63) * rad);
+  final dTheta = 30 * math.exp(-math.pow((hm - 275) / 25, 2));
+  final cm7p = math.pow(cm, 7).toDouble();
+  final rc = 2 * math.sqrt(cm7p / (cm7p + 6103515625.0));
+  final sl = 1 + 0.015 * (lm - 50) * (lm - 50) / math.sqrt(20 + (lm - 50) * (lm - 50));
+  final sc = 1 + 0.045 * cm, sh = 1 + 0.015 * cm * t;
+  final rt = -math.sin(2 * dTheta * rad) * rc;
+  final ql = dl / sl, qc = dc / sc, qh = dH / sh;
+  return math.sqrt(ql * ql + qc * qc + qh * qh + rt * qc * qh);
+}
+
+/// CIEDE2000 difference between two colors.
+double colorDistance(Color a, Color b) => _de2000(_lab(a), _lab(b));
+
+const _minRgbGap = 24.0;
+
+/// Straight-line distance between two Lab colors in 0–255 RGB.
+double _rgbDistance((double, double, double) a, (double, double, double) b) {
+  const black = Color(0xFF000000);
+  final x = _fromLab(a, black), y = _fromLab(b, black);
+  final dr = (x.r - y.r) * 255, dg = (x.g - y.g) * 255, db = (x.b - y.b) * 255;
+  return math.sqrt(dr * dr + dg * dg + db * db);
+}
+
+/// Pushes look-alike colors apart until every pair is at least [minDistance]
+/// (CIEDE2000) and 24 RGB steps apart, so each drill color can be told from
+/// the others at a glance. Cells stay as they are, so gradients keep their
+/// steps, just with clearer differences between them. Bigger color groups
+/// move less than small ones, so the picture keeps its overall look.
+Puzzle separateColors(Puzzle p, {required double minDistance}) {
+  final n = p.colorCount;
+  final lab = [for (final c in p.palette) _lab(c)];
+  final weight = [for (final c in p.counts) math.max(c, 1).toDouble()];
+  // Colors stuck at the edge of what a screen can show (pure white, say)
+  // can't move further, so their partner moves instead.
+  final pinned = List<bool>.filled(n, false);
+  for (var round = 0; round < 400; round++) {
+    final push = List.generate(n, (_) => [0.0, 0.0, 0.0]);
+    var tooClose = false;
+    for (var a = 0; a < n; a++) {
+      for (var b = a + 1; b < n; b++) {
+        final d = _de2000(lab[a], lab[b]);
+        // CIEDE2000 forgives differences among very pale colors more than
+        // small drills on a bright screen do, so plain RGB distance is
+        // checked too.
+        final rgb = _rgbDistance(lab[a], lab[b]);
+        if (d >= minDistance && rgb >= _minRgbGap) continue;
+        tooClose = true;
+        var dir = [lab[b].$1 - lab[a].$1, lab[b].$2 - lab[a].$2, lab[b].$3 - lab[a].$3];
+        var len = math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+        if (len < 1e-6) {
+          // Identical colors: split them by lightness.
+          dir = [lab[a].$1 > 50 ? -1.0 : 1.0, 0, 0];
+          len = 1;
+        }
+        // Euclidean Lab step that would roughly close the gap, shared so
+        // the smaller group moves further.
+        final ratio = math.max(minDistance / math.max(d, 0.5), _minRgbGap / math.max(rgb, 0.5));
+        final step = math.max(len * (ratio - 1), 0.5) * 0.5;
+        final share = pinned[a] == pinned[b]
+            ? weight[b] / (weight[a] + weight[b])
+            : pinned[a]
+                ? 0.0
+                : 1.0;
+        for (var k = 0; k < 3; k++) {
+          push[a][k] -= dir[k] / len * step * share;
+          push[b][k] += dir[k] / len * step * (1 - share);
+        }
+      }
+    }
+    if (!tooClose) break;
+    for (var c = 0; c < n; c++) {
+      final wanted = math.sqrt(push[c][0] * push[c][0] + push[c][1] * push[c][1] + push[c][2] * push[c][2]);
+      if (wanted == 0) continue;
+      final moved = (lab[c].$1 + push[c][0], lab[c].$2 + push[c][1], lab[c].$3 + push[c][2]);
+      // Keep the color inside what a screen can show.
+      final shown = _lab(_fromLab(moved, p.palette[c]));
+      if (_distance(shown, lab[c]) < wanted * 0.3) pinned[c] = true;
+      lab[c] = shown;
+    }
+  }
+  final palette = [for (var c = 0; c < n; c++) _fromLab(lab[c], p.palette[c])];
+  return Puzzle(id: p.id, title: p.title, width: p.width, height: p.height, cells: p.cells, palette: palette);
+}

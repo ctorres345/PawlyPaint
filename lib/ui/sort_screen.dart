@@ -374,9 +374,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
         backgroundColor: SettingsScope.of(context).theme.desk,
         appBar: AppBar(
           backgroundColor: scheme.surface,
-          title: Text(_finished || widget.store.isCompleted(PlayMode.sort.key(widget.puzzle.id))
-              ? widget.puzzle.title
-              : 'Sort the beads'),
+          title: Text(_finished || widget.store.isDone(widget.puzzle.id) ? widget.puzzle.title : 'Sort the beads'),
           actions: [
             IconButton(
               tooltip: 'Hint',

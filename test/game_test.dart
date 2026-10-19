@@ -321,6 +321,22 @@ void main() {
     });
   });
 
+  test('every picture has clearly distinct colors, Hard included', () {
+    const minGap = {Difficulty.easy: 17.9, Difficulty.medium: 15.9, Difficulty.hard: 13.9};
+    for (final c in buildCourses()) {
+      for (final l in c.levels) {
+        for (final p in l.puzzles) {
+          for (var a = 0; a < p.colorCount; a++) {
+            for (var b = a + 1; b < p.colorCount; b++) {
+              expect(colorDistance(p.palette[a], p.palette[b]), greaterThan(minGap[l.difficulty]!),
+                  reason: '${p.id} colors $a and $b');
+            }
+          }
+        }
+      }
+    }
+  });
+
   group('progress', () {
     test('levels and pictures unlock in order', () async {
       final course = buildCourses().first;
@@ -337,6 +353,23 @@ void main() {
       expect(store.isLevelUnlocked(course, 1), isTrue);
       expect(store.isLevelUnlocked(course, 2), isFalse);
       expect(store.starsIn(course.puzzles), unlockAfter * 2);
+    });
+
+    test('home totals count Sort finishes too', () async {
+      final course = buildCourses().first;
+      final store = ProgressStore.memory();
+      final easy = course.levels.first;
+      for (var i = 0; i < unlockAfter; i++) {
+        await store.recordCompletion(PlayMode.sort.key(easy.puzzles[i].id), score: 1, stars: 3, seconds: 1);
+      }
+      await store.recordCompletion(easy.puzzles[0].id, score: 1, stars: 2, seconds: 1);
+      expect(store.completedIn(course.puzzles), unlockAfter);
+      expect(store.completedIn(course.puzzles, PlayMode.paint), 1);
+      expect(store.starsIn(course.puzzles), unlockAfter * 3 + 2);
+      expect(store.starsIn(course.puzzles, PlayMode.sort), unlockAfter * 3);
+      expect(ProgressStore.maxStarsIn(course.puzzles), course.puzzles.length * 6);
+      expect(store.isLevelUnlocked(course, 1), isTrue);
+      expect(store.isLevelUnlocked(course, 1, PlayMode.paint), isFalse);
     });
 
     test('best results are kept', () async {

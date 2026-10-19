@@ -23,7 +23,7 @@ class HomeScreen extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final totalStars = courses.fold(0, (s, c) => s + store.starsIn(c.puzzles));
-    final maxStars = courses.fold(0, (s, c) => s + c.puzzles.length * 3);
+    final maxStars = courses.fold(0, (s, c) => s + ProgressStore.maxStarsIn(c.puzzles));
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -148,7 +148,7 @@ class _CourseCard extends StatelessWidget {
                         child: Text(course.title, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
                       ),
                       const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
-                      Text(' $stars / ${total * 3}', style: text.titleSmall),
+                      Text(' $stars / ${ProgressStore.maxStarsIn(course.puzzles)}', style: text.titleSmall),
                     ],
                   ),
                   const SizedBox(height: 4),

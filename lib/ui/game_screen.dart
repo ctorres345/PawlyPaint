@@ -319,8 +319,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         backgroundColor: SettingsScope.of(context).theme.desk,
         appBar: AppBar(
           backgroundColor: scheme.surface,
-          title:
-              Text(widget.store.isCompleted(widget.puzzle.id) || _finished ? widget.puzzle.title : 'Mystery picture'),
+          title: Text(widget.store.isDone(widget.puzzle.id) || _finished ? widget.puzzle.title : 'Mystery picture'),
           actions: [
             ListenableBuilder(
               listenable: game,

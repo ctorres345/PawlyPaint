@@ -199,7 +199,7 @@ class ProgressStore extends ChangeNotifier {
   String dailyPuzzleId(DateTime today, List<Puzzle> all) {
     final key = dayKey(today);
     if (_dailyDate == key && _dailyId != null && all.any((p) => p.id == _dailyId)) return _dailyId!;
-    final fresh = all.where((p) => !isCompleted(p.id)).toList();
+    final fresh = all.where((p) => !isDone(p.id)).toList();
     final pool = fresh.isEmpty ? all : fresh;
     final pick = pool[math.Random(key.hashCode).nextInt(pool.length)];
     _dailyDate = key;
@@ -243,15 +243,30 @@ class ProgressStore extends ChangeNotifier {
 
   bool isCompleted(String id) => _records.containsKey(id);
 
-  int completedIn(List<Puzzle> puzzles, [PlayMode mode = PlayMode.paint]) =>
-      puzzles.where((p) => isCompleted(mode.key(p.id))).length;
-  int starsIn(List<Puzzle> puzzles, [PlayMode mode = PlayMode.paint]) =>
-      puzzles.fold(0, (sum, p) => sum + (_records[mode.key(p.id)]?.bestStars ?? 0));
+  /// Finished in [mode], or in either mode when [mode] is null.
+  bool isDone(String puzzleId, [PlayMode? mode]) =>
+      (mode == null ? PlayMode.values : [mode]).any((m) => isCompleted(m.key(puzzleId)));
+
+  /// Pictures finished in [mode], or in either mode when [mode] is null.
+  int completedIn(List<Puzzle> puzzles, [PlayMode? mode]) => puzzles.where((p) => isDone(p.id, mode)).length;
+
+  /// Best stars in [mode], or Paint and Sort stars added up when [mode] is null.
+  int starsIn(List<Puzzle> puzzles, [PlayMode? mode]) => puzzles.fold(
+        0,
+        (sum, p) =>
+            sum +
+            (mode == null ? PlayMode.values : [mode]).fold(0, (s, m) => s + (_records[m.key(p.id)]?.bestStars ?? 0)),
+      );
+
+  /// Stars [starsIn] can reach for [puzzles].
+  static int maxStarsIn(List<Puzzle> puzzles, [PlayMode? mode]) =>
+      puzzles.length * 3 * (mode == null ? PlayMode.values.length : 1);
 
   /// Easy is always open; a harder level opens after [unlockAfter] finished
-  /// pictures in the level before it.
-  bool isLevelUnlocked(Course c, int index, [PlayMode mode = PlayMode.paint]) =>
-      index == 0 || completedIn(c.levels[index - 1].puzzles, mode) >= unlockAfter;
+  /// pictures in the level before it (in [mode], or in either mode when null).
+  bool isLevelUnlocked(Course c, int index, [PlayMode? mode]) =>
+      index == 0 ||
+      (mode == null ? PlayMode.values : [mode]).any((m) => completedIn(c.levels[index - 1].puzzles, m) >= unlockAfter);
 
   /// Inside a level, a picture opens when the one before it is finished
   /// (or once it has been finished or started).
