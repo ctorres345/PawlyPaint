@@ -34,15 +34,19 @@ class SortController extends ChangeNotifier {
   SortController(this.puzzle, {Map<String, dynamic>? resume, DateTime Function()? clock})
       : _clock = clock ?? DateTime.now,
         game = _restore(puzzle, resume) ?? _fresh(puzzle) {
-    if (_restore(puzzle, resume) != null) _baseSeconds = resume!['seconds'] as int? ?? 0;
+    if (_restore(puzzle, resume) != null) {
+      _baseSeconds = resume!['seconds'] as int? ?? 0;
+      excusedMistakes = resume['relaxed'] == true;
+    }
   }
 
-  /// Scramble amount and tray size by canvas size. The tray is roomy (full
-  /// rows of 12) so a careful player never has to shake it.
+  /// Scramble amount and tray size by canvas size: harder pictures mix more
+  /// of their beads. The tray is roomy (full rows of 12) so a careful player
+  /// never has to shake it.
   static (double, int) settingsFor(Puzzle p) => switch (p.width) {
-        <= 16 => (0.2, 24),
-        <= 24 => (0.25, 36),
-        _ => (0.3, 48),
+        <= 16 => (0.3, 24),
+        <= 24 => (0.4, 36),
+        _ => (0.45, 48),
       };
 
   static SortGame _fresh(Puzzle p) {
@@ -92,6 +96,10 @@ class SortController extends ChangeNotifier {
   /// Relaxed mode: taps on beads that were already right aren't counted.
   bool relaxed = false;
 
+  /// Set once Relaxed mode lets a wrong tap go uncounted; the finish then
+  /// counts as relaxed even if the setting was switched off later.
+  bool excusedMistakes = false;
+
   int? hintCell;
   DateTime? hintAt;
   int? mistakeCell;
@@ -135,7 +143,12 @@ class SortController extends ChangeNotifier {
     // A cell whose bead is still flying in looks empty, so it isn't a mistake.
     if (game.isHole(cell) || arriving.containsKey(cell)) return SortTapResult.ignored;
     if (!game.isWrong(cell)) {
-      if (!relaxed) game.tap(cell);
+      if (!relaxed) {
+        game.tap(cell);
+      } else if (!excusedMistakes) {
+        excusedMistakes = true;
+        boardVersion++;
+      }
       mistakeCell = cell;
       mistakeAt = _clock();
       notifyListeners();
@@ -218,5 +231,6 @@ class SortController extends ChangeNotifier {
         'mistakes': game.mistakes,
         'placed': game.placed,
         'seconds': seconds,
+        'relaxed': excusedMistakes,
       };
 }

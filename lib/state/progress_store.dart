@@ -33,6 +33,7 @@ class SavedGame {
     required this.combo,
     required this.mistakes,
     required this.seconds,
+    this.excusedMistakes = false,
   });
 
   /// [Puzzle.signature] of the picture this was saved from.
@@ -45,6 +46,9 @@ class SavedGame {
   final int mistakes;
   final int seconds;
 
+  /// Whether Relaxed mode let a wrong tap go uncounted on this board.
+  final bool excusedMistakes;
+
   int get placedCount => '1'.allMatches(placed).length;
 
   Map<String, Object> toJson() => {
@@ -53,7 +57,8 @@ class SavedGame {
         'score': score,
         'combo': combo,
         'mistakes': mistakes,
-        'seconds': seconds
+        'seconds': seconds,
+        'relaxed': excusedMistakes,
       };
 
   static SavedGame fromJson(Map<String, dynamic> j) => SavedGame(
@@ -63,6 +68,7 @@ class SavedGame {
         combo: j['combo'] as int,
         mistakes: j['mistakes'] as int,
         seconds: j['seconds'] as int,
+        excusedMistakes: j['relaxed'] == true,
       );
 }
 

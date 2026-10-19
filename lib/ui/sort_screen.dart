@@ -274,7 +274,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       _endTutorial();
       return;
     }
-    final relaxed = game.relaxed;
+    final relaxed = game.relaxed || game.excusedMistakes;
     final stars = relaxed ? 0 : game.stars;
     if (widget.daily) recordDailyIfToday(widget.store, widget.puzzle);
     final best = widget.store.recordCompletion(

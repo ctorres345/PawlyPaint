@@ -24,6 +24,7 @@ class GameController extends ChangeNotifier {
       combo = resume.combo;
       mistakes = resume.mistakes;
       _baseSeconds = resume.seconds;
+      excusedMistakes = resume.excusedMistakes;
     }
     selected = firstIncompleteColor() ?? 0;
   }
@@ -41,6 +42,10 @@ class GameController extends ChangeNotifier {
 
   /// Relaxed mode: wrong taps still show a cross but aren't counted.
   bool relaxed = false;
+
+  /// Set once Relaxed mode lets a wrong tap go uncounted; the finish then
+  /// counts as relaxed even if the setting was switched off later.
+  bool excusedMistakes = false;
   int score = 0;
   int combo = 0;
   int mistakes = 0;
@@ -103,6 +108,9 @@ class GameController extends ChangeNotifier {
         mistakes++;
         combo = 0;
         score = Scoring.afterMistake(score);
+      } else if (!excusedMistakes) {
+        excusedMistakes = true;
+        boardVersion++;
       }
       notifyListeners();
       return PlaceResult.wrong;
@@ -151,5 +159,6 @@ class GameController extends ChangeNotifier {
         combo: combo,
         mistakes: mistakes,
         seconds: seconds,
+        excusedMistakes: excusedMistakes,
       );
 }

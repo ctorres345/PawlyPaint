@@ -217,6 +217,16 @@ void main() {
   });
 
   group('sort mode', () {
+    test('every Sort picture can be finished by following hints, without shaking', () {
+      for (final p in buildCourses().expand((c) => c.puzzles)) {
+        final g = SortController(p).game;
+        while (!g.isComplete && g.freeSlots > 0) {
+          g.tap(g.bestMove()!);
+        }
+        expect(g.isComplete, isTrue, reason: p.id);
+      }
+    });
+
     test('a broken or mismatched Sort save starts fresh instead of crashing', () {
       final p = buildCourses().first.levels.first.puzzles.first;
       final good = SortController(p).toJson();
