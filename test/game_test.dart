@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/logic/line.dart';
 import 'package:pawlypaint/logic/scoring.dart';
+import 'package:pawlypaint/logic/sort_game.dart';
 import 'package:pawlypaint/models/puzzle.dart';
 import 'package:pawlypaint/state/game_controller.dart';
 import 'package:pawlypaint/state/music.dart';
@@ -176,6 +177,66 @@ void main() {
         last = next;
       }
       expect(seen, MusicTheme.values.toSet());
+    });
+  });
+
+  group('sort mode', () {
+    final puzzle = buildCourses().first.levels[1].puzzles.first;
+    SortGame fresh() => SortGame.scrambled(
+          width: puzzle.width,
+          target: puzzle.cells,
+          fraction: 0.25,
+          capacity: 18,
+          seed: puzzle.signature,
+        );
+
+    test('scrambling keeps every bead and is the same for the same seed', () {
+      final a = fresh(), b = fresh();
+      expect(a.encodeBoard(), b.encodeBoard());
+      final counts = List<int>.filled(puzzle.colorCount, 0);
+      for (final c in a.current) {
+        counts[c]++;
+      }
+      expect(counts, puzzle.counts);
+      expect(a.wrongCount, greaterThan(puzzle.cellCount * 0.15));
+    });
+
+    test('holes always match beads in the tray, and tapping right beads is a mistake', () {
+      final g = fresh();
+      final right = List.generate(g.current.length, (i) => i).firstWhere((i) => !g.isWrong(i));
+      expect(g.tap(right).isEmpty, isTrue);
+      expect(g.mistakes, 1);
+      final wrong = List.generate(g.current.length, (i) => i).firstWhere(g.isWrong);
+      final move = g.tap(wrong);
+      expect(move.removed, isNotEmpty);
+      final holes = [for (var i = 0; i < g.current.length; i++) if (g.isHole(i)) i];
+      expect(holes.length, g.tray.length);
+    });
+
+    test('following the hint, and shaking when stuck, always finishes', () {
+      final g = fresh();
+      var steps = 0;
+      while (!g.isComplete && steps++ < 5000) {
+        if (g.isStuck) {
+          g.shake();
+          continue;
+        }
+        final next = g.bestMove();
+        if (next == null) {
+          g.shake();
+        } else {
+          g.tap(next);
+        }
+      }
+      expect(g.isComplete, isTrue);
+      expect(g.tray, isEmpty);
+      expect(g.shakes, lessThan(5));
+    });
+
+    test('a saved board decodes to the same board', () {
+      final g = fresh()..tap(List.generate(puzzle.cellCount, (i) => i).firstWhere(fresh().isWrong));
+      expect(SortGame.decodeBoard(g.encodeBoard()), g.current);
+      expect(SortGame.decodeTray(g.encodeTray()), g.tray);
     });
   });
 

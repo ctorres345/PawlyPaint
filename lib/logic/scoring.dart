@@ -27,4 +27,19 @@ class Scoring {
     if (mistakes <= goodLimit) return 2;
     return 1;
   }
+
+  /// Sort mode: 3 stars without shaking the tray (and few wrong taps), 2 with
+  /// a couple of shakes, otherwise 1.
+  static int sortStars({required int shakes, required int mistakes}) {
+    if (shakes == 0 && mistakes <= 3) return 3;
+    if (shakes <= 2) return 2;
+    return 1;
+  }
+
+  /// Sort mode score: points for each bead sorted into place, minus a little
+  /// for shakes and wrong taps.
+  static int sortScore({required int placed, required int shakes, required int mistakes}) {
+    final s = placed * drillPoints - shakes * 20 - mistakes * 5;
+    return s < 0 ? 0 : s;
+  }
 }

@@ -65,9 +65,23 @@ class SavedGame {
       );
 }
 
+/// The two ways to play a picture. Each keeps its own records and stars.
+enum PlayMode {
+  paint('Paint'),
+  sort('Sort');
+
+  const PlayMode(this.label);
+
+  final String label;
+
+  /// Key under which this mode's record and saved game for [puzzleId] live.
+  String key(String puzzleId) => this == paint ? puzzleId : 'sort:$puzzleId';
+}
+
 /// Records, saved games and unlock rules, persisted on the device.
 class ProgressStore extends ChangeNotifier {
-  ProgressStore._(this._prefs, this._records, this._saved);
+  ProgressStore._(this._prefs, this._records, this._saved, [Map<String, Map<String, dynamic>>? sortSaved])
+      : _sortSaved = sortSaved ?? {};
 
   static const _key = 'progress_v1';
   static const _backupKey = 'progress_v1_backup';
@@ -88,6 +102,9 @@ class ProgressStore extends ChangeNotifier {
   final Map<String, PuzzleRecord> _records;
   final Map<String, SavedGame> _saved;
 
+  /// Sort-mode boards in progress, as the JSON the sort screen saved.
+  final Map<String, Map<String, dynamic>> _sortSaved;
+
   static Future<ProgressStore> load() async {
     final SharedPreferences prefs;
     try {
@@ -99,7 +116,8 @@ class ProgressStore extends ChangeNotifier {
     }
     final records = <String, PuzzleRecord>{};
     final saved = <String, SavedGame>{};
-    var seenTutorial = false;
+    final sortSaved = <String, Map<String, dynamic>>{};
+    var seenTutorial = false, seenSortTutorial = false;
     final raw = prefs.getString(_key);
     if (raw != null) {
       Map<String, dynamic> j;
@@ -113,9 +131,13 @@ class ProgressStore extends ChangeNotifier {
       // Entries are parsed one by one, so one bad entry never loses the rest.
       _parseEach(j['records'], (k, v) => records[k] = PuzzleRecord.fromJson(v));
       _parseEach(j['saved'], (k, v) => saved[k] = SavedGame.fromJson(v));
+      _parseEach(j['sortSaved'], (k, v) => sortSaved[k] = v);
       seenTutorial = j['seenTutorial'] == true;
+      seenSortTutorial = j['seenSortTutorial'] == true;
     }
-    return ProgressStore._(prefs, records, saved).._seenTutorial = seenTutorial;
+    return ProgressStore._(prefs, records, saved, sortSaved)
+      .._seenTutorial = seenTutorial
+      .._seenSortTutorial = seenSortTutorial;
   }
 
   /// In-memory store for tests.
@@ -130,6 +152,14 @@ class ProgressStore extends ChangeNotifier {
     return g != null && g.signature == p.signature && g.placed.length == p.cellCount ? g : null;
   }
 
+  bool get seenSortTutorial => _seenSortTutorial;
+  bool _seenSortTutorial = false;
+
+  Future<void> markSortTutorialSeen() {
+    _seenSortTutorial = true;
+    return _persist();
+  }
+
   bool get seenTutorial => _seenTutorial;
   bool _seenTutorial = false;
 
@@ -140,18 +170,33 @@ class ProgressStore extends ChangeNotifier {
 
   bool isCompleted(String id) => _records.containsKey(id);
 
-  int completedIn(List<Puzzle> puzzles) => puzzles.where((p) => isCompleted(p.id)).length;
-  int starsIn(List<Puzzle> puzzles) => puzzles.fold(0, (sum, p) => sum + (_records[p.id]?.bestStars ?? 0));
+  int completedIn(List<Puzzle> puzzles, [PlayMode mode = PlayMode.paint]) =>
+      puzzles.where((p) => isCompleted(mode.key(p.id))).length;
+  int starsIn(List<Puzzle> puzzles, [PlayMode mode = PlayMode.paint]) =>
+      puzzles.fold(0, (sum, p) => sum + (_records[mode.key(p.id)]?.bestStars ?? 0));
 
   /// Easy is always open; a harder level opens after [unlockAfter] finished
   /// pictures in the level before it.
-  bool isLevelUnlocked(Course c, int index) => index == 0 || completedIn(c.levels[index - 1].puzzles) >= unlockAfter;
+  bool isLevelUnlocked(Course c, int index, [PlayMode mode = PlayMode.paint]) =>
+      index == 0 || completedIn(c.levels[index - 1].puzzles, mode) >= unlockAfter;
 
   /// Inside a level, a picture opens when the one before it is finished
   /// (or once it has been finished or started).
-  bool isPuzzleUnlocked(Level level, int index) {
-    final id = level.puzzles[index].id;
-    return index == 0 || isCompleted(level.puzzles[index - 1].id) || isCompleted(id) || _saved.containsKey(id);
+  bool isPuzzleUnlocked(Level level, int index, [PlayMode mode = PlayMode.paint]) {
+    final id = mode.key(level.puzzles[index].id);
+    return index == 0 ||
+        isCompleted(mode.key(level.puzzles[index - 1].id)) ||
+        isCompleted(id) ||
+        _saved.containsKey(id) ||
+        _sortSaved.containsKey(id);
+  }
+
+  Map<String, dynamic>? sortSaved(String puzzleId) => _sortSaved[PlayMode.sort.key(puzzleId)];
+
+  Future<void> saveSort(String puzzleId, Map<String, dynamic> state) {
+    _sortSaved[PlayMode.sort.key(puzzleId)] = state;
+    notifyListeners();
+    return _persist();
   }
 
   Future<void> saveGame(String id, SavedGame game) {
@@ -170,6 +215,7 @@ class ProgressStore extends ChangeNotifier {
       bestSeconds: old == null || seconds < old.bestSeconds ? seconds : old.bestSeconds,
     );
     _saved.remove(id);
+    _sortSaved.remove(id);
     notifyListeners();
     await _persist();
     return isBest;
@@ -177,6 +223,7 @@ class ProgressStore extends ChangeNotifier {
 
   Future<void> resetPuzzle(String id) {
     _saved.remove(id);
+    _sortSaved.remove(id);
     notifyListeners();
     return _persist();
   }
@@ -190,8 +237,10 @@ class ProgressStore extends ChangeNotifier {
         jsonEncode({
           'version': _version,
           'seenTutorial': _seenTutorial,
+          'seenSortTutorial': _seenSortTutorial,
           'records': _records.map((k, v) => MapEntry(k, v.toJson())),
           'saved': _saved.map((k, v) => MapEntry(k, v.toJson())),
+          'sortSaved': _sortSaved,
         }),
       );
     } catch (e) {

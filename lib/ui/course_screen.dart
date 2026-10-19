@@ -5,11 +5,33 @@ import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import 'game_screen.dart';
 import 'gem_style.dart';
+import 'sort_screen.dart';
 
-class CourseScreen extends StatelessWidget {
+class CourseScreen extends StatefulWidget {
   const CourseScreen({super.key, required this.course});
 
   final Course course;
+
+  @override
+  State<CourseScreen> createState() => _CourseScreenState();
+}
+
+class _CourseScreenState extends State<CourseScreen> {
+  /// Remembered while the app is open, so going back keeps the same mode.
+  static PlayMode _lastMode = PlayMode.paint;
+  PlayMode mode = _lastMode;
+
+  Course get course => widget.course;
+
+  static double? _sortProgress(Map<String, dynamic>? save, Puzzle p) {
+    final board = save?['board'];
+    if (board is! String || board.length != p.cellCount) return null;
+    var right = 0;
+    for (var i = 0; i < p.cellCount; i++) {
+      if (board.codeUnitAt(i) - 0x41 == p.cells[i]) right++;
+    }
+    return right / p.cellCount;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,13 +40,39 @@ class CourseScreen extends StatelessWidget {
       appBar: AppBar(title: Text(course.title)),
       body: CustomScrollView(
         slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SegmentedButton<PlayMode>(
+                    segments: const [
+                      ButtonSegment(value: PlayMode.paint, icon: Icon(Icons.brush_rounded), label: Text('Paint')),
+                      ButtonSegment(value: PlayMode.sort, icon: Icon(Icons.swap_horiz_rounded), label: Text('Sort')),
+                    ],
+                    selected: {mode},
+                    onSelectionChanged: (s) => setState(() => mode = _lastMode = s.first),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    mode == PlayMode.paint
+                        ? 'Fill each numbered spot with its matching drill.'
+                        : 'The picture starts scrambled. Send misplaced beads to the tray to sort it.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
           for (var l = 0; l < course.levels.length; l++) ...[
             SliverToBoxAdapter(
               child: _LevelHeader(
                 course: course,
                 level: course.levels[l],
-                completed: store.completedIn(course.levels[l].puzzles),
-                unlocked: store.isLevelUnlocked(course, l),
+                completed: store.completedIn(course.levels[l].puzzles, mode),
+                unlocked: store.isLevelUnlocked(course, l, mode),
                 previous: l == 0 ? null : course.levels[l - 1],
               ),
             ),
@@ -41,19 +89,25 @@ class CourseScreen extends StatelessWidget {
                 itemBuilder: (context, i) {
                   final level = course.levels[l];
                   final puzzle = level.puzzles[i];
-                  final levelOpen = store.isLevelUnlocked(course, l);
+                  final levelOpen = store.isLevelUnlocked(course, l, mode);
+                  final sorting = mode == PlayMode.sort;
                   return _PuzzleTile(
                     index: i,
                     puzzle: puzzle,
-                    unlocked: levelOpen && store.isPuzzleUnlocked(level, i),
+                    unlocked: levelOpen && store.isPuzzleUnlocked(level, i, mode),
                     lockedHint: levelOpen
                         ? 'Finish the picture before this one to unlock it.'
                         : 'Finish $unlockAfter ${course.levels[l - 1].difficulty.label} pictures to unlock '
                             '${level.difficulty.label}.',
-                    record: store.record(puzzle.id),
-                    saved: store.savedFor(puzzle),
+                    record: store.record(mode.key(puzzle.id)),
+                    saved: sorting ? null : store.savedFor(puzzle),
+                    sortProgress: sorting ? _sortProgress(store.sortSaved(puzzle.id), puzzle) : null,
                     onOpen: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => GameScreen(puzzle: puzzle, store: store)),
+                      MaterialPageRoute(
+                        builder: (_) => sorting
+                            ? SortScreen(puzzle: puzzle, store: store)
+                            : GameScreen(puzzle: puzzle, store: store),
+                      ),
                     ),
                   );
                 },
@@ -126,6 +180,7 @@ class _PuzzleTile extends StatelessWidget {
     required this.lockedHint,
     required this.record,
     required this.saved,
+    this.sortProgress,
     required this.onOpen,
   });
 
@@ -135,6 +190,9 @@ class _PuzzleTile extends StatelessWidget {
   final String lockedHint;
   final PuzzleRecord? record;
   final SavedGame? saved;
+
+  /// Share of beads already in place for a Sort game in progress.
+  final double? sortProgress;
   final VoidCallback onOpen;
 
   @override
@@ -142,12 +200,13 @@ class _PuzzleTile extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final done = record != null;
-    final progress = saved == null ? 0.0 : saved!.placedCount / puzzle.cellCount;
+    final progress = sortProgress ?? (saved == null ? 0.0 : saved!.placedCount / puzzle.cellCount);
+    final started = saved != null || sortProgress != null;
     final label = done
         ? '${puzzle.title}, ${record!.bestStars} of 3 stars, best score ${record!.bestScore}'
         : !unlocked
             ? 'Picture ${index + 1}, locked'
-            : saved != null
+            : started
                 ? 'Picture ${index + 1}, ${(progress * 100).floor()} percent done'
                 : 'Picture ${index + 1}, ${puzzle.width} by ${puzzle.height}, ${puzzle.colorCount} colors';
     return Semantics(
@@ -212,7 +271,7 @@ class _PuzzleTile extends StatelessWidget {
                   )
                 else
                   Text(
-                    saved != null
+                    started
                         ? '${(progress * 100).floor()}% done'
                         : '${puzzle.width}×${puzzle.height} · ${puzzle.colorCount} colors',
                     style: text.labelMedium,
