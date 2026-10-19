@@ -56,6 +56,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   /// The zoom-out after finishing; kept so leaving mid-way can stop it.
   AnimationController? _glide;
   bool _celebrate = false;
+  DateTime? _sweepAt;
   late bool _showTips = !widget.store.seenTutorial && !widget.tutorial;
 
   static const _coachSteps = [
@@ -234,6 +235,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         ));
     await glide.forward();
     if (!mounted) return;
+    // A wide shine sweeps once across the finished picture.
+    if (!reduceMotion) {
+      _shimmer.poke();
+      setState(() => _sweepAt = DateTime.now());
+    }
     await Future<void>.delayed(const Duration(milliseconds: 1600));
     final isBest = await best;
     if (!mounted) return;
@@ -367,6 +373,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                             paints: paints,
                             highlight: highlight,
                             celebrate: _celebrate,
+                            sweepAt: _sweepAt,
                             onResult: _onResult,
                           ))),
                     ),

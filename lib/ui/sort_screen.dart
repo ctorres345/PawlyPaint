@@ -68,6 +68,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   /// The zoom-out after finishing; kept so leaving mid-way can stop it.
   AnimationController? _glide;
   bool _celebrate = false;
+  DateTime? _sweepAt;
   int _unsaved = 0;
   MusicController? _music;
   late bool _showTips = !widget.store.seenSortTutorial && !widget.tutorial;
@@ -245,6 +246,13 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     }
   }
 
+  /// A wide shine sweeps once across the finished picture.
+  void _startSweep() {
+    if (MediaQuery.of(context).disableAnimations) return;
+    _shimmer.poke();
+    setState(() => _sweepAt = DateTime.now());
+  }
+
   Future<void> _finish() async {
     _finished = true;
     if (widget.tutorial) {
@@ -289,6 +297,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
         ));
     await glide.forward();
     if (!mounted) return;
+    _startSweep();
     await Future<void>.delayed(const Duration(milliseconds: 1600));
     final isBest = await best;
     if (!mounted) return;
@@ -434,6 +443,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                                   showWrong: showWrong,
                                   peek: peeking,
                                   celebrate: _celebrate,
+                                  sweepAt: _sweepAt,
                                   onTap: _tap,
                                 ))),
                           ),
@@ -619,6 +629,7 @@ class _SortBoard extends StatefulWidget {
     required this.showWrong,
     required this.peek,
     required this.celebrate,
+    this.sweepAt,
     required this.onTap,
   });
 
@@ -630,6 +641,7 @@ class _SortBoard extends StatefulWidget {
   final bool showWrong;
   final bool peek;
   final bool celebrate;
+  final DateTime? sweepAt;
   final ValueChanged<Offset> onTap;
 
   @override
@@ -692,6 +704,7 @@ class _SortBoardState extends State<_SortBoard> {
               showWrong: widget.showWrong,
               peek: widget.peek,
               celebrate: widget.celebrate,
+              sweepAt: widget.sweepAt,
               cache: _cache,
             ),
           ),
@@ -735,6 +748,7 @@ class _SortBoardPainter extends CustomPainter {
     required this.showWrong,
     required this.peek,
     required this.celebrate,
+    this.sweepAt,
     required this.cache,
   }) : super(repaint: Listenable.merge([game, view, shimmer, frame]));
 
@@ -746,6 +760,7 @@ class _SortBoardPainter extends CustomPainter {
   final bool showWrong;
   final bool peek;
   final bool celebrate;
+  final DateTime? sweepAt;
   final _SortCache cache;
 
   static final _sheet = Paint();
@@ -830,6 +845,7 @@ class _SortBoardPainter extends CustomPainter {
         if (placed) drawGemShine(canvas, _cell(i).deflate(kCell * 0.07), shine);
       }
     }
+    drawSweep(canvas, sweepAt, Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell), now);
     if (celebrate) {
       for (var i = 0; i < p.cellCount; i++) {
         final hash = (i * 2654435761) & 0xFFFF;
@@ -874,6 +890,7 @@ class _SortBoardPainter extends CustomPainter {
       old.showWrong != showWrong ||
       old.peek != peek ||
       old.celebrate != celebrate ||
+      old.sweepAt != sweepAt ||
       old.paints != paints;
 }
 
@@ -971,6 +988,21 @@ class SortTrayPainter extends CustomPainter {
   }
 
   static final _fullTint = Paint()..color = const Color(0x22E53935);
+  static final _slotLine = Paint()
+    ..color = const Color(0x55000000)
+    ..style = PaintingStyle.stroke;
+
+  /// An empty tray slot: a dashed outline, so the free space is easy to count.
+  static void _drawSlot(Canvas canvas, Rect r) {
+    final box = RRect.fromRectAndRadius(r.deflate(r.width * 0.1), Radius.circular(r.width * 0.25));
+    _slotLine.strokeWidth = math.max(1, r.width * 0.05);
+    final dash = r.width * 0.12;
+    for (final metric in (Path()..addRRect(box)).computeMetrics()) {
+      for (var d = 0.0; d < metric.length; d += dash * 2) {
+        canvas.drawPath(metric.extractPath(d, d + dash), _slotLine);
+      }
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -980,9 +1012,9 @@ class SortTrayPainter extends CustomPainter {
     for (var i = 0; i < capacity; i++) {
       final r = slotRect(size, capacity, i);
       if (i < tray.length) {
-        drawGem(canvas, r.deflate(r.width * 0.04), paints[tray[i]]);
+        drawCutGem(canvas, r, paints[tray[i]]);
       } else {
-        drawSocket(canvas, r);
+        _drawSlot(canvas, r);
       }
     }
   }

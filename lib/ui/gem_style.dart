@@ -1,4 +1,6 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -132,6 +134,69 @@ void drawGemSparkle(Canvas canvas, Rect cell, double amount) {
   _sparklePaint.strokeWidth = rw * 0.06;
   canvas.drawLine(c.translate(-len, 0), c.translate(len, 0), _sparklePaint);
   canvas.drawLine(c.translate(0, -len), c.translate(0, len), _sparklePaint);
+}
+
+/// A brilliant-cut bead for the tray: an octagon with a flat table and eight
+/// crown facets, lit from the top left.
+void drawCutGem(Canvas canvas, Rect cell, GemPaints g) {
+  final c = cell.center;
+  final rad = cell.width * 0.47;
+  List<Offset> ring(double k) => [
+        for (var i = 0; i < 8; i++) c + Offset.fromDirection(math.pi / 8 + i * math.pi / 4, rad * k),
+      ];
+  final outer = ring(1), crown = ring(0.88), table = ring(0.5);
+  canvas.drawPath(Path()..addPolygon(outer, true), g.dark);
+  canvas.drawPath(Path()..addPolygon(crown, true), g.base);
+  for (var i = 0; i < 8; i++) {
+    final j = (i + 1) % 8;
+    // Facets facing the light (up and left) are bright, the rest stay plain.
+    final mid = (crown[i] + crown[j]) / 2 - c;
+    final lit = (mid.dx + mid.dy) / mid.distance;
+    if (lit > 0.3) continue;
+    canvas.drawPath(
+      Path()..addPolygon([table[i], crown[i], crown[j], table[j]], true),
+      lit < -0.5 ? g.light : g.table,
+    );
+  }
+  canvas.drawPath(Path()..addPolygon(table, true), g.table);
+  if (cell.width >= 12) {
+    for (var i = 0; i < 8; i++) {
+      canvas.drawLine(table[i], crown[i], _facetPaint);
+    }
+    canvas.drawOval(
+      Rect.fromCenter(center: c + Offset(-rad * 0.22, -rad * 0.24), width: rad * 0.4, height: rad * 0.22),
+      _glossPaint,
+    );
+  }
+}
+
+/// How long the finish sweep takes to cross the picture.
+const sweepDuration = Duration(milliseconds: 1300);
+
+/// Draws the finish sweep over [board] if one started at [at] and is still
+/// running at [now].
+void drawSweep(Canvas canvas, DateTime? at, Rect board, DateTime now) {
+  if (at == null) return;
+  final progress = now.difference(at).inMilliseconds / sweepDuration.inMilliseconds;
+  if (progress < 1) drawFinishSweep(canvas, board, progress);
+}
+
+final _sweepPaint = Paint();
+
+/// One wide band of light sweeping diagonally across a finished picture
+/// covering [board]; [progress] runs 0..1.
+void drawFinishSweep(Canvas canvas, Rect board, double progress) {
+  final length = (board.width + board.height) / math.sqrt2;
+  const dir = Offset(math.sqrt1_2, math.sqrt1_2);
+  final center = (-0.25 + 1.5 * progress) * length;
+  final half = length * 0.16;
+  _sweepPaint.shader = ui.Gradient.linear(
+    board.topLeft + dir * (center - half),
+    board.topLeft + dir * (center + half),
+    const [Color(0x00FFFFFF), Color(0x99FFFFFF), Color(0x00FFFFFF)],
+    const [0, 0.5, 1],
+  );
+  canvas.drawRect(board, _sweepPaint);
 }
 
 /// Small preview of a picture. Unfinished pictures stay a mystery, picross

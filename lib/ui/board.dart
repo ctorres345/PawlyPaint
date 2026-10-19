@@ -110,6 +110,7 @@ class Board extends StatefulWidget {
     required this.paints,
     required this.highlight,
     required this.celebrate,
+    this.sweepAt,
     required this.onResult,
   });
 
@@ -121,6 +122,9 @@ class Board extends StatefulWidget {
 
   /// Extra sparkle while the finished picture is revealed.
   final bool celebrate;
+
+  /// When the finished picture's shine sweep started, if it has.
+  final DateTime? sweepAt;
   final void Function(PlaceResult result, {required bool dragging}) onResult;
 
   @override
@@ -227,6 +231,7 @@ class _BoardState extends State<Board> {
               paints: widget.paints,
               highlight: widget.highlight,
               celebrate: widget.celebrate,
+              sweepAt: widget.sweepAt,
               cache: _cache,
             ),
           ),
@@ -265,6 +270,7 @@ class BoardPainter extends CustomPainter {
     required this.paints,
     required this.highlight,
     required this.celebrate,
+    this.sweepAt,
     required this.cache,
   }) : super(repaint: Listenable.merge([game, view, shimmer]));
 
@@ -274,6 +280,7 @@ class BoardPainter extends CustomPainter {
   final List<GemPaints> paints;
   final bool highlight;
   final bool celebrate;
+  final DateTime? sweepAt;
   final BoardCache cache;
 
   static final _sheet = Paint();
@@ -405,6 +412,8 @@ class BoardPainter extends CustomPainter {
       }
     }
 
+    drawSweep(canvas, sweepAt, Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell), now);
+
     // The odd twinkle, and lots of them while the finished picture is revealed.
     for (var i = 0; i < p.cellCount; i++) {
       final hash = (i * 2654435761) & 0xFFFF;
@@ -445,5 +454,6 @@ class BoardPainter extends CustomPainter {
       old.game != game ||
       old.highlight != highlight ||
       old.paints != paints ||
-      old.celebrate != celebrate;
+      old.celebrate != celebrate ||
+      old.sweepAt != sweepAt;
 }

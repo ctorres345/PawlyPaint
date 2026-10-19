@@ -43,12 +43,12 @@ class SortController extends ChangeNotifier {
     }
   }
 
-  /// Scramble amount and tray size by canvas size, tuned so a careful player
-  /// never has to shake the tray.
+  /// Scramble amount and tray size by canvas size. The tray is roomy (full
+  /// rows of 12) so a careful player never has to shake it.
   static (double, int) settingsFor(Puzzle p) => switch (p.width) {
-        <= 16 => (0.2, 12),
-        <= 24 => (0.25, 18),
-        _ => (0.3, 28),
+        <= 16 => (0.2, 24),
+        <= 24 => (0.25, 36),
+        _ => (0.3, 48),
       };
 
   static SortGame _fresh(Puzzle p) {
