@@ -13,6 +13,7 @@ import '../state/music.dart';
 import '../state/progress_store.dart';
 import '../state/sort_controller.dart';
 import 'board.dart' show BoardView, kCell;
+import 'coach.dart';
 import 'completion_sheet.dart';
 import 'gem_style.dart';
 import 'music_sheet.dart';
@@ -20,10 +21,13 @@ import 'music_sheet.dart';
 /// Sort mode: the picture starts scrambled; tap wrong beads to send them to
 /// the tray, and the right beads fly back into place.
 class SortScreen extends StatefulWidget {
-  const SortScreen({super.key, required this.puzzle, required this.store});
+  const SortScreen({super.key, required this.puzzle, required this.store, this.tutorial = false});
 
   final Puzzle puzzle;
   final ProgressStore store;
+
+  /// The guided first picture: nothing is saved or scored.
+  final bool tutorial;
 
   @override
   State<SortScreen> createState() => _SortScreenState();
@@ -43,7 +47,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   final _boardKey = GlobalKey();
   final _trayKey = GlobalKey();
   final _stackKey = GlobalKey();
-  bool showWrong = false;
+  late bool showWrong = widget.tutorial;
 
   /// True while the player holds the preview, showing the finished picture.
   bool peeking = false;
@@ -51,7 +55,32 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   bool _celebrate = false;
   int _unsaved = 0;
   MusicController? _music;
-  late bool _showTips = !widget.store.seenSortTutorial;
+  late bool _showTips = !widget.store.seenSortTutorial && !widget.tutorial;
+
+  static const _coachSteps = [
+    CoachStep(Icons.touch_app_rounded,
+        'Some beads are in the wrong spot (marked with a dot for now). Tap one to send it to the tray.'),
+    CoachStep(Icons.auto_awesome_rounded,
+        'Beads in the tray fly back to any spot that needs their color. Keep tapping marked beads!'),
+    CoachStep(Icons.visibility_rounded, 'Hold the little picture in the corner to peek at the finished heart.'),
+    CoachStep(Icons.vibration_rounded,
+        "If the tray fills up, press Shake. The eye button turns the dots on or off. Finish the heart!"),
+  ];
+  int _coach = 0;
+
+  void _endTutorial() {
+    widget.store.markSortTutorialSeen();
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  void _coachEvent(SortTapResult result) {
+    if (!widget.tutorial) return;
+    if (_coach == 0 && (result == SortTapResult.moved || result == SortTapResult.sorted)) {
+      setState(() => _coach = result == SortTapResult.sorted ? 2 : 1);
+    } else if (_coach == 1 && result == SortTapResult.sorted) {
+      setState(() => _coach = 2);
+    }
+  }
 
   @override
   void initState() {
@@ -101,7 +130,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     game.pause();
-    if (!_finished && game.game.placed + game.game.shakes > 0) {
+    if (!_finished && !widget.tutorial && game.game.placed + game.game.shakes > 0) {
       final state = game.toJson();
       final store = widget.store, id = widget.puzzle.id;
       Future.microtask(() => store.saveSort(id, state));
@@ -119,7 +148,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   }
 
   void _save() {
-    if (_finished) return;
+    if (_finished || widget.tutorial) return;
     _unsaved = 0;
     widget.store.saveSort(widget.puzzle.id, game.toJson());
   }
@@ -132,20 +161,29 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       return;
     }
     final (x, y) = cell;
-    switch (game.tap(y * widget.puzzle.width + x)) {
+    final result = game.tap(y * widget.puzzle.width + x);
+    _coachEvent(result);
+    switch (result) {
       case SortTapResult.moved:
         HapticFeedback.selectionClick();
+        _music?.play(Sfx.place);
         if (++_unsaved >= 10) _save();
       case SortTapResult.sorted:
         HapticFeedback.lightImpact();
+        _music?.play(Sfx.place);
+        // The chime lands with the bead flying back into place.
+        Future.delayed(const Duration(milliseconds: 650), () => _music?.play(Sfx.land));
         if (++_unsaved >= 10) _save();
       case SortTapResult.wrong:
         HapticFeedback.mediumImpact();
+        _music?.play(Sfx.wrong);
       case SortTapResult.trayFull:
         HapticFeedback.heavyImpact();
+        _music?.play(Sfx.wrong);
         _toast('The tray is full. Shake it to free some space.');
       case SortTapResult.complete:
         HapticFeedback.heavyImpact();
+        Future.delayed(const Duration(milliseconds: 650), () => _music?.play(Sfx.complete));
         _finish();
       case SortTapResult.ignored:
         break;
@@ -175,6 +213,25 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
 
   Future<void> _finish() async {
     _finished = true;
+    if (widget.tutorial) {
+      setState(() => _coach = _coachSteps.length);
+      await Future<void>.delayed(const Duration(milliseconds: 900));
+      if (!mounted) return;
+      setState(() => _celebrate = true);
+      await Future<void>.delayed(const Duration(milliseconds: 1400));
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFC107), size: 40),
+          title: const Text("You're ready!"),
+          content: const Text('Every Sort picture works just like this one. Watch the tray space and have fun!'),
+          actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text("Let's go"))],
+        ),
+      );
+      _endTutorial();
+      return;
+    }
     final stars = game.stars;
     final best = widget.store.recordCompletion(
       PlayMode.sort.key(widget.puzzle.id),
@@ -262,6 +319,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _save();
+        if (widget.tutorial) widget.store.markSortTutorialSeen();
         Navigator.of(context).pop();
       },
       child: Scaffold(
@@ -338,7 +396,22 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                             top: 10,
                             child: _PeekThumb(
                               puzzle: widget.puzzle,
-                              onPeek: (on) => setState(() => peeking = on),
+                              onPeek: (on) {
+                                setState(() => peeking = on);
+                                if (on && widget.tutorial && _coach == 2) setState(() => _coach = 3);
+                              },
+                            ),
+                          ),
+                        if (widget.tutorial && _coach < _coachSteps.length)
+                          Positioned(
+                            left: 112,
+                            right: 12,
+                            top: 10,
+                            child: CoachCard(
+                              steps: _coachSteps,
+                              step: _coach,
+                              onNext: () => setState(() => _coach++),
+                              onSkip: _endTutorial,
                             ),
                           ),
                         if (_showTips)
@@ -362,7 +435,10 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                     game: game,
                     paints: paints,
                     onShake: () {
-                      if (game.shake()) HapticFeedback.mediumImpact();
+                      if (game.shake()) {
+                        HapticFeedback.mediumImpact();
+                        _music?.play(Sfx.shake);
+                      }
                     },
                   ),
                 ),

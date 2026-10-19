@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
+import '../data/tutorial.dart';
+import 'coach.dart';
 import 'course_screen.dart';
+import 'gallery_screen.dart';
+import 'game_screen.dart';
+import 'gem_style.dart';
+import 'sort_screen.dart';
 import 'music_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -36,6 +42,30 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text('Pick a course and fill each mystery picture with sparkly drills.', style: text.bodyMedium),
+            const SizedBox(height: 20),
+            _DailyCard(courses: courses, store: store),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => GalleryScreen(courses: courses)),
+                    ),
+                    icon: const Icon(Icons.collections_rounded),
+                    label: const Text('Gallery'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => _showHowToPlay(context, store),
+                    icon: const Icon(Icons.school_rounded),
+                    label: const Text('How to play'),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             for (final course in courses.where((c) => !c.special)) ...[
               _CourseCard(course: course, store: store),
@@ -165,4 +195,137 @@ class _LevelPill extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Today's surprise picture and the daily streak.
+class _DailyCard extends StatelessWidget {
+  const _DailyCard({required this.courses, required this.store});
+
+  final List<Course> courses;
+  final ProgressStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final today = DateTime.now();
+    final all = [for (final c in courses) ...c.puzzles];
+    final id = store.dailyPuzzleId(today, all);
+    final puzzle = all.firstWhere((p) => p.id == id);
+    final done = store.dailyDoneToday(today);
+    final streak = store.streak(today);
+    return Semantics(
+      button: true,
+      label: done ? "Today's picture is done. Streak: $streak days" : "Today's surprise picture. Streak: $streak days",
+      excludeSemantics: true,
+      child: Material(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => openWithTutorial(
+            context,
+            mode: PlayMode.paint,
+            store: store,
+            tutorial: () => GameScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
+            open: () => GameScreen(puzzle: puzzle, store: store, daily: true),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox.square(
+                    dimension: 72,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CustomPaint(
+                          painter: PuzzleThumbPainter(
+                            puzzle,
+                            complete: done,
+                            placed: store.savedFor(puzzle)?.placed,
+                          ),
+                        ),
+                        if (!done) Center(child: Icon(Icons.card_giftcard_rounded, color: scheme.primary, size: 32)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Today's picture", style: text.titleMedium),
+                      const SizedBox(height: 2),
+                      Text(
+                        done ? 'Done! Come back tomorrow for a new one.' : 'A surprise picture, just for today.',
+                        style: text.bodySmall,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.local_fire_department_rounded,
+                            size: 20,
+                            color: streak > 0 ? const Color(0xFFFF7043) : scheme.outline,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            streak == 1 ? '1 day streak' : '$streak day streak',
+                            style: text.labelLarge,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Lets the player replay either tutorial.
+void _showHowToPlay(BuildContext context, ProgressStore store) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheet) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.brush_rounded),
+            title: const Text('Paint tutorial'),
+            subtitle: const Text('Fill numbered spots with matching drills'),
+            onTap: () {
+              Navigator.pop(sheet);
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => GameScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
+              ));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.swap_horiz_rounded),
+            title: const Text('Sort tutorial'),
+            subtitle: const Text('Unscramble a picture using the tray'),
+            onTap: () {
+              Navigator.pop(sheet);
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => SortScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
+              ));
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
 }

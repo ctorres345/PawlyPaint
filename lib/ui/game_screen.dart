@@ -9,16 +9,23 @@ import '../state/game_controller.dart';
 import '../state/music.dart';
 import '../state/progress_store.dart';
 import 'board.dart';
+import 'coach.dart';
 import 'completion_sheet.dart';
 import 'gem_style.dart';
 import 'music_sheet.dart';
 import 'tray.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key, required this.puzzle, required this.store});
+  const GameScreen({super.key, required this.puzzle, required this.store, this.daily = false, this.tutorial = false});
 
   final Puzzle puzzle;
   final ProgressStore store;
+
+  /// Opened from today's daily picture, so finishing it counts for the streak.
+  final bool daily;
+
+  /// The guided first picture: nothing is saved or scored.
+  final bool tutorial;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -37,7 +44,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   TraySort sort = TraySort.number;
   bool _finished = false;
   bool _celebrate = false;
-  late bool _showTips = !widget.store.seenTutorial;
+  late bool _showTips = !widget.store.seenTutorial && !widget.tutorial;
+
+  static const _coachSteps = [
+    CoachStep(Icons.touch_app_rounded,
+        'Color 1 is picked in the tray below, and its spots glow on the canvas. Tap a glowing spot!'),
+    CoachStep(Icons.swipe_rounded, 'Lovely! Now drag your finger across glowing spots to fill several at once.'),
+    CoachStep(
+        Icons.pinch_rounded, 'Pinch with two fingers to zoom. When a color is done, the next one is picked for you.',
+        manual: true),
+    CoachStep(Icons.favorite_rounded, 'You can pick any color in the tray anytime. Finish the heart!'),
+  ];
+  int _coach = 0;
+  int _dragPlacements = 0;
+
+  void _endTutorial() {
+    widget.store.markTutorialSeen();
+    if (mounted) Navigator.of(context).pop();
+  }
 
   @override
   void initState() {
@@ -81,7 +105,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     WidgetsBinding.instance.removeObserver(this);
     game.pause();
     // The tree is locked during dispose, so the store notifies its listeners afterwards.
-    if (!_finished && game.placedCount > 0) {
+    if (!_finished && game.placedCount > 0 && !widget.tutorial) {
       final snapshot = game.snapshot();
       final store = widget.store, id = widget.puzzle.id;
       Future.microtask(() => store.saveGame(id, snapshot));
@@ -97,7 +121,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   }
 
   void _save() {
-    if (_finished || game.placedCount == 0) return;
+    if (_finished || game.placedCount == 0 || widget.tutorial) return;
     _unsavedPlacements = 0;
     widget.store.saveGame(widget.puzzle.id, game.snapshot());
   }
@@ -111,14 +135,21 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   }
 
   void _onResult(PlaceResult result, {required bool dragging}) {
+    if (widget.tutorial && result != PlaceResult.wrong && result != PlaceResult.ignored) {
+      if (_coach == 0) setState(() => _coach = 1);
+      if (_coach == 1 && dragging && ++_dragPlacements >= 3) setState(() => _coach = 2);
+    }
     switch (result) {
       case PlaceResult.wrong:
         HapticFeedback.mediumImpact();
+        _music?.play(Sfx.wrong);
       case PlaceResult.placed:
         _tick();
+        _music?.play(Sfx.place);
         if (++_unsavedPlacements >= 25) _save();
       case PlaceResult.colorComplete:
         HapticFeedback.lightImpact();
+        _music?.play(Sfx.color);
         _save();
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
@@ -135,6 +166,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
           ));
       case PlaceResult.puzzleComplete:
         HapticFeedback.heavyImpact();
+        _music?.play(Sfx.complete);
         _finish();
       case PlaceResult.ignored:
         break;
@@ -145,7 +177,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   Future<void> _finish() async {
     _finished = true;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    if (widget.tutorial) {
+      setState(() {
+        _celebrate = true;
+        _coach = _coachSteps.length;
+      });
+      await Future<void>.delayed(const Duration(milliseconds: 1400));
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFC107), size: 40),
+          title: const Text("You're ready!"),
+          content: const Text('Every picture works just like this one. Have fun painting!'),
+          actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text("Let's go"))],
+        ),
+      );
+      _endTutorial();
+      return;
+    }
     final stars = game.stars;
+    if (widget.daily) widget.store.recordDaily(DateTime.now());
     final best = widget.store.recordCompletion(
       widget.puzzle.id,
       score: game.score,
@@ -214,7 +266,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     await widget.store.resetPuzzle(widget.puzzle.id);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => GameScreen(puzzle: widget.puzzle, store: widget.store)),
+      MaterialPageRoute(builder: (_) => GameScreen(puzzle: widget.puzzle, store: widget.store, daily: widget.daily)),
     );
   }
 
@@ -233,6 +285,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _save();
+        if (widget.tutorial) widget.store.markTutorialSeen();
         Navigator.of(context).pop();
       },
       child: Scaffold(
@@ -292,6 +345,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                     ),
                   ),
                   if (_showTips) Positioned(left: 12, right: 12, top: 12, child: _Tips(onDone: _dismissTips)),
+                  if (widget.tutorial && _coach < _coachSteps.length)
+                    Positioned(
+                      left: 12,
+                      right: 12,
+                      top: 12,
+                      child: CoachCard(
+                        steps: _coachSteps,
+                        step: _coach,
+                        onNext: () => setState(() => _coach++),
+                        onSkip: _endTutorial,
+                      ),
+                    ),
                 ],
               ),
             );

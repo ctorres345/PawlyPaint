@@ -209,7 +209,10 @@ void main() {
       final wrong = List.generate(g.current.length, (i) => i).firstWhere(g.isWrong);
       final move = g.tap(wrong);
       expect(move.removed, isNotEmpty);
-      final holes = [for (var i = 0; i < g.current.length; i++) if (g.isHole(i)) i];
+      final holes = [
+        for (var i = 0; i < g.current.length; i++)
+          if (g.isHole(i)) i
+      ];
       expect(holes.length, g.tray.length);
     });
 
@@ -237,6 +240,31 @@ void main() {
       final g = fresh()..tap(List.generate(puzzle.cellCount, (i) => i).firstWhere(fresh().isWrong));
       expect(SortGame.decodeBoard(g.encodeBoard()), g.current);
       expect(SortGame.decodeTray(g.encodeTray()), g.tray);
+    });
+  });
+
+  group('daily picture', () {
+    test('the streak grows day by day and restarts after a gap', () {
+      final d1 = DateTime(2026, 10, 19);
+      expect(nextStreak(streak: 0, lastDone: null, today: d1), 1);
+      expect(nextStreak(streak: 1, lastDone: '2026-10-19', today: d1), 1);
+      expect(nextStreak(streak: 1, lastDone: '2026-10-18', today: d1), 2);
+      expect(nextStreak(streak: 5, lastDone: '2026-10-16', today: d1), 1);
+      expect(nextStreak(streak: 2, lastDone: '2026-10-31', today: DateTime(2026, 11, 1)), 3);
+    });
+
+    test('the daily picture stays the same all day and prefers unfinished ones', () async {
+      final all = buildCourses().expand((c) => c.puzzles).toList();
+      final store = ProgressStore.memory();
+      final today = DateTime(2026, 10, 19);
+      final first = store.dailyPuzzleId(today, all);
+      await store.recordCompletion(first, score: 1, stars: 1, seconds: 1);
+      expect(store.dailyPuzzleId(today, all), first);
+      final tomorrow = store.dailyPuzzleId(DateTime(2026, 10, 20), all);
+      expect(store.isCompleted(tomorrow), isFalse);
+      await store.recordDaily(today);
+      expect(store.streak(today), 1);
+      expect(store.streak(DateTime(2026, 10, 22)), 0);
     });
   });
 

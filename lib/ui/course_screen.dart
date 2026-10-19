@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../data/courses.dart' show unlockAfter;
+import '../data/tutorial.dart';
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import 'game_screen.dart';
+import 'coach.dart';
 import 'gem_style.dart';
 import 'sort_screen.dart';
 
@@ -102,12 +104,15 @@ class _CourseScreenState extends State<CourseScreen> {
                     record: store.record(mode.key(puzzle.id)),
                     saved: sorting ? null : store.savedFor(puzzle),
                     sortProgress: sorting ? _sortProgress(store.sortSaved(puzzle.id), puzzle) : null,
-                    onOpen: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => sorting
-                            ? SortScreen(puzzle: puzzle, store: store)
-                            : GameScreen(puzzle: puzzle, store: store),
-                      ),
+                    onOpen: () => openWithTutorial(
+                      context,
+                      mode: mode,
+                      store: store,
+                      tutorial: () => sorting
+                          ? SortScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true)
+                          : GameScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
+                      open: () =>
+                          sorting ? SortScreen(puzzle: puzzle, store: store) : GameScreen(puzzle: puzzle, store: store),
                     ),
                   );
                 },

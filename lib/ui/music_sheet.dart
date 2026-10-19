@@ -10,7 +10,7 @@ class MusicButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final music = MusicScope.of(context);
     return IconButton(
-      tooltip: music.muted ? 'Music off' : 'Music',
+      tooltip: music.muted ? 'Music off' : 'Music and sounds',
       icon: Icon(music.muted ? Icons.music_off_rounded : Icons.music_note_rounded),
       onPressed: () => showModalBottomSheet<void>(
         context: context,
@@ -52,13 +52,19 @@ class _MusicSheet extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Music', style: text.titleLarge),
+                child: Text('Music & sounds', style: text.titleLarge),
               ),
               SwitchListTile(
                 title: const Text('Play music'),
                 subtitle: const Text('Menu song and painting themes'),
                 value: !music.muted,
                 onChanged: (on) => music.setMuted(!on),
+              ),
+              SwitchListTile(
+                title: const Text('Sound effects'),
+                subtitle: const Text('Clicks, chimes and sparkles'),
+                value: music.sfxOn,
+                onChanged: music.setSfx,
               ),
               const Divider(),
               Padding(

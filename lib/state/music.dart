@@ -26,15 +26,31 @@ MusicTheme nextShuffleTheme(MusicTheme? last, math.Random rng) {
 
 const _menuAsset = 'music/menu.m4a';
 
+/// Short sound effects, composed by tool/compose_sfx.py.
+enum Sfx {
+  place('sfx/place.wav'),
+  land('sfx/land.wav'),
+  color('sfx/color.wav'),
+  complete('sfx/complete.wav'),
+  wrong('sfx/wrong.wav'),
+  shake('sfx/shake.wav');
+
+  const Sfx(this.asset);
+
+  final String asset;
+}
+
 /// Plays the menu song on menus and the chosen (or shuffled) theme while
 /// painting. Settings are remembered on the device.
 class MusicController extends ChangeNotifier with WidgetsBindingObserver {
-  MusicController._(this._prefs, {required this.muted, required this.choice}) {
+  MusicController._(this._prefs, {required this.muted, required this.choice, required this.sfxOn}) {
     WidgetsBinding.instance.addObserver(this);
   }
 
   static const _mutedKey = 'music_muted';
   static const _choiceKey = 'music_choice';
+  static const _sfxKey = 'sfx_on';
+  static const _sfxVolume = 0.5;
   static const _volume = 0.55;
 
   static Future<MusicController> load() async {
@@ -53,6 +69,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       prefs,
       muted: prefs.getBool(_mutedKey) ?? false,
       choice: MusicTheme.values.where((t) => t.name == name).firstOrNull,
+      sfxOn: prefs.getBool(_sfxKey) ?? true,
     );
   }
 
@@ -67,6 +84,15 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// What is playing (or would be, when muted).
   MusicTheme? current;
+  MusicTheme? _lastGameTheme;
+
+  /// Sound effects on or off, separate from the music.
+  bool sfxOn;
+
+  /// Quick repeating sounds share a small pool of players so rapid taps
+  /// don't cut each other off.
+  final Map<Sfx, AudioPool> _pools = {};
+  final Map<Sfx, DateTime> _lastPlayed = {};
   bool _inGame = false;
   bool _appActive = true;
   int _generation = 0;
@@ -94,8 +120,34 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
 
   void playGame() {
     _inGame = true;
-    current = choice ?? nextShuffleTheme(current, _rng);
+    current = choice ?? nextShuffleTheme(_lastGameTheme, _rng);
+    _lastGameTheme = current;
     _start();
+  }
+
+  Future<void> setSfx(bool value) async {
+    sfxOn = value;
+    notifyListeners();
+    await _prefs.setBool(_sfxKey, value);
+  }
+
+  /// Plays a sound effect; very rapid repeats (a fast drag) are thinned out.
+  Future<void> play(Sfx sfx) async {
+    if (!sfxOn || !_appActive) return;
+    final now = DateTime.now();
+    final last = _lastPlayed[sfx];
+    if (last != null && now.difference(last).inMilliseconds < 45) return;
+    _lastPlayed[sfx] = now;
+    try {
+      final pool = _pools[sfx] ??= await AudioPool.create(
+        source: AssetSource(sfx.asset),
+        maxPlayers: 4,
+        playerMode: PlayerMode.lowLatency,
+      );
+      await pool.start(volume: _sfxVolume);
+    } catch (e) {
+      debugPrint('Sound effect failed: $e');
+    }
   }
 
   Future<void> setMuted(bool value) async {
@@ -150,6 +202,9 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _player.dispose();
+    for (final pool in _pools.values) {
+      pool.dispose();
+    }
     super.dispose();
   }
 }

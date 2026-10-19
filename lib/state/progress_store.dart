@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -78,6 +79,20 @@ enum PlayMode {
   String key(String puzzleId) => this == paint ? puzzleId : 'sort:$puzzleId';
 }
 
+/// Day key like 2026-10-19, in local time.
+String dayKey(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+/// Daily-picture streak after finishing today's picture: it grows when the
+/// last one was finished yesterday, stays when already counted today, and
+/// otherwise starts over at 1.
+int nextStreak({required int streak, required String? lastDone, required DateTime today}) {
+  final todayKey = dayKey(today);
+  if (lastDone == todayKey) return streak;
+  final yesterday = dayKey(DateTime(today.year, today.month, today.day - 1));
+  return lastDone == yesterday ? streak + 1 : 1;
+}
+
 /// Records, saved games and unlock rules, persisted on the device.
 class ProgressStore extends ChangeNotifier {
   ProgressStore._(this._prefs, this._records, this._saved, [Map<String, Map<String, dynamic>>? sortSaved])
@@ -118,6 +133,7 @@ class ProgressStore extends ChangeNotifier {
     final saved = <String, SavedGame>{};
     final sortSaved = <String, Map<String, dynamic>>{};
     var seenTutorial = false, seenSortTutorial = false;
+    Map<String, dynamic>? daily;
     final raw = prefs.getString(_key);
     if (raw != null) {
       Map<String, dynamic> j;
@@ -134,10 +150,15 @@ class ProgressStore extends ChangeNotifier {
       _parseEach(j['sortSaved'], (k, v) => sortSaved[k] = v);
       seenTutorial = j['seenTutorial'] == true;
       seenSortTutorial = j['seenSortTutorial'] == true;
+      daily = j['daily'] is Map<String, dynamic> ? j['daily'] as Map<String, dynamic> : null;
     }
     return ProgressStore._(prefs, records, saved, sortSaved)
       .._seenTutorial = seenTutorial
-      .._seenSortTutorial = seenSortTutorial;
+      .._seenSortTutorial = seenSortTutorial
+      .._dailyDate = daily?['date'] as String?
+      .._dailyId = daily?['id'] as String?
+      .._dailyDone = daily?['done'] as String?
+      .._streak = (daily?['streak'] as int?) ?? 0;
   }
 
   /// In-memory store for tests.
@@ -150,6 +171,43 @@ class ProgressStore extends ChangeNotifier {
   SavedGame? savedFor(Puzzle p) {
     final g = _saved[p.id];
     return g != null && g.signature == p.signature && g.placed.length == p.cellCount ? g : null;
+  }
+
+  // ---- Daily picture ----------------------------------------------------
+
+  String? _dailyDate;
+  String? _dailyId;
+  String? _dailyDone;
+  int _streak = 0;
+
+  /// Today's surprise picture: chosen once per day, preferring pictures not
+  /// painted yet, and kept for the rest of the day.
+  String dailyPuzzleId(DateTime today, List<Puzzle> all) {
+    final key = dayKey(today);
+    if (_dailyDate == key && _dailyId != null && all.any((p) => p.id == _dailyId)) return _dailyId!;
+    final fresh = all.where((p) => !isCompleted(p.id)).toList();
+    final pool = fresh.isEmpty ? all : fresh;
+    final pick = pool[math.Random(key.hashCode).nextInt(pool.length)];
+    _dailyDate = key;
+    _dailyId = pick.id;
+    Future.microtask(_persist);
+    return pick.id;
+  }
+
+  bool dailyDoneToday(DateTime today) => _dailyDone == dayKey(today);
+
+  /// The streak as it stands today: still alive if the last daily picture
+  /// was finished today or yesterday.
+  int streak(DateTime today) {
+    final yesterday = dayKey(DateTime(today.year, today.month, today.day - 1));
+    return _dailyDone == dayKey(today) || _dailyDone == yesterday ? _streak : 0;
+  }
+
+  Future<void> recordDaily(DateTime today) {
+    _streak = nextStreak(streak: _streak, lastDone: _dailyDone, today: today);
+    _dailyDone = dayKey(today);
+    notifyListeners();
+    return _persist();
   }
 
   bool get seenSortTutorial => _seenSortTutorial;
@@ -238,6 +296,7 @@ class ProgressStore extends ChangeNotifier {
           'version': _version,
           'seenTutorial': _seenTutorial,
           'seenSortTutorial': _seenSortTutorial,
+          'daily': {'date': _dailyDate, 'id': _dailyId, 'done': _dailyDone, 'streak': _streak},
           'records': _records.map((k, v) => MapEntry(k, v.toJson())),
           'saved': _saved.map((k, v) => MapEntry(k, v.toJson())),
           'sortSaved': _sortSaved,
