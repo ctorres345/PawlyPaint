@@ -15,6 +15,10 @@ Future<void> showCompletionSheet(
   required bool isBest,
   bool relaxed = false,
   List<Achievement> badges = const [],
+  int? bestCombo,
+  int? secondsLeft,
+  String title = 'Masterpiece complete!',
+  String done = 'Back to the course',
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -30,7 +34,7 @@ Future<void> showCompletionSheet(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Masterpiece complete!', style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text(title, style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
               Text(puzzle.title, style: text.titleMedium?.copyWith(color: scheme.primary)),
               const SizedBox(height: 16),
@@ -43,7 +47,7 @@ Future<void> showCompletionSheet(
               ),
               const SizedBox(height: 16),
               if (relaxed) Text('Painted at your own pace.', style: text.titleMedium),
-              if (!relaxed)
+              if (!relaxed && secondsLeft == null)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -75,8 +79,16 @@ Future<void> showCompletionSheet(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _Stat(label: 'Score', value: '$score'),
-                    _Stat(label: 'Time', value: time),
-                    _Stat(label: 'Mistakes', value: '$mistakes'),
+                    if (secondsLeft != null)
+                      _Stat(
+                          label: 'Time left',
+                          value: '${secondsLeft ~/ 60}:${(secondsLeft % 60).toString().padLeft(2, '0')}')
+                    else
+                      _Stat(label: 'Time', value: time),
+                    if (bestCombo != null && bestCombo > 1)
+                      _Stat(label: 'Best combo', value: '×$bestCombo')
+                    else
+                      _Stat(label: 'Mistakes', value: '$mistakes'),
                   ],
                 ),
               if (badges.isNotEmpty) ...[
@@ -100,7 +112,7 @@ Future<void> showCompletionSheet(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Back to the course'),
+                  child: Text(done),
                 ),
               ),
             ],

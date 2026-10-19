@@ -13,7 +13,10 @@ class Achievement {
 
 /// What the achievements look at, gathered once from the saved progress.
 class ProgressFacts {
-  ProgressFacts(List<Course> courses, ProgressStore store) : bestStreak = store.bestStreak {
+  ProgressFacts(List<Course> courses, ProgressStore store)
+      : bestStreak = store.bestStreak,
+        bestCombo = store.bestCombo,
+        timeAttackWins = Difficulty.values.fold(0, (n, d) => n + store.timeAttack(d).wins) {
     for (final c in courses) {
       var courseDone = 0;
       for (final level in c.levels) {
@@ -51,6 +54,8 @@ class ProgressFacts {
   int specialCourses = 0;
   final Set<String> specialCoursesTouched = {};
   final int bestStreak;
+  final int bestCombo;
+  final int timeAttackWins;
 }
 
 final achievements = <Achievement>[
@@ -60,6 +65,8 @@ final achievements = <Achievement>[
   Achievement('both', 'Two ways', 'Finish the same picture in Paint and Sort', (f) => f.bothModes >= 1),
   Achievement('sort5', 'Tidy hands', 'Finish 5 pictures in Sort', (f) => f.sortFinished >= 5),
   Achievement('cleansort', 'Steady tray', 'Earn 3 stars in Sort', (f) => f.cleanSorts >= 1),
+  Achievement('combo10', 'On a roll', 'Reach a 10 combo in Sort', (f) => f.bestCombo >= 10),
+  Achievement('clock', 'Beat the clock', 'Win a Time Attack round', (f) => f.timeAttackWins >= 1),
   Achievement('stars10', 'Perfectionist', 'Earn 3 stars on 10 pictures', (f) => f.threeStars >= 10),
   Achievement('streak3', 'Little habit', 'Keep a 3-day daily streak', (f) => f.bestStreak >= 3),
   Achievement('streak7', 'Week of sparkle', 'Keep a 7-day daily streak', (f) => f.bestStreak >= 7),

@@ -217,15 +217,18 @@ void main() {
   });
 
   group('sort mode', () {
-    test('every Sort picture can earn 3 stars by following hints', () {
+    test('every Sort picture can earn 3 stars by following hints, with no shakes', () {
       for (final p in buildCourses().expand((c) => c.puzzles)) {
         final g = SortController(p).game;
-        while (!g.isComplete) {
-          if (g.freeSlots <= 0) g.shake();
-          g.tap(g.bestMove()!);
+        var steps = 0;
+        for (var next = g.bestStep(); next != null; next = g.bestStep()) {
+          g.play(next);
+          steps++;
         }
-        expect(g.shakes, lessThanOrEqualTo(SortController.freeShakesFor(p)), reason: p.id);
-        if (p.width <= 24) expect(g.shakes, 0, reason: p.id);
+        expect(g.isComplete, isTrue, reason: p.id);
+        expect(g.shakes, 0, reason: p.id);
+        expect(g.mistakes, 0, reason: p.id);
+        expect(steps, lessThan(p.cellCount * 2), reason: p.id);
       }
     });
 
@@ -244,7 +247,7 @@ void main() {
       final c = SortController(p);
       final before = c.saveVersion;
       final right = List.generate(p.cellCount, (i) => i).firstWhere((i) => !c.game.isWrong(i));
-      c.tap(right);
+      c.tapCell(right);
       expect(c.saveVersion, isNot(before));
     });
 
@@ -256,6 +259,10 @@ void main() {
           capacity: 18,
           seed: puzzle.signature,
         );
+    List<int> holesOf(SortGame g) => [
+          for (var i = 0; i < g.current.length; i++)
+            if (g.isHole(i)) i
+        ];
 
     test('scrambling keeps every bead and is the same for the same seed', () {
       final a = fresh(), b = fresh();
@@ -268,45 +275,132 @@ void main() {
       expect(a.wrongCount, greaterThan(puzzle.cellCount * 0.15));
     });
 
-    test('holes always match beads in the tray, and tapping right beads is a mistake', () {
+    test('tapping picks beads up, and nothing moves until a destination is tapped', () {
       final g = fresh();
       final right = List.generate(g.current.length, (i) => i).firstWhere((i) => !g.isWrong(i));
-      expect(g.tap(right).isEmpty, isTrue);
+      expect(g.tapCell(right).action, SortAction.wrong);
       expect(g.mistakes, 1);
       final wrong = List.generate(g.current.length, (i) => i).firstWhere(g.isWrong);
-      final move = g.tap(wrong);
-      expect(move.removed, isNotEmpty);
-      final holes = [
-        for (var i = 0; i < g.current.length; i++)
-          if (g.isHole(i)) i
-      ];
-      expect(holes.length, g.tray.length);
+      final board = g.encodeBoard();
+      expect(g.tapCell(wrong).action, SortAction.selected);
+      expect(g.isSelected(wrong), isTrue);
+      expect(g.encodeBoard(), board);
+      // Tapping the picked-up bead again puts it down.
+      expect(g.tapCell(wrong).action, SortAction.deselected);
+      expect(g.selection, isNull);
+      g.tapCell(wrong);
+      final move = g.tapTray(null);
+      expect(move.action, SortAction.toTray);
+      expect(move.hops, isNotEmpty);
+      expect(g.isHole(wrong), isTrue);
+      expect(holesOf(g).length, g.tray.length);
     });
 
-    test('following the hint, and shaking when stuck, always finishes', () {
+    test('beads only drop into spots that want their color', () {
       final g = fresh();
-      var steps = 0;
-      while (!g.isComplete && steps++ < 5000) {
-        if (g.isStuck) {
-          g.shake();
-          continue;
-        }
-        final next = g.bestMove();
-        if (next == null) {
-          g.shake();
-        } else {
-          g.tap(next);
-        }
+      final wrong = List.generate(g.current.length, (i) => i).firstWhere(g.isWrong);
+      g
+        ..tapCell(wrong)
+        ..tapTray(null);
+      final hole = holesOf(g).first;
+      // Pick up a tray bead of another color: the hole refuses it.
+      final other = g.tray.indexWhere((c) => c != g.target[hole]);
+      if (other >= 0) {
+        g.tapTray(other);
+        expect(g.tapCell(hole).action, SortAction.wrong);
+      }
+      // A wrong canvas bead of the right color drops straight in.
+      final source =
+          List.generate(g.current.length, (i) => i).firstWhere((i) => g.isWrong(i) && g.current[i] == g.target[hole]);
+      g
+        ..selection = null
+        ..tapCell(source);
+      final move = g.tapCell(hole);
+      expect(move.action, SortAction.placed);
+      expect(g.current[hole], g.target[hole]);
+      expect(holesOf(g).length, g.tray.length);
+    });
+
+    test('a full tray refuses more beads but the game never gets stuck', () {
+      final g = SortGame.scrambled(
+        width: puzzle.width,
+        target: puzzle.cells,
+        fraction: 0.5,
+        capacity: 3,
+        seed: puzzle.signature,
+      );
+      while (g.freeSlots > 0) {
+        g
+          ..tapCell(List.generate(g.current.length, (i) => i).firstWhere(g.isWrong))
+          ..tapTray(null);
+      }
+      final wrong = List.generate(g.current.length, (i) => i).firstWhere(g.isWrong);
+      g.tapCell(wrong);
+      expect(g.tapTray(null).action, SortAction.trayFull);
+      for (var next = g.bestStep(); next != null; next = g.bestStep()) {
+        g.play(next);
       }
       expect(g.isComplete, isTrue);
       expect(g.tray, isEmpty);
-      expect(g.shakes, lessThan(5));
+      expect(g.shakes, 0);
     });
 
     test('a saved board decodes to the same board', () {
-      final g = fresh()..tap(List.generate(puzzle.cellCount, (i) => i).firstWhere(fresh().isWrong));
+      final g = fresh();
+      g
+        ..tapCell(List.generate(puzzle.cellCount, (i) => i).firstWhere(g.isWrong))
+        ..tapTray(null);
       expect(SortGame.decodeBoard(g.encodeBoard()), g.current);
       expect(SortGame.decodeTray(g.encodeTray()), g.tray);
+    });
+
+    test('good drops in a row build a combo; a mistake or a pause breaks it', () {
+      var now = DateTime(2026, 10, 19, 12);
+      final p = puzzle;
+      final c = SortController(p, clock: () => now);
+      void step() {
+        final s = c.game.bestStep()!;
+        if (s.trayColor != null) {
+          c.tapTray(c.game.tray.indexOf(s.trayColor!));
+        } else {
+          c.tapCell(s.fromCell!);
+        }
+        s.toCell == null ? c.tapTray(null) : c.tapCell(s.toCell!);
+        now = now.add(const Duration(seconds: 1));
+      }
+
+      while (c.comboNow() < 3) {
+        step();
+      }
+      expect(c.bestCombo, greaterThanOrEqualTo(3));
+      expect(c.comboBonus, greaterThan(0));
+      now = now.add(Scoring.comboWindow * 2);
+      expect(c.comboNow(), 0);
+      final right = List.generate(p.cellCount, (i) => i).firstWhere((i) => !c.game.isWrong(i) && !c.game.isHole(i));
+      while (c.comboNow() < 1) {
+        step();
+      }
+      c.tapCell(right);
+      expect(c.comboNow(), 0);
+    });
+
+    test('Time Attack runs on a timer and good drops buy back seconds', () {
+      var now = DateTime(2026, 10, 19, 12);
+      final c = SortController.timed(puzzle, seed: 7, clock: () => now);
+      expect(c.timeLimit, greaterThan(15));
+      c.resume();
+      now = now.add(Duration(seconds: c.timeLimit! - 1));
+      expect(c.timeUp, isFalse);
+      final s = c.game.bestStep()!;
+      c.tapCell(s.fromCell!);
+      c.tapTray(null);
+      final t = c.game.bestStep()!;
+      t.trayColor != null ? c.tapTray(c.game.tray.indexOf(t.trayColor!)) : c.tapCell(t.fromCell!);
+      c.tapCell(t.toCell!);
+      expect(c.bonusSeconds, greaterThan(0));
+      now = now.add(const Duration(seconds: 10));
+      expect(c.timeUp, isTrue);
+      expect(c.tapCell(0), SortTapResult.ignored);
     });
   });
 

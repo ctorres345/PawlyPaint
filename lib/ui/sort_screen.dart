@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../data/courses.dart' show allCourses;
+import '../logic/scoring.dart';
+import '../logic/time_attack.dart';
 import '../models/puzzle.dart';
 import '../state/achievements.dart';
 import '../state/music.dart';
@@ -22,10 +24,18 @@ import 'gem_style.dart';
 import 'idle_shimmer.dart';
 import 'music_sheet.dart';
 
-/// Sort mode: the picture starts scrambled; tap wrong beads to send them to
-/// the tray, and the right beads fly back into place.
+/// Sort mode: the picture starts scrambled. Tap misplaced beads to pick them
+/// up, then tap the tray or an empty spot that wants their color.
 class SortScreen extends StatefulWidget {
-  const SortScreen({super.key, required this.puzzle, required this.store, this.daily = false, this.tutorial = false});
+  const SortScreen({
+    super.key,
+    required this.puzzle,
+    required this.store,
+    this.daily = false,
+    this.tutorial = false,
+    this.timeAttack,
+    this.seed = 0,
+  });
 
   final Puzzle puzzle;
   final ProgressStore store;
@@ -35,6 +45,11 @@ class SortScreen extends StatefulWidget {
 
   /// The guided first picture: nothing is saved or scored.
   final bool tutorial;
+
+  /// Set for a Time Attack run at this difficulty: a fresh board scrambled
+  /// by [seed], against the clock, never saved.
+  final Difficulty? timeAttack;
+  final int seed;
 
   @override
   State<SortScreen> createState() => _SortScreenState();
@@ -73,14 +88,20 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   MusicController? _music;
   late bool _showTips = !widget.store.seenSortTutorial && !widget.tutorial;
 
+  /// Drains while the combo is alive; restarted on every good drop.
+  late final AnimationController _comboBar;
+  bool get _timed => widget.timeAttack != null;
+
   static const _coachSteps = [
     CoachStep(Icons.touch_app_rounded,
-        'Some beads are in the wrong spot (marked with a dot for now). Tap one to send it to the tray.'),
+        'Beads with a dot are in the wrong spot. Tap one to pick up every misplaced bead of its color.'),
+    CoachStep(Icons.inventory_2_outlined, 'Now tap the tray to put them there. That leaves empty spots behind.'),
     CoachStep(Icons.auto_awesome_rounded,
-        'Beads in the tray fly back to any spot that needs their color. Keep tapping marked beads!'),
-    CoachStep(Icons.visibility_rounded, 'Hold the little picture in the corner to peek at the finished heart.'),
+        'Empty spots show the color they need. Pick up that color (from the tray or the canvas), then tap a glowing spot.'),
+    CoachStep(Icons.bolt_rounded,
+        'Good drops in a row build a combo for bonus points. Hold the little picture in the corner to peek.'),
     CoachStep(Icons.vibration_rounded,
-        "If the tray fills up, press Shake. The eye button turns the dots on or off. Finish the heart!"),
+        'The eye button turns the dots on or off, and the hint shows a good move. Finish the heart!'),
   ];
   int _coach = 0;
 
@@ -91,17 +112,22 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
 
   void _coachEvent(SortTapResult result) {
     if (!widget.tutorial) return;
-    if (_coach == 0 && (result == SortTapResult.moved || result == SortTapResult.sorted)) {
-      setState(() => _coach = result == SortTapResult.sorted ? 2 : 1);
-    } else if (_coach == 1 && result == SortTapResult.sorted) {
-      setState(() => _coach = 2);
-    }
+    final next = switch ((_coach, result)) {
+      (0, SortTapResult.selected) => 1,
+      (0 || 1, SortTapResult.moved) => 2,
+      (< 3, SortTapResult.sorted) => 3,
+      _ => _coach,
+    };
+    if (next != _coach) setState(() => _coach = next);
   }
 
   @override
   void initState() {
     super.initState();
-    game = SortController(widget.puzzle, resume: widget.tutorial ? null : widget.store.sortSaved(widget.puzzle.id));
+    game = _timed
+        ? SortController.timed(widget.puzzle, seed: widget.seed)
+        : SortController(widget.puzzle, resume: widget.tutorial ? null : widget.store.sortSaved(widget.puzzle.id));
+    _comboBar = AnimationController(vsync: this, duration: Scoring.comboWindow);
     paints = GemPaints.forPuzzle(widget.puzzle);
     _shimmer = IdleShimmer(this)..poke();
     _ticker = createTicker((_) {
@@ -109,7 +135,9 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       final hintAt = game.hintAt, missAt = game.mistakeAt;
       final now = DateTime.now();
       if (game.animating ||
-          (hintAt != null && now.difference(hintAt).inMilliseconds < 2600) ||
+          // Picked-up beads and the spots that want them gently pulse.
+          (game.selection != null && !_finished) ||
+          (hintAt != null && now.difference(hintAt).inMilliseconds < 4000) ||
           (missAt != null && now.difference(missAt).inMilliseconds < 700)) {
         frame.value++;
       } else {
@@ -119,7 +147,12 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       }
     });
     clock.value = game.seconds;
-    _clockTick = Timer.periodic(const Duration(seconds: 1), (_) => clock.value = game.seconds);
+    _clockTick = Timer.periodic(const Duration(seconds: 1), (_) {
+      clock.value = game.seconds;
+      if (game.timeUp && !_finished) _timeUp();
+    });
+    // The clock starts with the run, not with the first tap.
+    if (_timed) game.resume();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -144,6 +177,8 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       game.pause();
       _save();
+    } else if (state == AppLifecycleState.resumed && _timed && !_finished) {
+      game.resume();
     }
   }
 
@@ -153,16 +188,22 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     game.pause();
     if (!_finished &&
         !widget.tutorial &&
+        !_timed &&
         game.game.placed + game.game.shakes > 0 &&
         game.saveVersion != _savedVersion) {
       final state = game.toJson();
       final store = widget.store, id = widget.puzzle.id;
       Future.microtask(() => store.saveSort(id, state));
     }
+    if (!widget.tutorial && !_timed && game.bestCombo > widget.store.bestCombo) {
+      final store = widget.store, combo = game.bestCombo;
+      Future.microtask(() => store.noteCombo(combo));
+    }
     final music = _music;
     if (music != null) Future.microtask(music.leaveGame);
     _music = null;
     _glide?.dispose();
+    _comboBar.dispose();
     _clockTick?.cancel();
     _ticker.dispose();
     clock.dispose();
@@ -175,7 +216,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
 
   void _save() {
     // Only write when the board changed since the last save.
-    if (_finished || widget.tutorial || game.saveVersion == _savedVersion) return;
+    if (_finished || widget.tutorial || _timed || game.saveVersion == _savedVersion) return;
     _savedVersion = game.saveVersion;
     _unsaved = 0;
     widget.store.saveSort(widget.puzzle.id, game.toJson());
@@ -195,26 +236,41 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       return;
     }
     final (x, y) = cell;
-    final result = game.tap(y * widget.puzzle.width + x);
+    _react(game.tapCell(y * widget.puzzle.width + x));
+  }
+
+  void _tapTray(Offset local, Size size) {
+    _wakeTicker();
+    _react(game.tapTray(SortTrayPainter.slotAt(size, game.game.capacity, local)));
+  }
+
+  void _react(SortTapResult result) {
     _coachEvent(result);
     switch (result) {
-      case SortTapResult.moved:
+      case SortTapResult.selected:
         _settings.selection();
+        _music?.play(Sfx.place);
+      case SortTapResult.deselected:
+        _settings.selection();
+      case SortTapResult.moved:
+        _settings.light();
         _music?.play(Sfx.place);
         if (++_unsaved >= 10) _save();
       case SortTapResult.sorted:
         _settings.light();
         _music?.play(Sfx.place);
-        // The chime lands with the bead flying back into place.
-        Future.delayed(const Duration(milliseconds: 650), () => _music?.play(Sfx.land));
+        // The chime lands with the beads flying into place.
+        Future.delayed(const Duration(milliseconds: 450), () => _music?.play(Sfx.land));
+        if (game.combo >= 2) _comboBar.forward(from: 0);
         if (++_unsaved >= 10) _save();
       case SortTapResult.wrong:
         _settings.medium();
         _music?.play(Sfx.wrong);
+        _comboBar.value = 1;
       case SortTapResult.trayFull:
         _settings.heavy();
         _music?.play(Sfx.wrong);
-        _toast('The tray is full. Shake it to free some space.');
+        _toast('The tray is full. Drop beads into empty spots, or shake the tray.');
       case SortTapResult.complete:
         _settings.heavy();
         Future.delayed(const Duration(milliseconds: 650), () => _music?.play(Sfx.complete));
@@ -236,10 +292,12 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
 
   void _hint() {
     _wakeTicker();
-    final cell = game.hint();
-    if (cell == null) return;
-    // On big canvases, zoom in a little so the hinted bead is easy to tap.
-    if (view.cellSize < 14) {
+    final step = game.hint();
+    if (step == null) return;
+    if (_timed) _toast('Hint: −${TimeAttack.helpCost} seconds');
+    // On big canvases, zoom in a little so the hinted spot is easy to tap.
+    final cell = step.fromCell ?? step.toCell;
+    if (cell != null && view.cellSize < 14) {
       final w = widget.puzzle.width;
       final center = view.offset + Offset((cell % w + 0.5) * view.cellSize, (cell ~/ w + 0.5) * view.cellSize);
       view.zoomAt(center, 22 / view.cellSize);
@@ -267,22 +325,31 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
         builder: (context) => AlertDialog(
           icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFC107), size: 40),
           title: const Text("You're ready!"),
-          content: const Text('Every Sort picture works just like this one. Watch the tray space and have fun!'),
+          content: const Text('Every Sort picture works just like this one. Keep your combo going and have fun!'),
           actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text("Let's go"))],
         ),
       );
       _endTutorial();
       return;
     }
-    final relaxed = game.relaxed || game.excusedMistakes;
+    final difficulty = widget.timeAttack;
+    final relaxed = difficulty == null && (game.relaxed || game.excusedMistakes);
     final stars = relaxed ? 0 : game.stars;
     if (widget.daily) recordDailyIfToday(widget.store, widget.puzzle);
-    final best = widget.store.recordCompletion(
-      PlayMode.sort.key(widget.puzzle.id),
-      score: relaxed ? 0 : game.score,
-      stars: stars,
-      seconds: game.seconds,
-    );
+    final secondsLeft = game.timeLeft;
+    final Future<bool> best;
+    if (difficulty != null) {
+      best = widget.store
+          .recordTimeAttack(difficulty, won: true, score: game.score, combo: game.bestCombo, secondsLeft: secondsLeft);
+    } else {
+      widget.store.noteCombo(game.bestCombo);
+      best = widget.store.recordCompletion(
+        PlayMode.sort.key(widget.puzzle.id),
+        score: relaxed ? 0 : game.score,
+        stars: stars,
+        seconds: game.seconds,
+      );
+    }
     // Let the last beads land, then glide out to the whole picture.
     await Future<void>.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
@@ -312,8 +379,54 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       isBest: isBest,
       relaxed: relaxed,
       badges: badges,
+      bestCombo: game.bestCombo,
+      secondsLeft: difficulty == null ? null : secondsLeft,
+      title: difficulty == null ? 'Masterpiece complete!' : 'You beat the clock!',
+      done: difficulty == null ? 'Back to the course' : 'Back to Time Attack',
     );
     if (mounted) Navigator.of(context).pop();
+  }
+
+  /// Time Attack ran out: count the round and offer another go.
+  Future<void> _timeUp() async {
+    _finished = true;
+    _settings.heavy();
+    _music?.play(Sfx.wrong);
+    setState(() {});
+    await widget.store
+        .recordTimeAttack(widget.timeAttack!, won: false, score: game.score, combo: game.bestCombo, secondsLeft: 0);
+    if (!mounted) return;
+    final badges = takeNewAchievements(allCourses, widget.store);
+    final again = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.timer_off_rounded, size: 40),
+        title: const Text("Time's up!"),
+        content: Text([
+          'You sorted ${(game.progress * 100).floor()}% of ${widget.puzzle.title}.',
+          if (game.bestCombo > 1) 'Best combo: ×${game.bestCombo}.',
+          for (final b in badges) 'New badge: ${b.title}!',
+        ].join('\n')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Back')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Try again')),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (again == true) {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+        builder: (_) => SortScreen(
+          puzzle: widget.puzzle,
+          store: widget.store,
+          timeAttack: widget.timeAttack,
+          seed: widget.seed + 1,
+        ),
+      ));
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _confirmRestart() async {
@@ -330,12 +443,18 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     );
     if (ok != true || !mounted) return;
     _finished = true;
-    await widget.store.resetPuzzle(PlayMode.sort.key(widget.puzzle.id));
+    if (!_timed) await widget.store.resetPuzzle(PlayMode.sort.key(widget.puzzle.id));
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-          builder: (_) =>
-              SortScreen(puzzle: widget.puzzle, store: widget.store, daily: widget.daily, tutorial: widget.tutorial)),
+          builder: (_) => SortScreen(
+                puzzle: widget.puzzle,
+                store: widget.store,
+                daily: widget.daily,
+                tutorial: widget.tutorial,
+                timeAttack: widget.timeAttack,
+                seed: widget.seed + 1,
+              )),
     );
   }
 
@@ -376,7 +495,11 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
         backgroundColor: SettingsScope.of(context).theme.desk,
         appBar: AppBar(
           backgroundColor: scheme.surface,
-          title: Text(_finished || widget.store.isDone(widget.puzzle.id) ? widget.puzzle.title : 'Sort the beads'),
+          title: Text(_timed
+              ? 'Time Attack · ${widget.timeAttack!.label}'
+              : _finished || widget.store.isDone(widget.puzzle.id)
+                  ? widget.puzzle.title
+                  : 'Sort the beads'),
           actions: [
             IconButton(
               tooltip: 'Hint',
@@ -410,11 +533,12 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
               children: [
                 RepaintBoundary(
                     child: ListenableBuilder(
-                  listenable: SettingsScope.of(context).relaxed ? game : Listenable.merge([game, clock]),
+                  listenable: SettingsScope.of(context).relaxed && !_timed ? game : Listenable.merge([game, clock]),
                   builder: (context, _) => _SortStats(
-                    relaxed: game.relaxed,
+                    relaxed: game.relaxed && !_timed,
                     progress: game.progress,
-                    seconds: clock.value,
+                    seconds: _timed ? game.timeLeft : clock.value,
+                    countdown: _timed,
                     left: game.game.wrongCount,
                   ),
                 )),
@@ -429,7 +553,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                         Positioned.fill(
                           child: Semantics(
                             label: 'Scrambled picture',
-                            hint: 'Tap a bead that is in the wrong place to send it to the tray.',
+                            hint: 'Tap a misplaced bead to pick it up, then tap the tray or an empty spot.',
                             child: Listener(
                                 onPointerDown: (_) => _shimmer.poke(),
                                 child: RepaintBoundary(
@@ -456,9 +580,15 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                               puzzle: widget.puzzle,
                               onPeek: (on) {
                                 setState(() => peeking = on);
-                                if (on && widget.tutorial && _coach == 2) setState(() => _coach = 3);
+                                if (on && widget.tutorial && _coach == 3) setState(() => _coach = 4);
                               },
                             ),
+                          ),
+                        if (!_showTips && !_finished)
+                          Positioned(
+                            right: 10,
+                            top: 10,
+                            child: _ComboMeter(game: game, bar: _comboBar),
                           ),
                         if (widget.tutorial && _coach < _coachSteps.length)
                           Positioned(
@@ -492,11 +622,14 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                     trayKey: _trayKey,
                     game: game,
                     paints: paints,
+                    frame: frame,
+                    onTap: _tapTray,
                     onShake: () {
                       if (game.shake()) {
                         _wakeTicker();
                         _settings.medium();
                         _music?.play(Sfx.shake);
+                        if (_timed) _toast('Shake: −${TimeAttack.helpCost} seconds');
                       }
                     },
                   ),
@@ -526,9 +659,18 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
 }
 
 class _SortStats extends StatelessWidget {
-  const _SortStats({required this.relaxed, required this.progress, required this.seconds, required this.left});
+  const _SortStats({
+    required this.relaxed,
+    required this.progress,
+    required this.seconds,
+    required this.left,
+    this.countdown = false,
+  });
 
   final bool relaxed;
+
+  /// Time Attack: [seconds] counts down and turns red near the end.
+  final bool countdown;
 
   final double progress;
   final int seconds;
@@ -560,9 +702,20 @@ class _SortStats extends StatelessWidget {
                   Text('$left to sort', style: text.labelLarge),
                   if (!relaxed) ...[
                     const SizedBox(width: 16),
-                    const Icon(Icons.timer_outlined, size: 18, semanticLabel: 'Time'),
+                    Icon(
+                      countdown ? Icons.hourglass_bottom_rounded : Icons.timer_outlined,
+                      size: 18,
+                      semanticLabel: countdown ? 'Time left' : 'Time',
+                      color: countdown && seconds <= 10 ? scheme.error : null,
+                    ),
                     const SizedBox(width: 4),
-                    Text(time, style: text.labelLarge),
+                    Text(
+                      time,
+                      style: text.labelLarge?.copyWith(
+                        color: countdown && seconds <= 10 ? scheme.error : null,
+                        fontWeight: countdown ? FontWeight.w800 : null,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -602,10 +755,11 @@ class _SortTips extends StatelessWidget {
           children: [
             Text('Sort the beads', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
-            tip(Icons.touch_app_outlined, 'Some beads are in the wrong place. Tap one to send it to the tray.'),
-            tip(Icons.auto_awesome_rounded, 'Beads in the tray fly back to any spot that needs their color.'),
-            tip(Icons.inventory_2_outlined, "Mind the tray's space. If it fills up, shake it to free some room."),
-            tip(Icons.tips_and_updates_outlined, 'Stuck? The hint button shows a good next bead.'),
+            tip(Icons.touch_app_outlined, 'Tap a misplaced bead to pick up every misplaced bead of its color.'),
+            tip(Icons.inventory_2_outlined, 'Tap the tray to put them there. That leaves empty spots behind.'),
+            tip(Icons.auto_awesome_rounded, 'Pick up the color an empty spot needs, then tap the glowing spot.'),
+            tip(Icons.bolt_rounded, 'Good drops in a row build a combo for bonus points.'),
+            tip(Icons.tips_and_updates_outlined, 'Stuck? The hint button shows a good next move.'),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(onPressed: onDone, child: const Text('Got it')),
@@ -768,6 +922,11 @@ class _SortBoardPainter extends CustomPainter {
     ..color = const Color(0x33000000)
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
   static final _wrongDot = Paint()..color = const Color(0xCC3B2F36);
+  static final _glow = Paint()
+    ..color = const Color(0x66FFFFFF)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, kCell * 0.25);
+  static final _spot = Paint();
+  static final _spotRing = Paint()..style = PaintingStyle.stroke;
   static final _ring = Paint()..style = PaintingStyle.stroke;
   static final _miss = Paint()
     ..style = PaintingStyle.stroke
@@ -855,14 +1014,41 @@ class _SortBoardPainter extends CustomPainter {
       }
     }
 
-    // Hint: a pulsing ring around a good bead to tap.
-    final hint = game.hintCell, hintAt = game.hintAt;
-    if (hint != null && hintAt != null && now.difference(hintAt).inMilliseconds < 2500) {
-      final pulse = 0.5 + 0.5 * math.sin(now.millisecondsSinceEpoch / 120);
+    final pulse = 0.5 + 0.5 * math.sin(now.millisecondsSinceEpoch / 140);
+    final sel = peek ? null : game.selection;
+    if (sel != null) {
+      // Picked-up beads glow, and every empty spot that wants them breathes.
+      _ring
+        ..color = Colors.white.withValues(alpha: 0.75 + 0.25 * pulse)
+        ..strokeWidth = math.max(kCell * 0.1, 1.5 / view.scale);
+      for (final c in sel.cells) {
+        final r = _cell(c);
+        canvas.drawCircle(r.center, kCell * 0.5, _glow);
+        drawGem(canvas, r.deflate(kCell * 0.02), paints[sel.color], pop: 0.25);
+        canvas.drawCircle(r.center, kCell * 0.52, _ring);
+      }
+      _spot.color = paints[sel.color].color.withValues(alpha: 0.35 + 0.45 * pulse);
+      _spotRing
+        ..color = Colors.white.withValues(alpha: 0.5 + 0.5 * pulse)
+        ..strokeWidth = math.max(kCell * 0.08, 1.2 / view.scale);
+      final cur = game.game.current, target = game.game.target;
+      for (var i = 0; i < cur.length; i++) {
+        if (cur[i] >= 0 || target[i] != sel.color || game.arriving.containsKey(i)) continue;
+        final r = _cell(i).deflate(kCell * (0.2 - 0.06 * pulse));
+        canvas.drawOval(r, _spot);
+        canvas.drawOval(r, _spotRing);
+      }
+    }
+
+    // Hint: pulsing rings on what to pick up and where it goes.
+    final hint = game.hintStep, hintAt = game.hintAt;
+    if (hint != null && hintAt != null && now.difference(hintAt).inMilliseconds < 3800) {
       _ring
         ..color = const Color(0xFFFFC107).withValues(alpha: 0.5 + 0.5 * pulse)
         ..strokeWidth = math.max(kCell * 0.12, 2 / view.scale);
-      canvas.drawCircle(_cell(hint).center, kCell * (0.62 + 0.12 * pulse), _ring);
+      for (final c in [hint.fromCell, hint.toCell]) {
+        if (c != null) canvas.drawCircle(_cell(c).center, kCell * (0.62 + 0.12 * pulse), _ring);
+      }
     }
 
     // A tap on a bead that was already right shows a fading cross.
@@ -894,13 +1080,23 @@ class _SortBoardPainter extends CustomPainter {
       old.paints != paints;
 }
 
-/// The tray of collected beads, with its shake button.
+/// The tray of collected beads, with its shake button. Tap it to put
+/// picked-up beads in, or tap a tray bead to pick up its color.
 class _TrayPanel extends StatelessWidget {
-  const _TrayPanel({required this.trayKey, required this.game, required this.paints, required this.onShake});
+  const _TrayPanel({
+    required this.trayKey,
+    required this.game,
+    required this.paints,
+    required this.frame,
+    required this.onTap,
+    required this.onShake,
+  });
 
   final GlobalKey trayKey;
   final SortController game;
   final List<GemPaints> paints;
+  final Listenable frame;
+  final void Function(Offset local, Size size) onTap;
   final VoidCallback onShake;
 
   @override
@@ -913,6 +1109,8 @@ class _TrayPanel extends StatelessWidget {
         final g = game.game;
         final full = g.freeSlots <= 0 && !g.isComplete;
         final rows = (g.capacity / SortTrayPainter.columns).ceil();
+        final sel = g.selection;
+        final waiting = sel != null && !sel.fromTray;
         return Material(
           color: scheme.surface,
           elevation: 6,
@@ -926,10 +1124,28 @@ class _TrayPanel extends StatelessWidget {
                 AspectRatio(
                   aspectRatio: SortTrayPainter.columns / rows,
                   child: Semantics(
+                    button: true,
                     label: 'Tray, ${g.tray.length} of ${g.capacity} slots used',
-                    child: CustomPaint(
-                      key: trayKey,
-                      painter: SortTrayPainter(tray: g.tray, capacity: g.capacity, paints: paints, full: full),
+                    hint: waiting ? 'Tap to put the picked-up beads here' : 'Tap a bead to pick up its color',
+                    child: LayoutBuilder(
+                      builder: (context, box) => GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTapUp: (d) => onTap(d.localPosition, box.biggest),
+                        child: CustomPaint(
+                          key: trayKey,
+                          size: box.biggest,
+                          painter: SortTrayPainter(
+                            tray: g.tray,
+                            capacity: g.capacity,
+                            paints: paints,
+                            full: full,
+                            selectedColor: sel != null && sel.fromTray ? sel.color : null,
+                            hintColor: game.hintStep?.trayColor,
+                            invite: waiting || (game.hintStep != null && game.hintStep!.toCell == null),
+                            frame: frame,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -942,18 +1158,22 @@ class _TrayPanel extends StatelessWidget {
                       full ? 'Tray full' : '${g.tray.length} / ${g.capacity}',
                       style: text.labelLarge?.copyWith(color: full ? scheme.error : null),
                     ),
+                    if (waiting) ...[
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          '${sel.cells.length} picked up',
+                          style: text.labelMedium?.copyWith(color: scheme.primary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                     const Spacer(),
-                    full
-                        ? FilledButton.icon(
-                            onPressed: onShake,
-                            icon: const Icon(Icons.vibration_rounded),
-                            label: const Text('Shake tray'),
-                          )
-                        : OutlinedButton.icon(
-                            onPressed: g.tray.isEmpty ? null : onShake,
-                            icon: const Icon(Icons.vibration_rounded),
-                            label: const Text('Shake'),
-                          ),
+                    OutlinedButton.icon(
+                      onPressed: g.tray.isEmpty ? null : onShake,
+                      icon: const Icon(Icons.vibration_rounded),
+                      label: const Text('Shake'),
+                    ),
                   ],
                 ),
               ],
@@ -966,7 +1186,16 @@ class _TrayPanel extends StatelessWidget {
 }
 
 class SortTrayPainter extends CustomPainter {
-  SortTrayPainter({required this.tray, required this.capacity, required this.paints, required this.full});
+  SortTrayPainter({
+    required this.tray,
+    required this.capacity,
+    required this.paints,
+    required this.full,
+    this.selectedColor,
+    this.hintColor,
+    this.invite = false,
+    Listenable? frame,
+  }) : super(repaint: frame);
 
   static const columns = 12;
 
@@ -974,6 +1203,15 @@ class SortTrayPainter extends CustomPainter {
   final int capacity;
   final List<GemPaints> paints;
   final bool full;
+
+  /// Tray beads of this color are picked up.
+  final int? selectedColor;
+
+  /// Tray beads of this color are the hint's suggestion.
+  final int? hintColor;
+
+  /// Canvas beads are picked up, so the tray glows to say "drop them here".
+  final bool invite;
 
   /// Where tray slot [slot] sits inside a tray of [size].
   static Rect slotRect(Size size, int capacity, int slot) {
@@ -987,7 +1225,18 @@ class SortTrayPainter extends CustomPainter {
     );
   }
 
+  /// The slot under [local] in a tray of [size], or null outside it.
+  static int? slotAt(Size size, int capacity, Offset local) {
+    final rows = (capacity / columns).ceil();
+    final col = (local.dx / (size.width / columns)).floor(), row = (local.dy / (size.height / rows)).floor();
+    if (col < 0 || row < 0 || col >= columns || row >= rows) return null;
+    final slot = row * columns + col;
+    return slot < capacity ? slot : null;
+  }
+
   static final _fullTint = Paint()..color = const Color(0x22E53935);
+  static final _inviteTint = Paint();
+  static final _ring = Paint()..style = PaintingStyle.stroke;
   static final _slotLine = Paint()
     ..color = const Color(0x55000000)
     ..style = PaintingStyle.stroke;
@@ -1006,15 +1255,27 @@ class SortTrayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (full) {
-      canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(10)), _fullTint);
+    final pulse = 0.5 + 0.5 * math.sin(DateTime.now().millisecondsSinceEpoch / 140);
+    final box = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(10));
+    if (full) canvas.drawRRect(box, _fullTint);
+    if (invite && !full) {
+      _inviteTint.color = const Color(0xFFFFC107).withValues(alpha: 0.12 + 0.14 * pulse);
+      canvas.drawRRect(box, _inviteTint);
     }
     for (var i = 0; i < capacity; i++) {
       final r = slotRect(size, capacity, i);
-      if (i < tray.length) {
-        drawCutGem(canvas, r, paints[tray[i]]);
-      } else {
+      if (i >= tray.length) {
         _drawSlot(canvas, r);
+        continue;
+      }
+      final color = tray[i];
+      final lifted = color == selectedColor;
+      drawCutGem(canvas, lifted ? r.shift(Offset(0, -r.height * 0.12)) : r, paints[color]);
+      if (lifted || color == hintColor) {
+        _ring
+          ..color = lifted ? Colors.white : const Color(0xFFFFC107).withValues(alpha: 0.5 + 0.5 * pulse)
+          ..strokeWidth = math.max(1.5, r.width * 0.1);
+        canvas.drawCircle(lifted ? r.center.translate(0, -r.height * 0.12) : r.center, r.width * 0.5, _ring);
       }
     }
   }
@@ -1041,6 +1302,16 @@ class _FlightPainter extends CustomPainter {
   final Offset? Function(int cell) cellCenter;
   final Rect? Function(int slot) slotRect;
 
+  /// Where a flight end sits on screen, and how big a bead is there.
+  (Offset, double)? _end(int? cell, int? slot) {
+    if (cell != null) {
+      final c = cellCenter(cell);
+      return c == null ? null : (c, view.cellSize);
+    }
+    final r = slotRect(slot!);
+    return r == null ? null : (r.center, r.width);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     if (game.flights.isEmpty) return;
@@ -1048,22 +1319,86 @@ class _FlightPainter extends CustomPainter {
     for (final f in game.flights) {
       final t = f.progress(now);
       if (t == null || t >= 1) continue;
-      final cell = cellCenter(f.cell);
-      final slot = slotRect(f.slot);
-      if (cell == null || slot == null) continue;
-      final from = f.toTray ? cell : slot.center;
-      final to = f.toTray ? slot.center : cell;
+      final from = _end(f.fromCell, f.fromSlot), to = _end(f.toCell, f.toSlot);
+      if (from == null || to == null) continue;
       final e = Curves.easeInOut.transform(t);
       final arc = math.sin(math.pi * e) * 60;
-      final pos = Offset.lerp(from, to, e)! - Offset(0, arc);
-      final cellSize = view.cellSize;
-      final s = f.toTray ? lerpDouble(cellSize, slot.width, e)! : lerpDouble(slot.width, cellSize, e)!;
+      final pos = Offset.lerp(from.$1, to.$1, e)! - Offset(0, arc);
+      final s = lerpDouble(from.$2, to.$2, e)!;
       drawGem(canvas, Rect.fromCenter(center: pos, width: s * 1.1, height: s * 1.1), paints[f.color]);
     }
   }
 
   @override
   bool shouldRepaint(_FlightPainter old) => true;
+}
+
+/// The live combo: a badge that pops on each good drop, with a bar that
+/// drains until the combo lapses.
+class _ComboMeter extends StatelessWidget {
+  const _ComboMeter({required this.game, required this.bar});
+
+  final SortController game;
+  final AnimationController bar;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: Listenable.merge([game, bar]),
+        builder: (context, _) {
+          final combo = game.comboNow();
+          final show = combo >= 2 && bar.isAnimating;
+          return AnimatedOpacity(
+            opacity: show ? 1 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: TweenAnimationBuilder<double>(
+              key: ValueKey(combo),
+              tween: Tween(begin: 1.35, end: 1),
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.elasticOut,
+              builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+              child: Semantics(
+                liveRegion: true,
+                label: show ? 'Combo $combo' : null,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFFFF8A65), Color(0xFFFFC107)]),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 8, offset: Offset(0, 3))],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Combo ×$combo',
+                        style: text.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        width: 84,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: 1 - bar.value,
+                            minHeight: 5,
+                            color: Colors.white,
+                            backgroundColor: Colors.white30,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 /// A small preview of the finished picture. Hold it to see the whole

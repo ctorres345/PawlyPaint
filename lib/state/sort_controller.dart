@@ -2,16 +2,19 @@ import 'package:flutter/foundation.dart';
 
 import '../logic/scoring.dart';
 import '../logic/sort_game.dart';
+import '../logic/time_attack.dart';
 import '../models/puzzle.dart';
 
-/// A bead in the air between a board cell and a tray slot.
+/// A bead in the air: from a board cell or tray slot to a board cell or tray
+/// slot (exactly one of each pair is set).
 class Flight {
-  Flight({required this.cell, required this.slot, required this.color, required this.toTray, required this.start});
+  Flight({this.fromCell, this.fromSlot, this.toCell, this.toSlot, required this.color, required this.start});
 
-  final int cell;
-  final int slot;
+  final int? fromCell;
+  final int? fromSlot;
+  final int? toCell;
+  final int? toSlot;
   final int color;
-  final bool toTray;
   final DateTime start;
 
   static const duration = Duration(milliseconds: 420);
@@ -26,19 +29,30 @@ class Flight {
   DateTime get end => start.add(duration);
 }
 
-enum SortTapResult { moved, sorted, wrong, trayFull, ignored, complete }
+enum SortTapResult { selected, deselected, moved, sorted, wrong, trayFull, ignored, complete }
 
-/// Live state of one picture in Sort mode: the rules plus timing, animation
-/// bookkeeping and saving.
+/// Live state of one picture in Sort mode (or a Time Attack run): the rules
+/// plus timing, combos, animation bookkeeping and saving.
 class SortController extends ChangeNotifier {
   SortController(this.puzzle, {Map<String, dynamic>? resume, DateTime Function()? clock})
       : _clock = clock ?? DateTime.now,
+        timeLimit = null,
         game = _restore(puzzle, resume) ?? _fresh(puzzle) {
     if (_restore(puzzle, resume) != null) {
       _baseSeconds = resume!['seconds'] as int? ?? 0;
       excusedMistakes = resume['relaxed'] == true;
+      bestCombo = resume['bestCombo'] as int? ?? 0;
+      comboBonus = resume['comboBonus'] as int? ?? 0;
     }
   }
+
+  /// A Time Attack run on [puzzle], scrambled by [seed]; never saved.
+  SortController.timed(Puzzle puzzle, {required int seed, DateTime Function()? clock})
+      : this._timed(puzzle, _timedBoard(puzzle, seed), clock);
+
+  SortController._timed(this.puzzle, this.game, DateTime Function()? clock)
+      : _clock = clock ?? DateTime.now,
+        timeLimit = TimeAttack.timeLimit(game);
 
   /// Scramble amount and tray size (full rows of 12) by canvas size: harder
   /// pictures mix more of their beads.
@@ -49,19 +63,13 @@ class SortController extends ChangeNotifier {
         _ => (mix: 0.8, capacity: 60),
       };
 
-  static final _freeShakes = <String, int>{};
-
-  /// Shakes allowed for 3 stars: as many as playing by the hint button needs
-  /// on this picture's board (0 on most Easy and Medium pictures), so heavily
-  /// mixed pictures stay fair.
-  static int freeShakesFor(Puzzle p) => _freeShakes.putIfAbsent('${p.id}:${p.signature}', () {
-        final g = _fresh(p);
-        while (!g.isComplete) {
-          if (g.freeSlots <= 0) g.shake();
-          g.tap(g.bestMove()!);
-        }
-        return g.shakes;
-      });
+  /// The difficulty a picture's canvas size belongs to.
+  static Difficulty difficultyOf(Puzzle p) => switch (p.width) {
+        <= 16 => Difficulty.easy,
+        <= 24 => Difficulty.medium,
+        <= 32 => Difficulty.hard,
+        _ => Difficulty.extreme,
+      };
 
   static SortGame _fresh(Puzzle p) {
     final s = settingsFor(p);
@@ -72,6 +80,11 @@ class SortController extends ChangeNotifier {
       capacity: s.capacity,
       seed: p.signature,
     );
+  }
+
+  static SortGame _timedBoard(Puzzle p, int seed) {
+    final s = TimeAttack.settingsFor(difficultyOf(p));
+    return SortGame.scrambled(width: p.width, target: p.cells, fraction: s.mix, capacity: s.capacity, seed: seed);
   }
 
   static SortGame? _restore(Puzzle p, Map<String, dynamic>? j) {
@@ -102,6 +115,13 @@ class SortController extends ChangeNotifier {
   final SortGame game;
   final DateTime Function() _clock;
 
+  /// Seconds on the clock for a Time Attack run; null in regular Sort.
+  final int? timeLimit;
+  bool get timed => timeLimit != null;
+
+  /// Seconds won back (or lost to help) during a Time Attack run.
+  int bonusSeconds = 0;
+
   final List<Flight> flights = [];
 
   /// Cells waiting for a flying bead; drawn empty until it lands.
@@ -114,7 +134,15 @@ class SortController extends ChangeNotifier {
   /// counts as relaxed even if the setting was switched off later.
   bool excusedMistakes = false;
 
-  int? hintCell;
+  /// Good drops in a row, each within [Scoring.comboWindow] of the last.
+  int combo = 0;
+  int bestCombo = 0;
+  int comboBonus = 0;
+
+  /// When the combo was last fed; it lapses [Scoring.comboWindow] later.
+  DateTime? comboAt;
+
+  SortStep? hintStep;
   DateTime? hintAt;
   int? mistakeCell;
   DateTime? mistakeAt;
@@ -129,21 +157,36 @@ class SortController extends ChangeNotifier {
   double get progress => correctCount / puzzle.cellCount;
   bool get isComplete => game.isComplete;
   bool get animating => flights.isNotEmpty;
+  SortSelection? get selection => game.selection;
 
   int get seconds {
     final since = _runningSince;
     return since == null ? _baseSeconds : _baseSeconds + _clock().difference(since).inSeconds;
   }
 
+  /// Seconds left in a Time Attack run (0 in regular Sort).
+  int get timeLeft => timed ? (timeLimit! + bonusSeconds - seconds).clamp(0, 1 << 30) : 0;
+  bool get timeUp => timed && !isComplete && timeLeft <= 0;
+
+  /// The live combo, or 0 once its window has passed.
+  int comboNow([DateTime? now]) {
+    final at = comboAt;
+    if (at == null || (now ?? _clock()).difference(at) > Scoring.comboWindow) return 0;
+    return combo;
+  }
+
   /// Changes whenever anything worth saving changes (board or counted mistakes).
   int get saveVersion => boardVersion + game.mistakes;
 
-  int get stars => Scoring.sortStars(
-        shakes: game.shakes,
-        mistakes: game.mistakes,
-        freeShakes: freeShakesFor(puzzle),
-      );
-  int get score => Scoring.sortScore(placed: game.placed, shakes: game.shakes, mistakes: game.mistakes);
+  int get stars => Scoring.sortStars(shakes: game.shakes, mistakes: game.mistakes);
+  int get score => timed
+      ? TimeAttack.score(
+          placed: game.placed,
+          comboBonus: comboBonus,
+          mistakes: game.mistakes,
+          secondsLeft: isComplete ? timeLeft : 0,
+        )
+      : Scoring.sortScore(placed: game.placed, shakes: game.shakes, mistakes: game.mistakes, comboBonus: comboBonus);
 
   void resume() {
     if (!isComplete) _runningSince ??= _clock();
@@ -156,56 +199,89 @@ class SortController extends ChangeNotifier {
     _runningSince = null;
   }
 
-  SortTapResult tap(int cell) {
-    if (isComplete) return SortTapResult.ignored;
-    // A cell whose bead is still flying in looks empty, so it isn't a mistake.
-    if (game.isHole(cell) || arriving.containsKey(cell)) return SortTapResult.ignored;
-    if (!game.isWrong(cell)) {
-      if (!relaxed) {
-        game.tap(cell);
-      } else if (!excusedMistakes) {
-        excusedMistakes = true;
-        boardVersion++;
-      }
-      mistakeCell = cell;
-      mistakeAt = _clock();
-      notifyListeners();
-      return SortTapResult.wrong;
-    }
-    if (game.freeSlots <= 0) {
-      notifyListeners();
-      return SortTapResult.trayFull;
+  bool get _locked => isComplete || timeUp;
+
+  SortTapResult tapCell(int cell) {
+    if (_locked) return SortTapResult.ignored;
+    // A cell whose bead is still flying in looks empty, so leave it alone.
+    if (arriving.containsKey(cell)) return SortTapResult.ignored;
+    return _apply(game.tapCell(cell, countMistakes: !relaxed || timed), cell);
+  }
+
+  SortTapResult tapTray(int? slot) {
+    if (_locked) return SortTapResult.ignored;
+    return _apply(game.tapTray(slot), null);
+  }
+
+  SortTapResult _apply(SortMove move, int? cell) {
+    final now = _clock();
+    switch (move.action) {
+      case SortAction.ignored:
+        return SortTapResult.ignored;
+      case SortAction.selected:
+      case SortAction.deselected:
+        resume();
+        hintStep = null;
+        notifyListeners();
+        return move.action == SortAction.selected ? SortTapResult.selected : SortTapResult.deselected;
+      case SortAction.trayFull:
+        notifyListeners();
+        return SortTapResult.trayFull;
+      case SortAction.wrong:
+        if (relaxed && !timed) {
+          if (!excusedMistakes) {
+            excusedMistakes = true;
+            boardVersion++;
+          }
+        } else {
+          combo = 0;
+          comboAt = null;
+        }
+        mistakeCell = cell;
+        mistakeAt = now;
+        notifyListeners();
+        return SortTapResult.wrong;
+      case SortAction.toTray:
+      case SortAction.placed:
+        break;
     }
     resume();
-    hintCell = null;
-    final move = game.tap(cell);
-    final now = _clock();
+    hintStep = null;
     _prune(now);
-    for (var i = 0; i < move.removed.length; i++) {
-      final r = move.removed[i];
+    final placing = move.action == SortAction.placed;
+    for (var i = 0; i < move.hops.length; i++) {
+      final h = move.hops[i];
+      final start = now.add(Duration(milliseconds: i * 35));
       flights.add(Flight(
-          cell: r.cell,
-          slot: r.traySlot,
-          color: r.color,
-          toTray: true,
-          start: now.add(Duration(milliseconds: i * 35))));
+        fromCell: h.fromCell,
+        fromSlot: h.fromSlot,
+        toCell: h.toCell,
+        toSlot: h.toSlot,
+        color: h.color,
+        start: start,
+      ));
+      if (h.toCell != null) arriving[h.toCell!] = start.add(Flight.duration);
     }
-    final fillStart = now.add(Duration(milliseconds: 220 + move.removed.length * 35));
-    for (var i = 0; i < move.fills.length; i++) {
-      final f = move.fills[i];
-      final start = fillStart.add(Duration(milliseconds: i * 45));
-      flights.add(Flight(cell: f.cell, slot: f.traySlot, color: f.color, toTray: false, start: start));
-      arriving[f.cell] = start.add(Flight.duration);
+    if (placing) {
+      combo = comboNow(now) + 1;
+      comboAt = now;
+      if (combo > bestCombo) bestCombo = combo;
+      comboBonus += Scoring.comboBonus(combo, move.hops.length);
+      if (timed) bonusSeconds += TimeAttack.secondsFor(combo);
+    } else if (comboNow(now) > 0) {
+      // Clearing room for the next drop keeps the combo alive.
+      comboAt = now;
     }
     boardVersion++;
     if (isComplete) pause();
     notifyListeners();
     if (isComplete) return SortTapResult.complete;
-    return move.fills.isNotEmpty ? SortTapResult.sorted : SortTapResult.moved;
+    return placing ? SortTapResult.sorted : SortTapResult.moved;
   }
 
   /// Puts a few tray beads back on the board to make room.
   bool shake() {
+    if (_locked) return false;
     final back = game.shake();
     if (back.isEmpty) return false;
     final now = _clock();
@@ -213,20 +289,26 @@ class SortController extends ChangeNotifier {
     for (var i = 0; i < back.length; i++) {
       final b = back[i];
       final start = now.add(Duration(milliseconds: i * 50));
-      flights.add(Flight(cell: b.cell, slot: i, color: b.color, toTray: false, start: start));
-      arriving[b.cell] = start.add(Flight.duration);
+      flights.add(Flight(fromSlot: i, toCell: b.toCell, color: b.color, start: start));
+      arriving[b.toCell!] = start.add(Flight.duration);
     }
+    combo = 0;
+    comboAt = null;
+    if (timed) bonusSeconds -= TimeAttack.helpCost;
     boardVersion++;
     notifyListeners();
     return true;
   }
 
-  /// Highlights a good next move for a couple of seconds.
-  int? hint() {
-    hintCell = game.bestMove();
+  /// Shows a good next move for a few seconds: what to pick up and where it goes.
+  SortStep? hint() {
+    if (_locked) return null;
+    game.selection = null;
+    hintStep = game.bestStep();
     hintAt = _clock();
+    if (timed && hintStep != null) bonusSeconds -= TimeAttack.helpCost;
     notifyListeners();
-    return hintCell;
+    return hintStep;
   }
 
   void _prune(DateTime now) {
@@ -250,5 +332,7 @@ class SortController extends ChangeNotifier {
         'placed': game.placed,
         'seconds': seconds,
         'relaxed': excusedMistakes,
+        'bestCombo': bestCombo,
+        'comboBonus': comboBonus,
       };
 }

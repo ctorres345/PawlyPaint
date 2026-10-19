@@ -11,6 +11,7 @@ import 'gem_style.dart';
 import 'sort_screen.dart';
 import 'music_sheet.dart';
 import 'settings_screen.dart';
+import 'time_attack_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.courses});
@@ -78,6 +79,14 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => TimeAttackScreen(courses: courses)),
+              ),
+              icon: const Icon(Icons.timer_rounded),
+              label: const Text('Time Attack'),
+            ),
             const SizedBox(height: 24),
             for (final course in courses.where((c) => !c.special)) ...[
               _CourseCard(course: course, store: store),
@@ -118,11 +127,12 @@ class _CourseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final total = course.puzzles.length;
-    final completed = store.completedIn(course.puzzles);
+    final painted = store.completedIn(course.puzzles, PlayMode.paint);
+    final sorted = store.completedIn(course.puzzles, PlayMode.sort);
     final stars = store.starsIn(course.puzzles);
     return Semantics(
       button: true,
-      label: '${course.title}, $completed of $total pictures finished, $stars stars',
+      label: '${course.title}, $painted of $total painted, $sorted of $total sorted, $stars stars',
       excludeSemantics: true,
       child: Material(
         borderRadius: BorderRadius.circular(24),
@@ -154,14 +164,9 @@ class _CourseCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(course.subtitle, style: text.bodyMedium),
                   const SizedBox(height: 14),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: completed / total,
-                      minHeight: 8,
-                      backgroundColor: Colors.white54,
-                    ),
-                  ),
+                  _ModeProgress(icon: Icons.brush_rounded, label: 'Paint', done: painted, total: total),
+                  const SizedBox(height: 6),
+                  _ModeProgress(icon: Icons.swap_horiz_rounded, label: 'Sort', done: sorted, total: total),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -170,7 +175,8 @@ class _CourseCard extends StatelessWidget {
                       for (var i = 0; i < course.levels.length; i++)
                         _LevelPill(
                           level: course.levels[i],
-                          completed: store.completedIn(course.levels[i].puzzles),
+                          painted: store.completedIn(course.levels[i].puzzles, PlayMode.paint),
+                          sorted: store.completedIn(course.levels[i].puzzles, PlayMode.sort),
                           unlocked: store.isLevelUnlocked(course, i),
                         ),
                     ],
@@ -186,10 +192,11 @@ class _CourseCard extends StatelessWidget {
 }
 
 class _LevelPill extends StatelessWidget {
-  const _LevelPill({required this.level, required this.completed, required this.unlocked});
+  const _LevelPill({required this.level, required this.painted, required this.sorted, required this.unlocked});
 
   final Level level;
-  final int completed;
+  final int painted;
+  final int sorted;
   final bool unlocked;
 
   @override
@@ -202,9 +209,42 @@ class _LevelPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (!unlocked) ...[const Icon(Icons.lock_rounded, size: 14), const SizedBox(width: 4)],
-          Text('${level.difficulty.label}  $completed/${level.puzzles.length}', style: text.labelMedium),
+          Text('${level.difficulty.label}  ', style: text.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const Icon(Icons.brush_rounded, size: 13),
+          Text(' $painted  ', style: text.labelMedium),
+          const Icon(Icons.swap_horiz_rounded, size: 14),
+          Text(' $sorted  /${level.puzzles.length}', style: text.labelMedium),
         ],
       ),
+    );
+  }
+}
+
+/// One labelled progress bar for a course in Paint or Sort.
+class _ModeProgress extends StatelessWidget {
+  const _ModeProgress({required this.icon, required this.label, required this.done, required this.total});
+
+  final IconData icon;
+  final String label;
+  final int done;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Icon(icon, size: 16),
+        const SizedBox(width: 4),
+        SizedBox(width: 38, child: Text(label, style: text.labelMedium)),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(value: done / total, minHeight: 8, backgroundColor: Colors.white54),
+          ),
+        ),
+        SizedBox(width: 48, child: Text('$done/$total', textAlign: TextAlign.end, style: text.labelMedium)),
+      ],
     );
   }
 }

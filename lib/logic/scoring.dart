@@ -28,19 +28,29 @@ class Scoring {
     return 1;
   }
 
-  /// Sort mode: 3 stars within [freeShakes] shakes of the tray (and few wrong
-  /// taps), 2 with a couple more, otherwise 1. Big, heavily mixed pictures
-  /// allow a few shakes, since even careful play needs them there.
-  static int sortStars({required int shakes, required int mistakes, int freeShakes = 0}) {
-    if (shakes <= freeShakes && mistakes <= 3) return 3;
-    if (shakes <= freeShakes + 2) return 2;
+  /// Sort mode: 3 stars with no shakes of the tray and few wrong taps, 2 with
+  /// a couple of shakes, otherwise 1. A move always exists, so careful play
+  /// never needs a shake.
+  static int sortStars({required int shakes, required int mistakes}) {
+    if (shakes == 0 && mistakes <= 3) return 3;
+    if (shakes <= 2) return 2;
     return 1;
   }
 
-  /// Sort mode score: points for each bead sorted into place, minus a little
-  /// for shakes and wrong taps.
-  static int sortScore({required int placed, required int shakes, required int mistakes}) {
-    final s = placed * drillPoints - shakes * 20 - mistakes * 5;
+  /// Sort mode score: points for each bead sorted into place plus the combo
+  /// bonus, minus a little for shakes and wrong taps.
+  static int sortScore({required int placed, required int shakes, required int mistakes, int comboBonus = 0}) {
+    final s = placed * drillPoints + comboBonus - shakes * 20 - mistakes * 5;
     return s < 0 ? 0 : s;
   }
+
+  /// Seconds after a good move within which the next one keeps the combo going.
+  static const comboWindow = Duration(seconds: 6);
+
+  /// Highest combo step that still raises the bonus.
+  static const maxCombo = 10;
+
+  /// Extra points for [beads] dropped into place at combo [combo] (1 = no
+  /// combo yet): 2 points a bead for each step past the first, up to [maxCombo].
+  static int comboBonus(int combo, int beads) => beads * 2 * (combo.clamp(1, maxCombo) - 1);
 }

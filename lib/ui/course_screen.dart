@@ -60,7 +60,7 @@ class _CourseScreenState extends State<CourseScreen> {
                   Text(
                     mode == PlayMode.paint
                         ? 'Fill each numbered spot with its matching drill.'
-                        : 'The picture starts scrambled. Send misplaced beads to the tray to sort it.',
+                        : 'The picture starts scrambled. Pick up misplaced beads and drop them where they belong.',
                     style: Theme.of(context).textTheme.bodySmall,
                     textAlign: TextAlign.center,
                   ),

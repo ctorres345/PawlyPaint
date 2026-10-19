@@ -24,6 +24,30 @@ class PuzzleRecord {
       );
 }
 
+/// Best results for one Time Attack difficulty.
+class TimeAttackRecord {
+  const TimeAttackRecord({this.bestScore = 0, this.wins = 0, this.plays = 0, this.bestCombo = 0, this.bestLeft = 0});
+
+  final int bestScore;
+  final int wins;
+  final int plays;
+  final int bestCombo;
+
+  /// Most seconds left on the clock at a win.
+  final int bestLeft;
+
+  Map<String, Object> toJson() =>
+      {'score': bestScore, 'wins': wins, 'plays': plays, 'combo': bestCombo, 'left': bestLeft};
+
+  static TimeAttackRecord fromJson(Map<String, dynamic> j) => TimeAttackRecord(
+        bestScore: j['score'] as int? ?? 0,
+        wins: j['wins'] as int? ?? 0,
+        plays: j['plays'] as int? ?? 0,
+        bestCombo: j['combo'] as int? ?? 0,
+        bestLeft: j['left'] as int? ?? 0,
+      );
+}
+
 /// A picture left half done, so it can be resumed later.
 class SavedGame {
   const SavedGame({
@@ -148,6 +172,8 @@ class ProgressStore extends ChangeNotifier {
     var seenTutorial = false, seenSortTutorial = false;
     Map<String, dynamic>? daily;
     final badges = <String>[];
+    final timeAttack = <String, TimeAttackRecord>{};
+    var bestCombo = 0;
     final raw = prefs.getString(_key);
     if (raw != null) {
       Map<String, dynamic> j;
@@ -163,9 +189,11 @@ class ProgressStore extends ChangeNotifier {
       _parseEach(j['saved'], (k, v) => saved[k] = SavedGame.fromJson(v));
       _parseEach(j['sortSaved'], (k, v) => sortSaved[k] = v);
       seenTutorial = j['seenTutorial'] == true;
-      seenSortTutorial = j['seenSortTutorial'] == true;
+      seenSortTutorial = j['seenSortTutorial2'] == true;
       daily = j['daily'] is Map<String, dynamic> ? j['daily'] as Map<String, dynamic> : null;
       if (j['badges'] is List) badges.addAll((j['badges'] as List).whereType<String>());
+      _parseEach(j['timeAttack'], (k, v) => timeAttack[k] = TimeAttackRecord.fromJson(v));
+      bestCombo = j['bestCombo'] is int ? j['bestCombo'] as int : 0;
     }
     return ProgressStore._(prefs, records, saved, sortSaved)
       .._seenTutorial = seenTutorial
@@ -175,7 +203,9 @@ class ProgressStore extends ChangeNotifier {
       .._dailyDone = daily?['done'] as String?
       .._streak = (daily?['streak'] as int?) ?? 0
       .._bestStreak = (daily?['best'] as int?) ?? 0
-      .._seenBadges.addAll(badges);
+      .._seenBadges.addAll(badges)
+      .._timeAttack.addAll(timeAttack)
+      .._bestCombo = bestCombo;
   }
 
   /// In-memory store for tests.
@@ -236,6 +266,46 @@ class ProgressStore extends ChangeNotifier {
     if (_streak > _bestStreak) _bestStreak = _streak;
     notifyListeners();
     return _persist();
+  }
+
+  // ---- Combos and Time Attack ---------------------------------------------
+
+  final Map<String, TimeAttackRecord> _timeAttack = {};
+  int _bestCombo = 0;
+
+  /// Longest Sort combo ever reached, in any picture or Time Attack run.
+  int get bestCombo => _bestCombo;
+
+  TimeAttackRecord timeAttack(Difficulty d) => _timeAttack[d.name] ?? const TimeAttackRecord();
+
+  /// Easy and Medium are open; each harder clock opens after a win on the one before.
+  bool isTimeAttackUnlocked(Difficulty d) =>
+      d.index <= Difficulty.medium.index || timeAttack(Difficulty.values[d.index - 1]).wins > 0;
+
+  /// Remembers a combo once a picture or run ends.
+  Future<void> noteCombo(int combo) {
+    if (combo <= _bestCombo) return Future.value();
+    _bestCombo = combo;
+    notifyListeners();
+    return _persist();
+  }
+
+  /// Stores a finished Time Attack run and returns true for a new best score.
+  Future<bool> recordTimeAttack(Difficulty d,
+      {required bool won, required int score, required int combo, required int secondsLeft}) async {
+    final old = timeAttack(d);
+    final isBest = won && score > old.bestScore;
+    _timeAttack[d.name] = TimeAttackRecord(
+      bestScore: isBest ? score : old.bestScore,
+      wins: old.wins + (won ? 1 : 0),
+      plays: old.plays + 1,
+      bestCombo: combo > old.bestCombo ? combo : old.bestCombo,
+      bestLeft: won && secondsLeft > old.bestLeft ? secondsLeft : old.bestLeft,
+    );
+    if (combo > _bestCombo) _bestCombo = combo;
+    notifyListeners();
+    await _persist();
+    return isBest;
   }
 
   bool get seenSortTutorial => _seenSortTutorial;
@@ -338,12 +408,15 @@ class ProgressStore extends ChangeNotifier {
         jsonEncode({
           'version': _version,
           'seenTutorial': _seenTutorial,
-          'seenSortTutorial': _seenSortTutorial,
+          // v2: Sort became tap to pick up and drop, so everyone sees the new tutorial once.
+          'seenSortTutorial2': _seenSortTutorial,
           'daily': {'date': _dailyDate, 'id': _dailyId, 'done': _dailyDone, 'streak': _streak, 'best': _bestStreak},
           'badges': _seenBadges.toList(),
           'records': _records.map((k, v) => MapEntry(k, v.toJson())),
           'saved': _saved.map((k, v) => MapEntry(k, v.toJson())),
           'sortSaved': _sortSaved,
+          'timeAttack': _timeAttack.map((k, v) => MapEntry(k, v.toJson())),
+          'bestCombo': _bestCombo,
         }),
       );
     } catch (e) {

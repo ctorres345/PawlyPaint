@@ -1,30 +1,68 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-/// One bead flying from a tray slot into a cell.
-typedef Fill = ({int cell, int traySlot, int color});
+/// One bead moving because of a tap. [fromCell] or [fromSlot] says where it
+/// starts, [toCell] or [toSlot] where it lands (exactly one of each is set).
+typedef BeadHop = ({int? fromCell, int? fromSlot, int? toCell, int? toSlot, int color});
 
-/// What a tap did, so the screen can animate it.
-class SortMove {
-  SortMove(this.removed, this.fills);
+/// What a tap did, so the screen can react to it.
+enum SortAction {
+  /// Beads were picked up (on the canvas or in the tray).
+  selected,
 
-  /// Cells whose wrong bead went down to the tray, in order, with the tray
-  /// slot each one landed in.
-  final List<({int cell, int traySlot, int color})> removed;
+  /// The picked-up beads were put down again.
+  deselected,
 
-  /// Beads that flew from the tray into a hole that wanted their color.
-  final List<Fill> fills;
+  /// Picked-up canvas beads went down to the tray.
+  toTray,
 
-  bool get isEmpty => removed.isEmpty;
+  /// Beads landed in empty spots that wanted their color.
+  placed,
+
+  /// A tap on a bead that was already right, or on a spot that wants another
+  /// color.
+  wrong,
+
+  /// The tray has no room for the picked-up beads.
+  trayFull,
+
+  /// Nothing happened (say, an empty spot tapped with nothing picked up).
+  ignored,
 }
+
+class SortMove {
+  const SortMove(this.action, [this.hops = const []]);
+
+  final SortAction action;
+  final List<BeadHop> hops;
+
+  static const ignored = SortMove(SortAction.ignored);
+}
+
+/// Beads picked up and waiting for a destination: a patch of wrong beads on
+/// the canvas ([cells] not empty), or every bead of one color in the tray.
+class SortSelection {
+  const SortSelection.board(this.color, this.cells);
+  const SortSelection.tray(this.color) : cells = const [];
+
+  final int color;
+  final List<int> cells;
+
+  bool get fromTray => cells.isEmpty;
+}
+
+/// A good next move: pick up the canvas patch at [fromCell] or the tray
+/// beads of [trayColor], then drop them on [toCell] (or in the tray when null).
+typedef SortStep = ({int? fromCell, int? trayColor, int? toCell});
 
 /// Pure rules for Sort mode, Jewel Coloring style.
 ///
 /// The picture starts full, but some beads are swapped around so they sit in
-/// the wrong place. Tapping a wrong bead sends it (and the wrong beads of the
-/// same color touching it) down to the tray; any hole whose correct color is
-/// waiting in the tray is filled straight away. Beads are never created or
-/// lost, so holes on the board always equal beads in the tray.
+/// the wrong place. Everything works by taps: tap a wrong bead to pick up
+/// every misplaced bead of its color, then tap the tray to put them there, or
+/// tap an empty spot that wants their color to drop them into every spot
+/// that wants it, nearest first. Tray beads are picked up the same way. Beads are never
+/// created or lost, so holes on the board always equal beads in the tray.
 class SortGame {
   SortGame({
     required this.width,
@@ -74,6 +112,9 @@ class SortGame {
   final List<int> tray;
   final int capacity;
 
+  /// The beads picked up right now, if any.
+  SortSelection? selection;
+
   int shakes = 0;
   int mistakes = 0;
   int placed = 0;
@@ -92,80 +133,155 @@ class SortGame {
 
   bool get isComplete => wrongCount == 0;
 
-  /// True when the tray is full and no hole wants anything in it.
-  bool get isStuck => freeSlots <= 0 && !isComplete;
+  bool isSelected(int cell) => selection?.cells.contains(cell) ?? false;
 
-  /// Taps [cell]: sends the patch of touching wrong beads of the same color
-  /// down to the tray, as far as there is room, filling holes as it goes.
-  SortMove tap(int cell) {
-    if (!isWrong(cell)) {
-      if (current[cell] >= 0) mistakes++;
-      return SortMove(const [], const []);
+  /// Up to [limit] cells that pass [test], [start] first and then the rest
+  /// by distance from it, so groups ripple out from the tapped spot.
+  List<int> _nearest(int start, bool Function(int) test, [int limit = 1 << 30]) {
+    final sx = start % width, sy = start ~/ width;
+    int dist(int c) {
+      final dx = c % width - sx, dy = c ~/ width - sy;
+      return dx * dx + dy * dy;
     }
-    final color = current[cell];
-    final removed = <({int cell, int traySlot, int color})>[];
-    final fills = <Fill>[];
-    final queue = <int>[cell];
-    final seen = <int>{cell};
-    while (queue.isNotEmpty && freeSlots > 0) {
-      final c = queue.removeAt(0);
-      current[c] = -1;
-      tray.add(color);
-      removed.add((cell: c, traySlot: tray.length - 1, color: color));
-      fills.addAll(_fillHoles());
-      final x = c % width, y = c ~/ width;
-      for (final (nx, ny) in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]) {
-        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
-        final n = ny * width + nx;
-        if (seen.add(n) && current[n] == color && isWrong(n)) queue.add(n);
-      }
-    }
-    return SortMove(removed, fills);
-  }
 
-  /// Fills every hole whose color is waiting in the tray, oldest bead first.
-  List<Fill> _fillHoles() {
-    final fills = <Fill>[];
-    for (var i = 0; i < current.length; i++) {
-      if (current[i] >= 0) continue;
-      final slot = tray.indexOf(target[i]);
-      if (slot < 0) continue;
-      tray.removeAt(slot);
-      current[i] = target[i];
-      placed++;
-      fills.add((cell: i, traySlot: slot, color: target[i]));
-    }
-    return fills;
-  }
-
-  /// A good cell to tap next, for the hint button: first a wrong bead whose
-  /// own spot is wanted by a bead already in the tray (it sorts right away),
-  /// then one whose color an open hole is waiting for, then any wrong bead.
-  int? bestMove() {
-    final wanted = <int>{
+    final out = [
       for (var i = 0; i < current.length; i++)
-        if (current[i] < 0) target[i]
-    };
+        if (i == start || test(i)) i
+    ]..sort((a, b) => dist(a).compareTo(dist(b)));
+    return out.length > limit ? out.sublist(0, limit) : out;
+  }
+
+  /// Taps a canvas cell: picks up the misplaced beads of a color, drops the
+  /// picked-up beads into an empty spot that wants them, or counts a mistake
+  /// when [countMistakes] is set.
+  SortMove tapCell(int cell, {bool countMistakes = true}) {
+    final sel = selection;
+    if (isHole(cell)) {
+      if (sel == null) return SortMove.ignored;
+      if (target[cell] != sel.color) return _wrong(countMistakes);
+      return _place(cell, sel);
+    }
+    if (isSelected(cell)) {
+      selection = null;
+      return const SortMove(SortAction.deselected);
+    }
+    if (!isWrong(cell)) return _wrong(countMistakes);
+    final color = current[cell];
+    selection = SortSelection.board(color, _nearest(cell, (n) => current[n] == color && isWrong(n)));
+    return const SortMove(SortAction.selected);
+  }
+
+  /// Taps the tray: puts picked-up canvas beads into it, or picks up every
+  /// tray bead of the color in [slot].
+  SortMove tapTray(int? slot) {
+    final sel = selection;
+    if (sel != null && !sel.fromTray) {
+      if (freeSlots <= 0) return const SortMove(SortAction.trayFull);
+      final hops = <BeadHop>[];
+      for (final c in sel.cells.take(freeSlots)) {
+        current[c] = -1;
+        tray.add(sel.color);
+        hops.add((fromCell: c, fromSlot: null, toCell: null, toSlot: tray.length - 1, color: sel.color));
+      }
+      final left = sel.cells.skip(hops.length).toList();
+      selection = left.isEmpty ? null : SortSelection.board(sel.color, left);
+      return SortMove(SortAction.toTray, hops);
+    }
+    if (slot == null || slot < 0 || slot >= tray.length) return SortMove.ignored;
+    final color = tray[slot];
+    if (sel != null && sel.color == color) {
+      selection = null;
+      return const SortMove(SortAction.deselected);
+    }
+    selection = SortSelection.tray(color);
+    return const SortMove(SortAction.selected);
+  }
+
+  SortMove _wrong(bool count) {
+    if (count) mistakes++;
+    return const SortMove(SortAction.wrong);
+  }
+
+  /// Drops [sel] into the hole at [cell] and the other holes that want the
+  /// same color, nearest first, as far as the picked-up beads go.
+  SortMove _place(int cell, SortSelection sel) {
+    final available = sel.fromTray ? tray.where((c) => c == sel.color).length : sel.cells.length;
+    final spots = _nearest(cell, (n) => isHole(n) && target[n] == sel.color, available);
+    final hops = <BeadHop>[];
+    final sources = List<int>.of(sel.cells);
+    for (final spot in spots) {
+      if (sel.fromTray) {
+        final slot = tray.indexOf(sel.color);
+        tray.removeAt(slot);
+        hops.add((fromCell: null, fromSlot: slot, toCell: spot, toSlot: null, color: sel.color));
+      } else {
+        final from = sources.removeAt(0);
+        current[from] = -1;
+        hops.add((fromCell: from, fromSlot: null, toCell: spot, toSlot: null, color: sel.color));
+      }
+      current[spot] = sel.color;
+      placed++;
+    }
+    if (sel.fromTray) {
+      selection = tray.contains(sel.color) ? sel : null;
+    } else {
+      selection = sources.isEmpty ? null : SortSelection.board(sel.color, sources);
+    }
+    return SortMove(SortAction.placed, hops);
+  }
+
+  /// A good next move, for the hint button: fill a hole from the tray, else
+  /// fill a hole with a wrong bead from the canvas, else send a wrong bead to
+  /// the tray. Every hole's color is either in the tray or misplaced on the
+  /// canvas, so there is always a move until the picture is done.
+  SortStep? bestStep() {
+    if (isComplete) return null;
     final inTray = tray.toSet();
-    int? fallback, good;
+    // First wrong bead of each color, for filling holes straight from the canvas.
+    final wrongOf = <int, int>{};
+    for (var i = 0; i < current.length; i++) {
+      if (isWrong(i)) wrongOf.putIfAbsent(current[i], () => i);
+    }
+    int? fromBoard;
+    for (var i = 0; i < current.length; i++) {
+      if (!isHole(i)) continue;
+      if (inTray.contains(target[i])) return (fromCell: null, trayColor: target[i], toCell: i);
+      if (fromBoard == null && wrongOf.containsKey(target[i])) fromBoard = i;
+    }
+    if (fromBoard != null) return (fromCell: wrongOf[target[fromBoard]], trayColor: null, toCell: fromBoard);
+    if (freeSlots <= 0) return null;
+    // Nothing to fill yet: free a spot, preferring one a tray bead can fill next.
+    int? fallback;
     for (var i = 0; i < current.length; i++) {
       if (!isWrong(i)) continue;
-      if (inTray.contains(target[i])) return i;
-      if (good == null && wanted.contains(current[i])) good = i;
+      if (inTray.contains(target[i])) return (fromCell: i, trayColor: null, toCell: null);
       fallback ??= i;
     }
-    return good ?? fallback;
+    return fallback == null ? null : (fromCell: fallback, trayColor: null, toCell: null);
+  }
+
+  /// Plays [step] as the two taps a player would make.
+  SortMove play(SortStep step) {
+    selection = null;
+    if (step.trayColor != null) {
+      tapTray(tray.indexOf(step.trayColor!));
+    } else {
+      tapCell(step.fromCell!);
+    }
+    final to = step.toCell;
+    return to == null ? tapTray(null) : tapCell(to);
   }
 
   /// Frees tray room by putting up to [count] tray beads back into holes
-  /// (in the wrong place). Returns the cells that got a bead back.
-  List<({int cell, int traySlot, int color})> shake({int count = 6}) {
-    final back = <({int cell, int traySlot, int color})>[];
+  /// (in the wrong place). Returns the moves made.
+  List<BeadHop> shake({int count = 6}) {
+    final back = <BeadHop>[];
+    selection = null;
     for (var i = 0; i < current.length && back.length < count && tray.isNotEmpty; i++) {
       if (current[i] >= 0) continue;
       final color = tray.removeAt(0);
       current[i] = color;
-      back.add((cell: i, traySlot: 0, color: color));
+      back.add((fromCell: null, fromSlot: 0, toCell: i, toSlot: null, color: color));
     }
     if (back.isNotEmpty) shakes++;
     return back;
