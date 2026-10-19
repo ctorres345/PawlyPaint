@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show Color, Offset, Size;
 
@@ -7,6 +8,7 @@ import 'package:pawlypaint/logic/line.dart';
 import 'package:pawlypaint/logic/scoring.dart';
 import 'package:pawlypaint/models/puzzle.dart';
 import 'package:pawlypaint/state/game_controller.dart';
+import 'package:pawlypaint/state/music.dart';
 import 'package:pawlypaint/state/progress_store.dart';
 import 'package:pawlypaint/ui/board.dart';
 
@@ -159,6 +161,21 @@ void main() {
       expect(v.cellAt(v.offset - const Offset(1, 1)), isNull);
       v.zoomAt(const Offset(200, 300), 100);
       expect(v.scale, v.maxScale);
+    });
+  });
+
+  group('music', () {
+    test('shuffle never repeats the theme that just played', () {
+      final rng = math.Random(1);
+      var last = MusicTheme.chill;
+      final seen = <MusicTheme>{};
+      for (var i = 0; i < 50; i++) {
+        final next = nextShuffleTheme(last, rng);
+        expect(next, isNot(last));
+        seen.add(next);
+        last = next;
+      }
+      expect(seen, MusicTheme.values.toSet());
     });
   });
 

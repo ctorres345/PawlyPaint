@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 
 import '../models/puzzle.dart';
 import '../state/game_controller.dart';
+import '../state/music.dart';
 import '../state/progress_store.dart';
 import 'board.dart';
 import 'completion_sheet.dart';
 import 'gem_style.dart';
+import 'music_sheet.dart';
 import 'tray.dart';
 
 class GameScreen extends StatefulWidget {
@@ -49,9 +51,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     WidgetsBinding.instance.addObserver(this);
   }
 
+  MusicController? _music;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_music == null) {
+      _music = MusicScope.read(context);
+      _music!.enterGame();
+    }
     // Respect the system "remove animations" setting: the drills stay still.
     if (MediaQuery.of(context).disableAnimations) {
       shimmer.stop();
@@ -78,6 +86,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       final store = widget.store, id = widget.puzzle.id;
       Future.microtask(() => store.saveGame(id, snapshot));
     }
+    final music = _music;
+    if (music != null) Future.microtask(music.leaveGame);
     _clockTick?.cancel();
     clock.dispose();
     shimmer.dispose();
@@ -240,6 +250,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                 onPressed: _finished ? null : _findNext,
               ),
             ),
+            const MusicButton(),
             IconButton(
               tooltip: highlight ? 'Highlighting on' : 'Highlighting off',
               icon: Icon(highlight ? Icons.lightbulb : Icons.lightbulb_outline),

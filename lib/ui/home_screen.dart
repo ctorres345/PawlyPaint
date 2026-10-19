@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import 'course_screen.dart';
+import 'music_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.courses});
@@ -27,6 +28,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text('PawlyPaint', style: text.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
                 const Spacer(),
+                const MusicButton(),
                 const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
                 const SizedBox(width: 4),
                 Text('$totalStars / $maxStars', style: text.titleMedium),

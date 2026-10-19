@@ -1,0 +1,166 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// The three in-game themes, Dr. Mario style.
+enum MusicTheme {
+  chill('Chill', 'Mellow keys and a lazy beat', 'music/chill.m4a'),
+  fever('Fever', 'Bouncy and upbeat', 'music/fever.m4a'),
+  hip('Hip', 'Swingy, with a groovy bass', 'music/hip.m4a');
+
+  const MusicTheme(this.label, this.blurb, this.asset);
+
+  final String label;
+  final String blurb;
+  final String asset;
+}
+
+/// Picks the next theme for shuffle play: never the same one twice in a row.
+MusicTheme nextShuffleTheme(MusicTheme? last, math.Random rng) {
+  final options = MusicTheme.values.where((t) => t != last).toList();
+  return options[rng.nextInt(options.length)];
+}
+
+const _menuAsset = 'music/menu.m4a';
+
+/// Plays the menu song on menus and the chosen (or shuffled) theme while
+/// painting. Settings are remembered on the device.
+class MusicController extends ChangeNotifier with WidgetsBindingObserver {
+  MusicController._(this._prefs, {required this.muted, required this.choice}) {
+    WidgetsBinding.instance.addObserver(this);
+    _player.onPlayerComplete.listen((_) => _onTrackEnded());
+  }
+
+  static const _mutedKey = 'music_muted';
+  static const _choiceKey = 'music_choice';
+  static const _volume = 0.55;
+
+  static Future<MusicController> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString(_choiceKey);
+    // Respect the iPhone's silent switch and mix politely with other audio.
+    await AudioPlayer.global.setAudioContext(AudioContext(
+      iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
+      android: const AudioContextAndroid(usageType: AndroidUsageType.game, contentType: AndroidContentType.music),
+    ));
+    return MusicController._(
+      prefs,
+      muted: prefs.getBool(_mutedKey) ?? false,
+      choice: MusicTheme.values.where((t) => t.name == name).firstOrNull,
+    );
+  }
+
+  final SharedPreferences _prefs;
+  final _player = AudioPlayer();
+  final _rng = math.Random();
+
+  bool muted;
+
+  /// The theme picked in settings, or null to shuffle between all three.
+  MusicTheme? choice;
+
+  /// What is playing (or would be, when muted).
+  MusicTheme? current;
+  bool _inGame = false;
+  bool _appActive = true;
+  int _generation = 0;
+
+  void playMenu() {
+    _inGame = false;
+    current = null;
+    _start();
+  }
+
+  int _openGames = 0;
+
+  /// Called when a picture opens; starts a theme.
+  void enterGame() {
+    _openGames++;
+    playGame();
+  }
+
+  /// Called when a picture closes; back to the menu song once none is open
+  /// (a restart replaces the screen, so briefly two are open).
+  void leaveGame() {
+    _openGames = math.max(0, _openGames - 1);
+    if (_openGames == 0) playMenu();
+  }
+
+  void playGame() {
+    _inGame = true;
+    current = choice ?? nextShuffleTheme(current, _rng);
+    _start();
+  }
+
+  Future<void> setMuted(bool value) async {
+    muted = value;
+    notifyListeners();
+    await _prefs.setBool(_mutedKey, value);
+    _start();
+  }
+
+  Future<void> setChoice(MusicTheme? value) async {
+    choice = value;
+    notifyListeners();
+    if (value == null) {
+      await _prefs.remove(_choiceKey);
+    } else {
+      await _prefs.setString(_choiceKey, value.name);
+    }
+    if (_inGame) playGame();
+  }
+
+  void _onTrackEnded() {
+    // Shuffle mode swaps to another theme each time one finishes.
+    if (_inGame && choice == null) playGame();
+  }
+
+  Future<void> _start() async {
+    notifyListeners();
+    // A newer request may arrive while this one awaits; only the latest plays.
+    final generation = ++_generation;
+    try {
+      await _player.stop();
+      if (muted || !_appActive || generation != _generation) return;
+      final shuffle = _inGame && choice == null;
+      await _player.setReleaseMode(shuffle ? ReleaseMode.release : ReleaseMode.loop);
+      await _player.play(AssetSource(_inGame ? current!.asset : _menuAsset), volume: _volume);
+    } catch (e) {
+      // Music is a nice-to-have; never let an audio hiccup break the game.
+      debugPrint('Music failed: $e');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final active = state == AppLifecycleState.resumed;
+    if (active == _appActive) return;
+    _appActive = active;
+    if (active) {
+      _start();
+    } else {
+      unawaited(_player.pause());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _player.dispose();
+    super.dispose();
+  }
+}
+
+/// Makes the [MusicController] available to the widget tree.
+class MusicScope extends InheritedNotifier<MusicController> {
+  const MusicScope({super.key, required MusicController music, required super.child}) : super(notifier: music);
+
+  static MusicController of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<MusicScope>()!.notifier!;
+
+  /// For callbacks that must not subscribe to changes.
+  static MusicController read(BuildContext context) => context.getInheritedWidgetOfExactType<MusicScope>()!.notifier!;
+}
