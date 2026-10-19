@@ -208,7 +208,7 @@ Puzzle cupcake(String id, int n) {
     c.dot(x, y, i.isEven ? sprinkleA : sprinkleB);
   }
   return c.toPuzzle(id: id, title: 'Party Cupcake', palette: const [
-    0xFFFCE4EC, 0xFFF8BBD0, 0xFF4DB6AC, 0xFF00897B, 0xFFFFF0F5, 0xFFF3C6D9, //
+    0xFFFCE4EC, 0xFFFAD2E0, 0xFF4DB6AC, 0xFF00897B, 0xFFFFFFFF, 0xFFE79BBB, //
     0xFFD81B60, 0xFFFF6F9B, 0xFFFFEB3B, 0xFF4FC3F7, 0xFF6D4C41,
   ]);
 }

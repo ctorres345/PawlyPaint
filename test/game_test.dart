@@ -42,6 +42,20 @@ void main() {
       }
     });
 
+    test('no picture has two colors that are hard to tell apart', () {
+      final close = <String>[];
+      for (final p in [for (final c in courses) ...c.puzzles]) {
+        for (var a = 0; a < p.colorCount; a++) {
+          for (var b = a + 1; b < p.colorCount; b++) {
+            final ca = p.palette[a], cb = p.palette[b];
+            final dr = (ca.r - cb.r) * 255, dg = (ca.g - cb.g) * 255, db = (ca.b - cb.b) * 255;
+            if (dr * dr + dg * dg + db * db <= 18 * 18) close.add('${p.id}: colors ${a + 1} and ${b + 1}');
+          }
+        }
+      }
+      expect(close, isEmpty);
+    });
+
     test('puzzle ids are unique', () {
       final ids = [for (final c in courses) ...c.puzzles.map((p) => p.id)];
       expect(ids.toSet().length, ids.length);

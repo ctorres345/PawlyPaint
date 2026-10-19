@@ -1,6 +1,9 @@
 import 'dart:ui' show Color;
 
 import '../models/puzzle.dart';
+import 'art/animals.dart';
+import 'art/garden.dart';
+import 'art/sweets.dart';
 import 'artworks.dart';
 
 /// Inside a course, Easy is open from the start and each harder level opens
@@ -33,6 +36,69 @@ List<Course> buildCourses() => [
             'puppy': puppy,
             'tulips': tulips,
             'moonlight': moonlight,
+          },
+        },
+      ),
+      _course(
+        'animals',
+        'Animal Friends',
+        'Pets, critters and wild friends',
+        const Color(0xFFFFB74D),
+        {
+          Difficulty.easy: {'fish': fish, 'bunny': bunny, 'chick': chick, 'ladybug': ladybug, 'snail': snail},
+          Difficulty.medium: {'fox': fox, 'penguin': penguin, 'owl': owl, 'frog': frog, 'whale': whale},
+          Difficulty.hard: {'panda': panda, 'turtle': turtle, 'hedgehog': hedgehog, 'parrot': parrot, 'bee': bee},
+        },
+      ),
+      _course(
+        'garden',
+        'Garden',
+        'Flowers, sprouts and sunny afternoons',
+        const Color(0xFFA5D6A7),
+        {
+          Difficulty.easy: {'tulip': tulip, 'leaf': leaf, 'cactus': cactus, 'sprout': sprout, 'acorn': acorn},
+          Difficulty.medium: {
+            'sunflower': sunflower,
+            'rose': rose,
+            'watering-can': wateringCan,
+            'carrot': carrot,
+            'birdhouse': birdhouse,
+          },
+          Difficulty.hard: {
+            'cherry-blossom': cherryBlossom,
+            'lotus': lotus,
+            'gnome': gnome,
+            'lavender': lavender,
+            'apple-tree': appleTree,
+          },
+        },
+      ),
+      _course(
+        'sweets',
+        'Sweet Treats',
+        'Candy, cakes and cozy desserts',
+        const Color(0xFFCE93D8),
+        {
+          Difficulty.easy: {
+            'lollipop': lollipop,
+            'ice-cream': iceCream,
+            'donut': donut,
+            'candy': candy,
+            'cookie': cookie
+          },
+          Difficulty.medium: {
+            'macarons': macarons,
+            'cake-slice': cakeSlice,
+            'popsicle': popsicle,
+            'gingerbread': gingerbread,
+            'pudding': pudding,
+          },
+          Difficulty.hard: {
+            'layer-cake': layerCake,
+            'sundae': sundae,
+            'boba-tea': bobaTea,
+            'pancakes': pancakes,
+            'tea-time': teaTime,
           },
         },
       ),
