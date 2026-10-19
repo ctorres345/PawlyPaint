@@ -89,7 +89,14 @@ class ProgressStore extends ChangeNotifier {
   final Map<String, SavedGame> _saved;
 
   static Future<ProgressStore> load() async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs;
+    try {
+      prefs = await SharedPreferences.getInstance();
+    } catch (e) {
+      // Without storage the game still runs; progress just isn't kept.
+      debugPrint('Progress storage unavailable: $e');
+      return ProgressStore.memory();
+    }
     final records = <String, PuzzleRecord>{};
     final saved = <String, SavedGame>{};
     var seenTutorial = false;

@@ -42,10 +42,14 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     final name = prefs.getString(_choiceKey);
     // Respect the iPhone's silent switch and mix politely with other audio.
-    await AudioPlayer.global.setAudioContext(AudioContext(
-      iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
-      android: const AudioContextAndroid(usageType: AndroidUsageType.game, contentType: AndroidContentType.music),
-    ));
+    try {
+      await AudioPlayer.global.setAudioContext(AudioContext(
+        iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
+        android: const AudioContextAndroid(usageType: AndroidUsageType.game, contentType: AndroidContentType.music),
+      ));
+    } catch (e) {
+      debugPrint('Audio setup failed: $e');
+    }
     return MusicController._(
       prefs,
       muted: prefs.getBool(_mutedKey) ?? false,

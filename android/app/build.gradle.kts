@@ -34,6 +34,10 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 strips methods the shared_preferences plugin calls through JNI,
+            // which hangs the app on its splash screen; this app is small anyway.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
