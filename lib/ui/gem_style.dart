@@ -11,9 +11,9 @@ class GemPaints {
         light = Paint()..color = Color.lerp(color, Colors.white, 0.38)!,
         dark = Paint()..color = Color.lerp(color, Colors.black, 0.28)!,
         table = Paint()..color = Color.lerp(color, Colors.white, 0.16)!,
-        pale = Paint()..color = Color.lerp(color, Colors.white, 0.72)!,
-        paleSelected = Paint()..color = Color.lerp(color, Colors.white, 0.45)!,
-        dim = Paint()..color = Color.lerp(color, const Color(0xFFEDEAE6), 0.85)!,
+        pale = Paint()..color = Color.lerp(color, Colors.white, 0.5)!,
+        paleSelected = Paint()..color = Color.lerp(color, Colors.white, 0.3)!,
+        dim = Paint()..color = Color.lerp(color, const Color(0xFFEDEAE6), 0.72)!,
         onColor = color.computeLuminance() > 0.5 ? const Color(0xFF3B2F36) : Colors.white;
 
   final Color color;
@@ -21,6 +21,9 @@ class GemPaints {
   final Paint light;
   final Paint dark;
   final Paint table;
+
+  /// The spot's own color, lightened: an empty spot shows which color
+  /// belongs there, so a wrong bead stands out against it.
   final Paint pale;
   final Paint paleSelected;
 
@@ -28,6 +31,9 @@ class GemPaints {
   /// keeping a hint of their tint, like a printed canvas.
   final Paint dim;
   final Color onColor;
+
+  /// Ink that reads on top of [fill] (one of this color's spot paints).
+  static Color inkOn(Paint fill) => fill.color.computeLuminance() > 0.4 ? const Color(0xFF3B2F36) : Colors.white;
 
   static List<GemPaints> forPuzzle(Puzzle p) => [for (final c in p.palette) GemPaints(c)];
 }

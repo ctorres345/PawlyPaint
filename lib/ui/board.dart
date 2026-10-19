@@ -341,16 +341,16 @@ class BoardPainter extends CustomPainter {
       final isSel = smart && color == sel;
       final dimmed = smart && !isSel;
       final label = labels.putIfAbsent((color, isSel, dimmed), () {
-        final ink = isSel
-            ? HSLColor.fromColor(paints[color].color).withLightness(0.25).toColor()
-            : (dimmed ? const Color(0xFF9C9297) : const Color(0xFF5E5157));
+        final g = paints[color];
+        final ink = GemPaints.inkOn(isSel ? g.paleSelected : (dimmed ? g.dim : g.pale));
         return TextPainter(
           text: TextSpan(
             text: p.symbolFor(color),
             style: TextStyle(
               fontFamily: 'Quicksand',
               fontSize: kCell * 0.42,
-              color: ink,
+              // Dimmed numbers stay readable but quieter.
+              color: dimmed ? ink.withValues(alpha: 0.55) : ink,
               fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
             ),
           ),

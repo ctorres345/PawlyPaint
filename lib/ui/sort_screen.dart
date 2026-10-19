@@ -717,10 +717,10 @@ final _socketRim = Paint()
   ..color = const Color(0x22000000)
   ..style = PaintingStyle.stroke;
 
-/// An empty spot where a bead will go.
-void drawSocket(Canvas canvas, Rect cell) {
+/// An empty spot where a bead will go, tinted with [fill] when given.
+void drawSocket(Canvas canvas, Rect cell, [Paint? fill]) {
   final r = cell.deflate(cell.width * 0.16);
-  canvas.drawOval(r, _socket);
+  canvas.drawOval(r, fill ?? _socket);
   _socketRim.strokeWidth = math.max(0.6, cell.width * 0.05);
   canvas.drawOval(r, _socketRim);
 }
@@ -780,11 +780,15 @@ class _SortBoardPainter extends CustomPainter {
     final cur = peek ? game.game.target : game.game.current;
     for (var i = 0; i < cur.length; i++) {
       final rect = _cell(i);
+      // Each spot shows the color that belongs there, like a printed canvas,
+      // so a bead in the wrong place stands out against it.
+      final spot = paints[game.game.target[i]];
+      if (!peek) c.drawRect(rect, spot.pale);
       if (cur[i] < 0) {
-        drawSocket(c, rect);
+        drawSocket(c, rect, spot.paleSelected);
         continue;
       }
-      drawGem(c, rect, paints[cur[i]]);
+      drawGem(c, peek ? rect : rect.deflate(kCell * 0.07), paints[cur[i]]);
       if (showWrong && !peek && game.game.isWrong(i)) {
         c.drawCircle(rect.center, kCell * 0.1, _wrongDot);
       }
@@ -804,11 +808,11 @@ class _SortBoardPainter extends CustomPainter {
     canvas.drawPicture(cache.picture!);
 
     // Spots whose bead is still on its way stay empty until it lands.
-    final sheetPaint = _sheet;
     for (final cell in peek ? const <int>[] : game.arriving.keys) {
       final rect = _cell(cell);
-      canvas.drawRect(rect, sheetPaint);
-      drawSocket(canvas, rect);
+      final spot = paints[game.game.target[cell]];
+      canvas.drawRect(rect, spot.pale);
+      drawSocket(canvas, rect, spot.paleSelected);
     }
 
     // Shimmer band, brighter and with sparkles once the picture is done.
@@ -822,7 +826,8 @@ class _SortBoardPainter extends CustomPainter {
       if (shine <= 0) continue;
       for (var x = math.max(0, s - p.height + 1); x <= math.min(p.width - 1, s); x++) {
         final i = (s - x) * p.width + x;
-        if (game.game.current[i] >= 0 && !game.arriving.containsKey(i)) drawGemShine(canvas, _cell(i), shine);
+        final placed = game.game.current[i] >= 0 && !game.arriving.containsKey(i);
+        if (placed) drawGemShine(canvas, _cell(i).deflate(kCell * 0.07), shine);
       }
     }
     if (celebrate) {
