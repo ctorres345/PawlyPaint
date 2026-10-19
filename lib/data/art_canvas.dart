@@ -96,6 +96,31 @@ class ArtCanvas {
   void star(double cx, double cy, double outer, double inner, int points, int c, {double rotation = -math.pi / 2}) =>
       polygon(starPoints(cx, cy, outer, inner, points, rotation: rotation), c);
 
+  /// Draws pixel art given as rows of characters (all the same length) into
+  /// the box ([l], [t]) to ([r], [b]). Each character maps through [legend];
+  /// characters not in it are left untouched.
+  void pixelArt(List<String> rows, Map<String, int> legend, {double l = 0, double t = 0, double r = 1, double b = 1}) {
+    final h = rows.length, w = rows.first.length;
+    assert(rows.every((row) => row.length == w), 'pixel art rows must all have the same length');
+    for (var y = 0; y < height; y++) {
+      final ny = (y + 0.5) / height;
+      if (ny < t || ny >= b) continue;
+      final row = rows[((ny - t) / (b - t) * h).floor()];
+      for (var x = 0; x < width; x++) {
+        final nx = (x + 0.5) / width;
+        if (nx < l || nx >= r) continue;
+        final c = legend[row[((nx - l) / (r - l) * w).floor()]];
+        if (c != null) _px[y * width + x] = c;
+      }
+    }
+  }
+
+  /// A stable pseudo-random number in 0..1 for a cell, for block textures.
+  double noise(double x, double y, [int seed = 0]) {
+    final h = ((col(x) * 73856093) ^ (row(y) * 19349663) ^ (seed * 83492791)) & 0x7FFFFFFF;
+    return (h % 1000) / 1000;
+  }
+
   /// Turns the drawing into a [Puzzle], dropping palette colors it never used.
   Puzzle toPuzzle({required String id, required String title, required List<int> palette}) {
     final used = List<bool>.filled(palette.length, false);

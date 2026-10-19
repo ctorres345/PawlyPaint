@@ -96,6 +96,7 @@ class Course {
     required this.subtitle,
     required this.accent,
     required this.levels,
+    this.special = false,
   });
 
   final String id;
@@ -103,6 +104,9 @@ class Course {
   final String subtitle;
   final Color accent;
   final List<Level> levels;
+
+  /// Themed fan collections, shown under their own heading.
+  final bool special;
 
   List<Puzzle> get puzzles => [for (final l in levels) ...l.puzzles];
 }

@@ -3,7 +3,9 @@ import 'dart:ui' show Color;
 import '../models/puzzle.dart';
 import 'art/animals.dart';
 import 'art/garden.dart';
+import 'art/minecraft.dart';
 import 'art/sweets.dart';
+import 'art/vocaloid.dart';
 import 'artworks.dart';
 
 /// Inside a course, Easy is open from the start and each harder level opens
@@ -102,12 +104,68 @@ List<Course> buildCourses() => [
           },
         },
       ),
+      _course(
+        'minecraft',
+        'Blocky World',
+        'A Minecraft-inspired collection',
+        const Color(0xFF8BC34A),
+        {
+          Difficulty.easy: {
+            'grass-block': grassBlock,
+            'creeper': creeper,
+            'diamond': diamond,
+            'apple': mcApple,
+            'torch': torch,
+          },
+          Difficulty.medium: {'pickaxe': pickaxe, 'sword': mcSword, 'tnt': tnt, 'pig': pig, 'cake': mcCake},
+          Difficulty.hard: {
+            'overworld': overworld,
+            'enderman': enderman,
+            'nether-portal': netherPortal,
+            'sheep': sheep,
+            'cave': cave,
+          },
+        },
+        special: true,
+      ),
+      _course(
+        'vocaloid',
+        'Virtual Stage',
+        'A Vocaloid-inspired collection',
+        const Color(0xFF4DD0C8),
+        {
+          Difficulty.easy: {
+            'leek': leek,
+            'note': musicNote,
+            'headphones': headphones,
+            'microphone': microphone,
+            'orange': orange,
+          },
+          Difficulty.medium: {'miku': mikuFace, 'rin': rinFace, 'len': lenFace, 'luka': lukaFace, 'kaito': kaitoFace},
+          Difficulty.hard: {
+            'miku-live': mikuFull,
+            'twins': rinLen,
+            'concert': concert,
+            'snow-miku': snowMiku,
+            'sakura-miku': sakuraMiku,
+          },
+        },
+        special: true,
+      ),
     ];
 
 /// Pictures are keyed by a stable slug, so reordering or adding pictures
 /// never moves saved progress onto a different one.
-Course _course(String id, String title, String subtitle, Color accent, Map<Difficulty, Map<String, Artwork>> art) =>
+Course _course(
+  String id,
+  String title,
+  String subtitle,
+  Color accent,
+  Map<Difficulty, Map<String, Artwork>> art, {
+  bool special = false,
+}) =>
     Course(
+      special: special,
       id: id,
       title: title,
       subtitle: subtitle,

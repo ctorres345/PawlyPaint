@@ -35,9 +35,27 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 6),
             Text('Pick a course and fill each mystery picture with sparkly drills.', style: text.bodyMedium),
             const SizedBox(height: 24),
-            for (final course in courses) ...[
+            for (final course in courses.where((c) => !c.special)) ...[
               _CourseCard(course: course, store: store),
               const SizedBox(height: 16),
+            ],
+            if (courses.any((c) => c.special)) ...[
+              const SizedBox(height: 8),
+              Semantics(
+                header: true,
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome_rounded, color: scheme.primary),
+                    const SizedBox(width: 8),
+                    Text('Special collections', style: text.titleLarge),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final course in courses.where((c) => c.special)) ...[
+                _CourseCard(course: course, store: store),
+                const SizedBox(height: 16),
+              ],
             ],
           ],
         ),
