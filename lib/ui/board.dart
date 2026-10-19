@@ -346,6 +346,7 @@ class BoardPainter extends CustomPainter {
           text: TextSpan(
             text: p.symbolFor(color),
             style: TextStyle(
+              fontFamily: 'Quicksand',
               fontSize: kCell * 0.42,
               color: ink,
               fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,

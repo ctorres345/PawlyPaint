@@ -18,3 +18,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    # Variable font (weights 300-700), SIL Open Font License: assets/fonts/OFL.txt
+    - family: Quicksand
+      fonts:
+        - asset: assets/fonts/Quicksand.ttf
