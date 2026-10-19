@@ -72,7 +72,8 @@ class Puzzle {
 enum Difficulty {
   easy('Easy', 'Small canvases, a handful of colors'),
   medium('Medium', 'Bigger pictures with soft shading'),
-  hard('Hard', 'Large canvases and rich palettes');
+  hard('Hard', 'Large canvases and rich palettes'),
+  extreme('Extreme', 'Huge, detailed scenes for the bravest hands');
 
   const Difficulty(this.label, this.blurb);
 

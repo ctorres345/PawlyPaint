@@ -23,7 +23,8 @@ class ProgressFacts {
           if (paint != null || sort != null) {
             finished++;
             courseDone++;
-            if (level.difficulty == Difficulty.hard) hardFinished++;
+            if (level.difficulty.index >= Difficulty.hard.index) hardFinished++;
+            if (level.difficulty == Difficulty.extreme) extremeFinished++;
             if (c.special) specialCoursesTouched.add(c.id);
           }
           if (paint != null && sort != null) bothModes++;
@@ -41,6 +42,7 @@ class ProgressFacts {
   int total = 0;
   int finished = 0;
   int hardFinished = 0;
+  int extremeFinished = 0;
   int coursesDone = 0;
   int threeStars = 0;
   int sortFinished = 0;
@@ -54,9 +56,10 @@ class ProgressFacts {
 final achievements = <Achievement>[
   Achievement('first', 'First sparkle', 'Finish your first picture', (f) => f.finished >= 1),
   Achievement('hard', 'Big canvas', 'Finish a Hard picture', (f) => f.hardFinished >= 1),
+  Achievement('extreme', 'Fearless', 'Finish an Extreme picture', (f) => f.extremeFinished >= 1),
   Achievement('both', 'Two ways', 'Finish the same picture in Paint and Sort', (f) => f.bothModes >= 1),
   Achievement('sort5', 'Tidy hands', 'Finish 5 pictures in Sort', (f) => f.sortFinished >= 5),
-  Achievement('cleansort', 'Steady tray', 'Earn 3 stars in Sort (no shaking)', (f) => f.cleanSorts >= 1),
+  Achievement('cleansort', 'Steady tray', 'Earn 3 stars in Sort', (f) => f.cleanSorts >= 1),
   Achievement('stars10', 'Perfectionist', 'Earn 3 stars on 10 pictures', (f) => f.threeStars >= 10),
   Achievement('streak3', 'Little habit', 'Keep a 3-day daily streak', (f) => f.bestStreak >= 3),
   Achievement('streak7', 'Week of sparkle', 'Keep a 7-day daily streak', (f) => f.bestStreak >= 7),

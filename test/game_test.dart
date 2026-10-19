@@ -217,13 +217,15 @@ void main() {
   });
 
   group('sort mode', () {
-    test('every Sort picture can be finished by following hints, without shaking', () {
+    test('every Sort picture can earn 3 stars by following hints', () {
       for (final p in buildCourses().expand((c) => c.puzzles)) {
         final g = SortController(p).game;
-        while (!g.isComplete && g.freeSlots > 0) {
+        while (!g.isComplete) {
+          if (g.freeSlots <= 0) g.shake();
           g.tap(g.bestMove()!);
         }
-        expect(g.isComplete, isTrue, reason: p.id);
+        expect(g.shakes, lessThanOrEqualTo(SortController.freeShakesFor(p)), reason: p.id);
+        if (p.width <= 24) expect(g.shakes, 0, reason: p.id);
       }
     });
 
@@ -352,7 +354,12 @@ void main() {
   });
 
   test('every picture has clearly distinct colors, Hard included', () {
-    const minGap = {Difficulty.easy: 17.9, Difficulty.medium: 15.9, Difficulty.hard: 13.9};
+    const minGap = {
+      Difficulty.easy: 17.9,
+      Difficulty.medium: 15.9,
+      Difficulty.hard: 13.9,
+      Difficulty.extreme: 11.9,
+    };
     for (final c in buildCourses()) {
       for (final l in c.levels) {
         for (final p in l.puzzles) {

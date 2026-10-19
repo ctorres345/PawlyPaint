@@ -40,22 +40,36 @@ class SortController extends ChangeNotifier {
     }
   }
 
-  /// Scramble amount and tray size by canvas size: harder pictures mix more
-  /// of their beads. The tray is roomy (full rows of 12) so a careful player
-  /// never has to shake it.
-  static (double, int) settingsFor(Puzzle p) => switch (p.width) {
-        <= 16 => (0.3, 24),
-        <= 24 => (0.4, 36),
-        _ => (0.45, 48),
+  /// Scramble amount and tray size (full rows of 12) by canvas size: harder
+  /// pictures mix more of their beads.
+  static ({double mix, int capacity}) settingsFor(Puzzle p) => switch (p.width) {
+        <= 16 => (mix: 0.3, capacity: 24),
+        <= 24 => (mix: 0.45, capacity: 48),
+        <= 32 => (mix: 0.6, capacity: 60),
+        _ => (mix: 0.8, capacity: 60),
       };
 
+  static final _freeShakes = <String, int>{};
+
+  /// Shakes allowed for 3 stars: as many as playing by the hint button needs
+  /// on this picture's board (0 on most Easy and Medium pictures), so heavily
+  /// mixed pictures stay fair.
+  static int freeShakesFor(Puzzle p) => _freeShakes.putIfAbsent('${p.id}:${p.signature}', () {
+        final g = _fresh(p);
+        while (!g.isComplete) {
+          if (g.freeSlots <= 0) g.shake();
+          g.tap(g.bestMove()!);
+        }
+        return g.shakes;
+      });
+
   static SortGame _fresh(Puzzle p) {
-    final (fraction, capacity) = settingsFor(p);
+    final s = settingsFor(p);
     return SortGame.scrambled(
       width: p.width,
       target: p.cells,
-      fraction: fraction,
-      capacity: capacity,
+      fraction: s.mix,
+      capacity: s.capacity,
       seed: p.signature,
     );
   }
@@ -65,7 +79,7 @@ class SortController extends ChangeNotifier {
     try {
       final board = SortGame.decodeBoard(j['board'] as String);
       final tray = SortGame.decodeTray(j['tray'] as String);
-      final capacity = settingsFor(p).$2;
+      final capacity = settingsFor(p).capacity;
       final colors = p.colorCount;
       // Holes always equal tray beads; anything else is a broken save.
       if (board.length != p.cellCount ||
@@ -124,7 +138,11 @@ class SortController extends ChangeNotifier {
   /// Changes whenever anything worth saving changes (board or counted mistakes).
   int get saveVersion => boardVersion + game.mistakes;
 
-  int get stars => Scoring.sortStars(shakes: game.shakes, mistakes: game.mistakes);
+  int get stars => Scoring.sortStars(
+        shakes: game.shakes,
+        mistakes: game.mistakes,
+        freeShakes: freeShakesFor(puzzle),
+      );
   int get score => Scoring.sortScore(placed: game.placed, shakes: game.shakes, mistakes: game.mistakes);
 
   void resume() {

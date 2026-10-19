@@ -7,6 +7,12 @@ import 'art/minecraft.dart';
 import 'art/sweets.dart';
 import 'art/vocaloid.dart';
 import 'artworks.dart';
+import 'art/extreme_classics.dart';
+import 'art/extreme_animals.dart';
+import 'art/extreme_garden.dart';
+import 'art/extreme_sweets.dart';
+import 'art/extreme_minecraft.dart';
+import 'art/extreme_vocaloid.dart';
 import 'simplify.dart';
 
 /// Inside a course, Easy is open from the start and each harder level opens
@@ -15,7 +21,7 @@ import 'simplify.dart';
 const unlockAfter = 3;
 
 /// Canvas size for each difficulty.
-const _sizes = {Difficulty.easy: 16, Difficulty.medium: 24, Difficulty.hard: 32};
+const _sizes = {Difficulty.easy: 16, Difficulty.medium: 24, Difficulty.hard: 32, Difficulty.extreme: 40};
 
 /// How far apart (CIE Lab ΔE) every two colors must be on Easy and Medium,
 /// which also get a plain background. Hard keeps the full drawing: subtle
@@ -23,7 +29,12 @@ const _sizes = {Difficulty.easy: 16, Difficulty.medium: 24, Difficulty.hard: 32}
 const _minDistance = {Difficulty.easy: 22.0, Difficulty.medium: 16.0};
 
 /// Smallest CIEDE2000 difference between any two drill colors.
-const _minColorGap = {Difficulty.easy: 18.0, Difficulty.medium: 16.0, Difficulty.hard: 14.0};
+const _minColorGap = {
+  Difficulty.easy: 18.0,
+  Difficulty.medium: 16.0,
+  Difficulty.hard: 14.0,
+  Difficulty.extreme: 12.0,
+};
 
 /// Every course, drawn once on first use.
 final List<Course> allCourses = buildCourses();
@@ -51,6 +62,13 @@ List<Course> buildCourses() => [
             'tulips': tulips,
             'moonlight': moonlight,
           },
+          Difficulty.extreme: {
+            'heart-balloons': xHeartBalloons,
+            'picnic': xPicnic,
+            'yarn-kitten': xYarnKitten,
+            'carousel': xCarousel,
+            'fireside': xFireside,
+          },
         },
       ),
       _course(
@@ -62,6 +80,13 @@ List<Course> buildCourses() => [
           Difficulty.easy: {'fish': fish, 'bunny': bunny, 'chick': chick, 'ladybug': ladybug, 'snail': snail},
           Difficulty.medium: {'fox': fox, 'penguin': penguin, 'owl': owl, 'frog': frog, 'whale': whale},
           Difficulty.hard: {'panda': panda, 'turtle': turtle, 'hedgehog': hedgehog, 'parrot': parrot, 'bee': bee},
+          Difficulty.extreme: {
+            'hamster': xHamster,
+            'koala': xKoala,
+            'otter': xOtter,
+            'lion': xLion,
+            'fawn': xFawn,
+          },
         },
       ),
       _course(
@@ -84,6 +109,13 @@ List<Course> buildCourses() => [
             'gnome': gnome,
             'lavender': lavender,
             'apple-tree': appleTree,
+          },
+          Difficulty.extreme: {
+            'pumpkin-patch': xPumpkinPatch,
+            'butterfly-meadow': xButterflyMeadow,
+            'mushroom-cottage': xMushroomCottage,
+            'rose-arbor': xRoseArbor,
+            'greenhouse': xGreenhouse,
           },
         },
       ),
@@ -114,6 +146,13 @@ List<Course> buildCourses() => [
             'pancakes': pancakes,
             'tea-time': teaTime,
           },
+          Difficulty.extreme: {
+            'cupcake-party': xCupcakeParty,
+            'strawberry-tart': xStrawberryTart,
+            'hot-cocoa': xHotCocoa,
+            'candy-house': xCandyHouse,
+            'bakery': xBakery,
+          },
         },
       ),
       _course(
@@ -136,6 +175,13 @@ List<Course> buildCourses() => [
             'nether-portal': netherPortal,
             'sheep': sheep,
             'cave': cave,
+          },
+          Difficulty.extreme: {
+            'bee-meadow': xMcBeeMeadow,
+            'ghast': xMcGhast,
+            'lush-cave': xMcLushCave,
+            'village': xMcVillage,
+            'the-end': xMcTheEnd,
           },
         },
         special: true,
@@ -160,6 +206,13 @@ List<Course> buildCourses() => [
             'concert': concert,
             'snow-miku': snowMiku,
             'sakura-miku': sakuraMiku,
+          },
+          Difficulty.extreme: {
+            'kaito-ice-cream': xVocKaitoIceCream,
+            'luka-tuna': xVocLukaTuna,
+            'meiko-stage': xVocMeikoStage,
+            'road-roller': xVocRoadRoller,
+            'moonlit': xVocMoonlit,
           },
         },
         special: true,

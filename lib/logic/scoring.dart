@@ -28,11 +28,12 @@ class Scoring {
     return 1;
   }
 
-  /// Sort mode: 3 stars without shaking the tray (and few wrong taps), 2 with
-  /// a couple of shakes, otherwise 1.
-  static int sortStars({required int shakes, required int mistakes}) {
-    if (shakes == 0 && mistakes <= 3) return 3;
-    if (shakes <= 2) return 2;
+  /// Sort mode: 3 stars within [freeShakes] shakes of the tray (and few wrong
+  /// taps), 2 with a couple more, otherwise 1. Big, heavily mixed pictures
+  /// allow a few shakes, since even careful play needs them there.
+  static int sortStars({required int shakes, required int mistakes, int freeShakes = 0}) {
+    if (shakes <= freeShakes && mistakes <= 3) return 3;
+    if (shakes <= freeShakes + 2) return 2;
     return 1;
   }
 

@@ -7,6 +7,7 @@ import '../state/progress_store.dart';
 IconData badgeIcon(String id) => switch (id) {
       'first' => Icons.auto_awesome_rounded,
       'hard' => Icons.grid_on_rounded,
+      'extreme' => Icons.bolt_rounded,
       'both' => Icons.swap_horiz_rounded,
       'sort5' => Icons.back_hand_rounded,
       'cleansort' => Icons.inventory_2_rounded,
