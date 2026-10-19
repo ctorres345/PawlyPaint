@@ -16,6 +16,9 @@ const unlockAfter = 3;
 /// Canvas size for each difficulty.
 const _sizes = {Difficulty.easy: 16, Difficulty.medium: 24, Difficulty.hard: 32};
 
+/// Every course, drawn once on first use.
+final List<Course> allCourses = buildCourses();
+
 /// Courses are themed categories; all of them are open from the start.
 List<Course> buildCourses() => [
       _course(

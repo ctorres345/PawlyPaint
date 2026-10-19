@@ -6,15 +6,18 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 
+import '../data/courses.dart' show allCourses;
 import '../models/puzzle.dart';
+import '../state/achievements.dart';
 import '../state/music.dart';
 import '../state/progress_store.dart';
+import '../state/settings.dart';
 import '../state/sort_controller.dart';
 import 'board.dart' show BoardView, kCell;
 import 'coach.dart';
 import 'completion_sheet.dart';
+import 'desk.dart';
 import 'gem_style.dart';
 import 'music_sheet.dart';
 
@@ -34,6 +37,8 @@ class SortScreen extends StatefulWidget {
 }
 
 class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+  AppSettings get _settings => SettingsScope.read(context);
+
   late final SortController game;
   late final List<GemPaints> paints;
   final view = BoardView();
@@ -107,6 +112,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    game.relaxed = SettingsScope.of(context).relaxed;
     if (_music == null) {
       _music = MusicScope.read(context);
       _music!.enterGame();
@@ -165,24 +171,24 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     _coachEvent(result);
     switch (result) {
       case SortTapResult.moved:
-        HapticFeedback.selectionClick();
+        _settings.selection();
         _music?.play(Sfx.place);
         if (++_unsaved >= 10) _save();
       case SortTapResult.sorted:
-        HapticFeedback.lightImpact();
+        _settings.light();
         _music?.play(Sfx.place);
         // The chime lands with the bead flying back into place.
         Future.delayed(const Duration(milliseconds: 650), () => _music?.play(Sfx.land));
         if (++_unsaved >= 10) _save();
       case SortTapResult.wrong:
-        HapticFeedback.mediumImpact();
+        _settings.medium();
         _music?.play(Sfx.wrong);
       case SortTapResult.trayFull:
-        HapticFeedback.heavyImpact();
+        _settings.heavy();
         _music?.play(Sfx.wrong);
         _toast('The tray is full. Shake it to free some space.');
       case SortTapResult.complete:
-        HapticFeedback.heavyImpact();
+        _settings.heavy();
         Future.delayed(const Duration(milliseconds: 650), () => _music?.play(Sfx.complete));
         _finish();
       case SortTapResult.ignored:
@@ -232,10 +238,11 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       _endTutorial();
       return;
     }
-    final stars = game.stars;
+    final relaxed = game.relaxed;
+    final stars = relaxed ? 0 : game.stars;
     final best = widget.store.recordCompletion(
       PlayMode.sort.key(widget.puzzle.id),
-      score: game.score,
+      score: relaxed ? 0 : game.score,
       stars: stars,
       seconds: game.seconds,
     );
@@ -256,6 +263,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     await Future<void>.delayed(const Duration(milliseconds: 1600));
     final isBest = await best;
     if (!mounted) return;
+    final badges = takeNewAchievements(allCourses, widget.store);
     await showCompletionSheet(
       context,
       puzzle: widget.puzzle,
@@ -264,6 +272,8 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       seconds: game.seconds,
       mistakes: game.game.mistakes + game.game.shakes,
       isBest: isBest,
+      relaxed: relaxed,
+      badges: badges,
     );
     if (mounted) Navigator.of(context).pop();
   }
@@ -323,7 +333,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
         Navigator.of(context).pop();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF1E7E1),
+        backgroundColor: SettingsScope.of(context).theme.desk,
         appBar: AppBar(
           backgroundColor: scheme.surface,
           title: Text(_finished || widget.store.isCompleted(PlayMode.sort.key(widget.puzzle.id))
@@ -363,6 +373,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                 ListenableBuilder(
                   listenable: Listenable.merge([game, clock]),
                   builder: (context, _) => _SortStats(
+                    relaxed: game.relaxed,
                     progress: game.progress,
                     seconds: clock.value,
                     left: game.game.wrongCount,
@@ -372,6 +383,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                   child: ClipRect(
                     child: Stack(
                       children: [
+                        Positioned.fill(child: CustomPaint(painter: DeskPainter(SettingsScope.of(context).theme))),
                         Positioned.fill(
                           child: Semantics(
                             label: 'Scrambled picture',
@@ -436,7 +448,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                     paints: paints,
                     onShake: () {
                       if (game.shake()) {
-                        HapticFeedback.mediumImpact();
+                        _settings.medium();
                         _music?.play(Sfx.shake);
                       }
                     },
@@ -467,7 +479,9 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
 }
 
 class _SortStats extends StatelessWidget {
-  const _SortStats({required this.progress, required this.seconds, required this.left});
+  const _SortStats({required this.relaxed, required this.progress, required this.seconds, required this.left});
+
+  final bool relaxed;
 
   final double progress;
   final int seconds;
@@ -497,10 +511,12 @@ class _SortStats extends StatelessWidget {
               child: Row(
                 children: [
                   Text('$left to sort', style: text.labelLarge),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.timer_outlined, size: 18, semanticLabel: 'Time'),
-                  const SizedBox(width: 4),
-                  Text(time, style: text.labelLarge),
+                  if (!relaxed) ...[
+                    const SizedBox(width: 16),
+                    const Icon(Icons.timer_outlined, size: 18, semanticLabel: 'Time'),
+                    const SizedBox(width: 4),
+                    Text(time, style: text.labelLarge),
+                  ],
                 ],
               ),
             ),
@@ -695,7 +711,7 @@ class _SortBoardPainter extends CustomPainter {
   final bool celebrate;
   final _SortCache cache;
 
-  static final _sheet = Paint()..color = const Color(0xFFFBF8F3);
+  static final _sheet = Paint();
   static final _sheetShadow = Paint()
     ..color = const Color(0x33000000)
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
@@ -711,7 +727,8 @@ class _SortBoardPainter extends CustomPainter {
   }
 
   void _record() {
-    final key = (game.boardVersion, showWrong, peek);
+    final key = (game.boardVersion, showWrong, peek, currentLook());
+    _sheet.color = canvasTheme.sheet;
     if (cache.key == key && cache.picture != null) return;
     cache.dispose();
     cache.key = key;
@@ -806,8 +823,11 @@ class _SortBoardPainter extends CustomPainter {
     canvas.restore();
   }
 
+  final Object look = currentLook();
+
   @override
   bool shouldRepaint(_SortBoardPainter old) =>
+      old.look != look ||
       old.game != game ||
       old.showWrong != showWrong ||
       old.peek != peek ||

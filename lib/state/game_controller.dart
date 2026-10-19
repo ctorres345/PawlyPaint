@@ -38,6 +38,9 @@ class GameController extends ChangeNotifier {
   final List<int> remaining;
 
   int selected = 0;
+
+  /// Relaxed mode: wrong taps still show a cross but aren't counted.
+  bool relaxed = false;
   int score = 0;
   int combo = 0;
   int mistakes = 0;
@@ -94,11 +97,13 @@ class GameController extends ChangeNotifier {
     final color = puzzle.cells[cell];
     if (color != selected) {
       if (dragging) return PlaceResult.ignored;
-      mistakes++;
-      combo = 0;
       lastMistakeCell = cell;
       lastMistakeAt = _clock();
-      score = Scoring.afterMistake(score);
+      if (!relaxed) {
+        mistakes++;
+        combo = 0;
+        score = Scoring.afterMistake(score);
+      }
       notifyListeners();
       return PlaceResult.wrong;
     }

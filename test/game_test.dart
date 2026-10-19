@@ -8,6 +8,7 @@ import 'package:pawlypaint/logic/line.dart';
 import 'package:pawlypaint/logic/scoring.dart';
 import 'package:pawlypaint/logic/sort_game.dart';
 import 'package:pawlypaint/models/puzzle.dart';
+import 'package:pawlypaint/state/achievements.dart';
 import 'package:pawlypaint/state/game_controller.dart';
 import 'package:pawlypaint/state/music.dart';
 import 'package:pawlypaint/state/progress_store.dart';
@@ -265,6 +266,24 @@ void main() {
       await store.recordDaily(today);
       expect(store.streak(today), 1);
       expect(store.streak(DateTime(2026, 10, 22)), 0);
+    });
+  });
+
+  group('achievements', () {
+    test('badges unlock from progress and are celebrated once', () async {
+      final courses = buildCourses();
+      final store = ProgressStore.memory();
+      expect(earnedAchievements(courses, store), isEmpty);
+      final easy = courses.first.levels.first.puzzles.first;
+      await store.recordCompletion(easy.id, score: 1, stars: 3, seconds: 1);
+      await store.recordCompletion(PlayMode.sort.key(easy.id), score: 1, stars: 3, seconds: 1);
+      final fresh = takeNewAchievements(courses, store).map((a) => a.id).toSet();
+      expect(fresh, {'first', 'both', 'cleansort'});
+      expect(takeNewAchievements(courses, store), isEmpty);
+      for (final p in courses.first.puzzles) {
+        await store.recordCompletion(p.id, score: 1, stars: 1, seconds: 1);
+      }
+      expect(earnedAchievements(courses, store), containsAll(['course', 'hard']));
     });
   });
 

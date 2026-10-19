@@ -88,6 +88,9 @@ class SortController extends ChangeNotifier {
   /// Cells waiting for a flying bead; drawn empty until it lands.
   final Map<int, DateTime> arriving = {};
 
+  /// Relaxed mode: taps on beads that were already right aren't counted.
+  bool relaxed = false;
+
   int? hintCell;
   DateTime? hintAt;
   int? mistakeCell;
@@ -127,7 +130,7 @@ class SortController extends ChangeNotifier {
     if (isComplete) return SortTapResult.ignored;
     if (game.isHole(cell)) return SortTapResult.ignored;
     if (!game.isWrong(cell)) {
-      game.tap(cell);
+      if (!relaxed) game.tap(cell);
       mistakeCell = cell;
       mistakeAt = _clock();
       notifyListeners();

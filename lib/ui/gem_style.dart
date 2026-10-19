@@ -41,11 +41,37 @@ final _sparklePaint = Paint()
   ..color = Colors.white
   ..strokeCap = StrokeCap.round;
 
+/// Square diamond-painting drills, or round ones.
+enum GemShape {
+  square('Square'),
+  round('Round');
+
+  const GemShape(this.label);
+
+  final String label;
+}
+
+/// The drill shape everything is drawn with; set from the player's settings.
+GemShape gemShape = GemShape.square;
+
 /// Outer rect and corner radius of a drill inside [cell].
 (Rect, Radius) _gemBounds(Rect cell, double pop) {
   var r = cell.deflate(cell.width * 0.05);
   if (pop > 0) r = Rect.fromCenter(center: r.center, width: r.width * (1 + pop), height: r.height * (1 + pop));
-  return (r, Radius.circular(r.width * 0.2));
+  return (r, Radius.circular(r.width * (gemShape == GemShape.round ? 0.5 : 0.2)));
+}
+
+/// A round, domed bead: dark rim, lit upper-left, body, and a soft gloss.
+void _drawRound(Canvas canvas, Rect r, GemPaints g, double w) {
+  final rw = r.width;
+  canvas.drawOval(r, g.dark);
+  canvas.drawOval(Rect.fromLTRB(r.left, r.top, r.right - rw * 0.08, r.bottom - rw * 0.08), g.light);
+  final body = Rect.fromLTRB(r.left + rw * 0.07, r.top + rw * 0.07, r.right - rw * 0.1, r.bottom - rw * 0.1);
+  canvas.drawOval(body, g.base);
+  canvas.drawOval(body.deflate(rw * 0.16).translate(-rw * 0.03, -rw * 0.03), g.table);
+  if (w >= 8) {
+    canvas.drawOval(Rect.fromLTWH(body.left + rw * 0.1, body.top + rw * 0.08, rw * 0.24, rw * 0.13), _glossPaint);
+  }
 }
 
 /// Draws one faceted square drill filling [cell]. [pop] (0..0.3) enlarges it
@@ -54,6 +80,10 @@ void drawGem(Canvas canvas, Rect cell, GemPaints g, {double pop = 0}) {
   final w = cell.width;
   final (r, radius) = _gemBounds(cell, pop);
   final rw = r.width;
+  if (gemShape == GemShape.round) {
+    _drawRound(canvas, r, g, w);
+    return;
+  }
 
   // Dark rim, a lit top-left bevel, the crown, then a brighter table facet.
   canvas.drawRRect(RRect.fromRectAndRadius(r, radius), g.dark);

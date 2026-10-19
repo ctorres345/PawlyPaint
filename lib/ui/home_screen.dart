@@ -10,6 +10,7 @@ import 'game_screen.dart';
 import 'gem_style.dart';
 import 'sort_screen.dart';
 import 'music_sheet.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.courses});
@@ -32,9 +33,20 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Icon(Icons.diamond_rounded, color: scheme.primary, size: 36),
                 const SizedBox(width: 10),
-                Text('PawlyPaint', style: text.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
-                const Spacer(),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text('PawlyPaint', style: text.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  ),
+                ),
                 const MusicButton(),
+                IconButton(
+                  tooltip: 'Settings',
+                  icon: const Icon(Icons.settings_rounded),
+                  onPressed: () =>
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                ),
                 const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
                 const SizedBox(width: 4),
                 Text('$totalStars / $maxStars', style: text.titleMedium),

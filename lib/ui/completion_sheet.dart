@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/puzzle.dart';
+import '../state/achievements.dart';
+import 'badges.dart';
 import 'gem_style.dart';
 
 Future<void> showCompletionSheet(
@@ -11,6 +13,8 @@ Future<void> showCompletionSheet(
   required int seconds,
   required int mistakes,
   required bool isBest,
+  bool relaxed = false,
+  List<Achievement> badges = const [],
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -38,24 +42,26 @@ Future<void> showCompletionSheet(
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (var i = 0; i < 3; i++)
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: Duration(milliseconds: 400 + i * 250),
-                      curve: Curves.elasticOut,
-                      builder: (context, v, child) => Transform.scale(scale: v, child: child),
-                      child: Icon(
-                        i < stars ? Icons.star_rounded : Icons.star_outline_rounded,
-                        size: 48,
-                        color: i < stars ? const Color(0xFFFFC107) : scheme.outlineVariant,
+              if (relaxed) Text('Painted at your own pace.', style: text.titleMedium),
+              if (!relaxed)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (var i = 0; i < 3; i++)
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: 1),
+                        duration: Duration(milliseconds: 400 + i * 250),
+                        curve: Curves.elasticOut,
+                        builder: (context, v, child) => Transform.scale(scale: v, child: child),
+                        child: Icon(
+                          i < stars ? Icons.star_rounded : Icons.star_outline_rounded,
+                          size: 48,
+                          color: i < stars ? const Color(0xFFFFC107) : scheme.outlineVariant,
+                        ),
                       ),
-                    ),
-                ],
-              ),
-              if (isBest) ...[
+                  ],
+                ),
+              if (isBest && !relaxed) ...[
                 const SizedBox(height: 8),
                 Chip(
                   avatar: const Icon(Icons.emoji_events_rounded, size: 18),
@@ -64,14 +70,31 @@ Future<void> showCompletionSheet(
                 ),
               ],
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _Stat(label: 'Score', value: '$score'),
-                  _Stat(label: 'Time', value: time),
-                  _Stat(label: 'Mistakes', value: '$mistakes'),
-                ],
-              ),
+              if (!relaxed)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _Stat(label: 'Score', value: '$score'),
+                    _Stat(label: 'Time', value: time),
+                    _Stat(label: 'Mistakes', value: '$mistakes'),
+                  ],
+                ),
+              if (badges.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final b in badges)
+                      Chip(
+                        avatar: Icon(badgeIcon(b.id), size: 18, color: const Color(0xFFFFA000)),
+                        label: Text('New badge: ${b.title}'),
+                        backgroundColor: const Color(0xFFFFF3C4),
+                      ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
+import '../state/settings.dart';
+import 'badges.dart';
 import 'gem_style.dart';
 
 /// Every finished picture, to admire.
@@ -24,8 +26,28 @@ class GalleryScreen extends StatelessWidget {
     final total = courses.fold(0, (s, c) => s + c.puzzles.length);
     return Scaffold(
       appBar: AppBar(title: const Text('Gallery')),
-      body: done.isEmpty
-          ? Center(
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Badges', style: text.titleLarge),
+                  const SizedBox(height: 4),
+                  Text('Tap a badge to see how to earn it.', style: text.bodySmall),
+                  const SizedBox(height: 12),
+                  BadgeGrid(courses: courses, store: store),
+                  const SizedBox(height: 20),
+                  Text('Pictures', style: text.titleLarge),
+                ],
+              ),
+            ),
+          ),
+          if (done.isEmpty)
+            SliverToBoxAdapter(
+                child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Column(
@@ -37,49 +59,49 @@ class GalleryScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            )
-          : CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                    child: Text('${done.length} of $total pictures finished', style: text.titleSmall),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  sliver: SliverGrid.builder(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 150,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                    ),
-                    itemCount: done.length,
-                    itemBuilder: (context, i) {
-                      final (course, puzzle) = done[i];
-                      return Semantics(
-                        button: true,
-                        label: '${puzzle.title}, from ${course.title}',
-                        excludeSemantics: true,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => PictureViewer(puzzle: puzzle, course: course)),
-                          ),
-                          child: Hero(
-                            tag: 'gallery-${puzzle.id}',
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: CustomPaint(painter: PuzzleThumbPainter(puzzle, complete: true)),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+            ))
+          else ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Text('${done.length} of $total pictures finished', style: text.titleSmall),
+              ),
             ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              sliver: SliverGrid.builder(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 150,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                ),
+                itemCount: done.length,
+                itemBuilder: (context, i) {
+                  final (course, puzzle) = done[i];
+                  return Semantics(
+                    button: true,
+                    label: '${puzzle.title}, from ${course.title}',
+                    excludeSemantics: true,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => PictureViewer(puzzle: puzzle, course: course)),
+                      ),
+                      child: Hero(
+                        tag: 'gallery-${puzzle.id}',
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CustomPaint(painter: PuzzleThumbPainter(puzzle, complete: true)),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -138,7 +160,7 @@ class _PictureViewerState extends State<PictureViewer> with SingleTickerProvider
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1E7E1),
+      backgroundColor: SettingsScope.of(context).theme.desk,
       appBar: AppBar(title: Text(widget.puzzle.title), backgroundColor: Colors.transparent),
       body: SafeArea(
         child: Column(
@@ -154,7 +176,7 @@ class _PictureViewerState extends State<PictureViewer> with SingleTickerProvider
                       child: Material(
                         elevation: 8,
                         borderRadius: BorderRadius.circular(16),
-                        color: const Color(0xFFFBF8F3),
+                        color: SettingsScope.of(context).theme.sheet,
                         child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: CustomPaint(

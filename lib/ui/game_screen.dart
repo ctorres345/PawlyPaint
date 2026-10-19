@@ -2,15 +2,18 @@ import 'dart:async';
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../data/courses.dart' show allCourses;
 import '../models/puzzle.dart';
+import '../state/achievements.dart';
 import '../state/game_controller.dart';
 import '../state/music.dart';
 import '../state/progress_store.dart';
+import '../state/settings.dart';
 import 'board.dart';
 import 'coach.dart';
 import 'completion_sheet.dart';
+import 'desk.dart';
 import 'gem_style.dart';
 import 'music_sheet.dart';
 import 'tray.dart';
@@ -32,6 +35,8 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+  AppSettings get _settings => SettingsScope.read(context);
+
   late final GameController game;
   late final List<GemPaints> paints;
   final view = BoardView();
@@ -80,6 +85,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    game.relaxed = SettingsScope.of(context).relaxed;
     if (_music == null) {
       _music = MusicScope.read(context);
       _music!.enterGame();
@@ -131,7 +137,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final now = DateTime.now();
     if (now.difference(_lastHaptic).inMilliseconds < 40) return;
     _lastHaptic = now;
-    HapticFeedback.selectionClick();
+    _settings.selection();
   }
 
   void _onResult(PlaceResult result, {required bool dragging}) {
@@ -141,14 +147,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     }
     switch (result) {
       case PlaceResult.wrong:
-        HapticFeedback.mediumImpact();
+        _settings.medium();
         _music?.play(Sfx.wrong);
       case PlaceResult.placed:
         _tick();
         _music?.play(Sfx.place);
         if (++_unsavedPlacements >= 25) _save();
       case PlaceResult.colorComplete:
-        HapticFeedback.lightImpact();
+        _settings.light();
         _music?.play(Sfx.color);
         _save();
         ScaffoldMessenger.of(context)
@@ -165,7 +171,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
             duration: Duration(milliseconds: 1400),
           ));
       case PlaceResult.puzzleComplete:
-        HapticFeedback.heavyImpact();
+        _settings.heavy();
         _music?.play(Sfx.complete);
         _finish();
       case PlaceResult.ignored:
@@ -196,11 +202,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       _endTutorial();
       return;
     }
-    final stars = game.stars;
+    final relaxed = game.relaxed;
+    final stars = relaxed ? 0 : game.stars;
     if (widget.daily) widget.store.recordDaily(DateTime.now());
     final best = widget.store.recordCompletion(
       widget.puzzle.id,
-      score: game.score,
+      score: relaxed ? 0 : game.score,
       stars: stars,
       seconds: game.seconds,
     );
@@ -219,6 +226,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     await Future<void>.delayed(const Duration(milliseconds: 1600));
     final isBest = await best;
     if (!mounted) return;
+    final badges = takeNewAchievements(allCourses, widget.store);
     await showCompletionSheet(
       context,
       puzzle: widget.puzzle,
@@ -227,6 +235,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       seconds: game.seconds,
       mistakes: game.mistakes,
       isBest: isBest,
+      relaxed: relaxed,
+      badges: badges,
     );
     if (mounted) Navigator.of(context).pop();
   }
@@ -289,7 +299,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         Navigator.of(context).pop();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF1E7E1),
+        backgroundColor: SettingsScope.of(context).theme.desk,
         appBar: AppBar(
           backgroundColor: scheme.surface,
           title:
@@ -329,6 +339,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
             final canvas = ClipRect(
               child: Stack(
                 children: [
+                  Positioned.fill(child: CustomPaint(painter: DeskPainter(SettingsScope.of(context).theme))),
                   Positioned.fill(
                     child: Semantics(
                       label: 'Painting canvas',
@@ -370,6 +381,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
             final stats = ListenableBuilder(
               listenable: Listenable.merge([game, clock]),
               builder: (context, _) => _StatsBar(
+                relaxed: game.relaxed,
                 progress: game.progress,
                 seconds: clock.value,
                 score: game.score,
@@ -449,7 +461,15 @@ class _Tips extends StatelessWidget {
 }
 
 class _StatsBar extends StatelessWidget {
-  const _StatsBar({required this.progress, required this.seconds, required this.score, required this.combo});
+  const _StatsBar({
+    required this.relaxed,
+    required this.progress,
+    required this.seconds,
+    required this.score,
+    required this.combo,
+  });
+
+  final bool relaxed;
 
   final double progress;
   final int seconds;
@@ -480,18 +500,24 @@ class _StatsBar extends StatelessWidget {
               child: Row(
                 children: [
                   Text('${(progress * 100).floor()}%', style: text.labelLarge),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.timer_outlined, size: 18, semanticLabel: 'Time'),
-                  const SizedBox(width: 4),
-                  Text(time, style: text.labelLarge),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.diamond_outlined, size: 18, semanticLabel: 'Score'),
-                  const SizedBox(width: 4),
-                  Text('$score', style: text.labelLarge),
-                  if (combo >= 10) ...[
-                    const SizedBox(width: 8),
-                    Text('×$combo',
-                        style: text.labelLarge?.copyWith(color: scheme.primary, fontWeight: FontWeight.w800)),
+                  if (relaxed) ...[
+                    const SizedBox(width: 12),
+                    Icon(Icons.spa_rounded, size: 18, color: scheme.primary, semanticLabel: 'Relaxed mode'),
+                  ],
+                  if (!relaxed) ...[
+                    const SizedBox(width: 16),
+                    const Icon(Icons.timer_outlined, size: 18, semanticLabel: 'Time'),
+                    const SizedBox(width: 4),
+                    Text(time, style: text.labelLarge),
+                    const SizedBox(width: 16),
+                    const Icon(Icons.diamond_outlined, size: 18, semanticLabel: 'Score'),
+                    const SizedBox(width: 4),
+                    Text('$score', style: text.labelLarge),
+                    if (combo >= 10) ...[
+                      const SizedBox(width: 8),
+                      Text('×$combo',
+                          style: text.labelLarge?.copyWith(color: scheme.primary, fontWeight: FontWeight.w800)),
+                    ],
                   ],
                 ],
               ),

@@ -261,7 +261,15 @@ class _PuzzleTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                if (done)
+                if (done && record!.bestStars == 0)
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle_rounded, size: 18, color: scheme.primary),
+                      const SizedBox(width: 4),
+                      Text('Finished', style: text.labelMedium),
+                    ],
+                  )
+                else if (done)
                   Row(
                     children: [
                       for (var s = 0; s < 3; s++)

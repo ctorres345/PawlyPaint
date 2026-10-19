@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../logic/line.dart';
 import '../state/game_controller.dart';
+import '../state/settings.dart';
 import 'gem_style.dart';
 
 /// Size of one cell at zoom 1, in logical pixels.
@@ -275,7 +276,7 @@ class BoardPainter extends CustomPainter {
   final bool celebrate;
   final BoardCache cache;
 
-  static final _sheet = Paint()..color = const Color(0xFFFBF8F3);
+  static final _sheet = Paint();
   static final _sheetShadow = Paint()
     ..color = const Color(0x33000000)
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
@@ -293,7 +294,8 @@ class BoardPainter extends CustomPainter {
   bool get _smart => highlight && !game.isColorDone(game.selected) && !game.isComplete;
 
   void _rebuildCache() {
-    final key = (game.boardVersion, highlight, game.isComplete);
+    final key = (game.boardVersion, highlight, game.isComplete, currentLook());
+    _sheet.color = canvasTheme.sheet;
     if (cache.key == key && cache.base != null) return;
     cache.dispose();
     cache.key = key;
@@ -435,7 +437,13 @@ class BoardPainter extends CustomPainter {
     canvas.restore();
   }
 
+  final Object look = currentLook();
+
   @override
   bool shouldRepaint(BoardPainter old) =>
-      old.game != game || old.highlight != highlight || old.paints != paints || old.celebrate != celebrate;
+      old.look != look ||
+      old.game != game ||
+      old.highlight != highlight ||
+      old.paints != paints ||
+      old.celebrate != celebrate;
 }

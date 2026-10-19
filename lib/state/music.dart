@@ -43,15 +43,22 @@ enum Sfx {
 /// Plays the menu song on menus and the chosen (or shuffled) theme while
 /// painting. Settings are remembered on the device.
 class MusicController extends ChangeNotifier with WidgetsBindingObserver {
-  MusicController._(this._prefs, {required this.muted, required this.choice, required this.sfxOn}) {
+  MusicController._(
+    this._prefs, {
+    required this.muted,
+    required this.choice,
+    required this.sfxOn,
+    required this.musicVolume,
+    required this.sfxVolume,
+  }) {
     WidgetsBinding.instance.addObserver(this);
   }
 
   static const _mutedKey = 'music_muted';
   static const _choiceKey = 'music_choice';
   static const _sfxKey = 'sfx_on';
-  static const _sfxVolume = 0.5;
-  static const _volume = 0.55;
+  static const _musicVolumeKey = 'music_volume';
+  static const _sfxVolumeKey = 'sfx_volume';
 
   static Future<MusicController> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -70,6 +77,8 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       muted: prefs.getBool(_mutedKey) ?? false,
       choice: MusicTheme.values.where((t) => t.name == name).firstOrNull,
       sfxOn: prefs.getBool(_sfxKey) ?? true,
+      musicVolume: prefs.getDouble(_musicVolumeKey) ?? 0.55,
+      sfxVolume: prefs.getDouble(_sfxVolumeKey) ?? 0.5,
     );
   }
 
@@ -88,6 +97,25 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Sound effects on or off, separate from the music.
   bool sfxOn;
+
+  /// 0..1 loudness of the music and of the sound effects.
+  double musicVolume;
+  double sfxVolume;
+
+  Future<void> setMusicVolume(double v) async {
+    musicVolume = v;
+    notifyListeners();
+    try {
+      await _player.setVolume(v);
+    } catch (_) {}
+    await _prefs.setDouble(_musicVolumeKey, v);
+  }
+
+  Future<void> setSfxVolume(double v) async {
+    sfxVolume = v;
+    notifyListeners();
+    await _prefs.setDouble(_sfxVolumeKey, v);
+  }
 
   /// Quick repeating sounds share a small pool of players so rapid taps
   /// don't cut each other off.
@@ -144,7 +172,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
         maxPlayers: 4,
         playerMode: PlayerMode.lowLatency,
       );
-      await pool.start(volume: _sfxVolume);
+      await pool.start(volume: sfxVolume);
     } catch (e) {
       debugPrint('Sound effect failed: $e');
     }
@@ -179,7 +207,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       // One theme per level: shuffle picks it when the level starts, and it
       // loops until the level ends or starts over.
       await _player.setReleaseMode(ReleaseMode.loop);
-      await _player.play(AssetSource(_inGame ? current!.asset : _menuAsset), volume: _volume);
+      await _player.play(AssetSource(_inGame ? current!.asset : _menuAsset), volume: musicVolume);
     } catch (e) {
       // Music is a nice-to-have; never let an audio hiccup break the game.
       debugPrint('Music failed: $e');

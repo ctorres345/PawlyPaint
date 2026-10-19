@@ -134,6 +134,7 @@ class ProgressStore extends ChangeNotifier {
     final sortSaved = <String, Map<String, dynamic>>{};
     var seenTutorial = false, seenSortTutorial = false;
     Map<String, dynamic>? daily;
+    final badges = <String>[];
     final raw = prefs.getString(_key);
     if (raw != null) {
       Map<String, dynamic> j;
@@ -151,6 +152,7 @@ class ProgressStore extends ChangeNotifier {
       seenTutorial = j['seenTutorial'] == true;
       seenSortTutorial = j['seenSortTutorial'] == true;
       daily = j['daily'] is Map<String, dynamic> ? j['daily'] as Map<String, dynamic> : null;
+      if (j['badges'] is List) badges.addAll((j['badges'] as List).whereType<String>());
     }
     return ProgressStore._(prefs, records, saved, sortSaved)
       .._seenTutorial = seenTutorial
@@ -158,7 +160,9 @@ class ProgressStore extends ChangeNotifier {
       .._dailyDate = daily?['date'] as String?
       .._dailyId = daily?['id'] as String?
       .._dailyDone = daily?['done'] as String?
-      .._streak = (daily?['streak'] as int?) ?? 0;
+      .._streak = (daily?['streak'] as int?) ?? 0
+      .._bestStreak = (daily?['best'] as int?) ?? 0
+      .._seenBadges.addAll(badges);
   }
 
   /// In-memory store for tests.
@@ -179,6 +183,16 @@ class ProgressStore extends ChangeNotifier {
   String? _dailyId;
   String? _dailyDone;
   int _streak = 0;
+  int _bestStreak = 0;
+  final Set<String> _seenBadges = {};
+
+  int get bestStreak => _bestStreak;
+  bool hasSeenBadge(String id) => _seenBadges.contains(id);
+
+  Future<void> markBadgesSeen(Iterable<String> ids) {
+    _seenBadges.addAll(ids);
+    return _persist();
+  }
 
   /// Today's surprise picture: chosen once per day, preferring pictures not
   /// painted yet, and kept for the rest of the day.
@@ -206,6 +220,7 @@ class ProgressStore extends ChangeNotifier {
   Future<void> recordDaily(DateTime today) {
     _streak = nextStreak(streak: _streak, lastDone: _dailyDone, today: today);
     _dailyDone = dayKey(today);
+    if (_streak > _bestStreak) _bestStreak = _streak;
     notifyListeners();
     return _persist();
   }
@@ -296,7 +311,8 @@ class ProgressStore extends ChangeNotifier {
           'version': _version,
           'seenTutorial': _seenTutorial,
           'seenSortTutorial': _seenSortTutorial,
-          'daily': {'date': _dailyDate, 'id': _dailyId, 'done': _dailyDone, 'streak': _streak},
+          'daily': {'date': _dailyDate, 'id': _dailyId, 'done': _dailyDone, 'streak': _streak, 'best': _bestStreak},
+          'badges': _seenBadges.toList(),
           'records': _records.map((k, v) => MapEntry(k, v.toJson())),
           'saved': _saved.map((k, v) => MapEntry(k, v.toJson())),
           'sortSaved': _sortSaved,

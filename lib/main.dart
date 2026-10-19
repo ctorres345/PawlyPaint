@@ -3,34 +3,40 @@ import 'package:flutter/material.dart';
 import 'data/courses.dart';
 import 'state/music.dart';
 import 'state/progress_store.dart';
+import 'state/settings.dart';
 import 'ui/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final store = await ProgressStore.load();
   final music = await MusicController.load();
-  runApp(PawlyPaintApp(store: store, music: music));
+  final settings = await AppSettings.load();
+  runApp(PawlyPaintApp(store: store, music: music, settings: settings));
   music.playMenu();
 }
 
 class PawlyPaintApp extends StatelessWidget {
-  PawlyPaintApp({super.key, required this.store, required this.music});
+  PawlyPaintApp({super.key, required this.store, required this.music, required this.settings});
 
   final ProgressStore store;
   final MusicController music;
-  final courses = buildCourses();
+  final AppSettings settings;
+  final courses = allCourses;
 
   @override
   Widget build(BuildContext context) {
-    return MusicScope(
-      music: music,
-      child: ProgressScope(
-        store: store,
-        child: MaterialApp(
-          title: 'PawlyPaint',
-          debugShowCheckedModeBanner: false,
-          theme: _theme(),
-          home: HomeScreen(courses: courses),
+    return SettingsScope(
+      settings: settings,
+      child: MusicScope(
+        music: music,
+        child: ProgressScope(
+          store: store,
+          child: MaterialApp(
+            title: 'PawlyPaint',
+            debugShowCheckedModeBanner: false,
+            theme: _theme(),
+            home: HomeScreen(courses: courses),
+          ),
         ),
       ),
     );
