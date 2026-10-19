@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 
 import '../logic/scoring.dart';
@@ -51,6 +49,10 @@ class GameController extends ChangeNotifier {
   /// When each recent drill landed, for the pop animation.
   final Map<int, DateTime> recentPlacements = {};
 
+  /// The last wrong tap, for a short red flash on the canvas.
+  int? lastMistakeCell;
+  DateTime? lastMistakeAt;
+
   int get placedCount => _placedCount;
   bool get isComplete => _placedCount == puzzle.cellCount;
   double get progress => _placedCount / puzzle.cellCount;
@@ -89,6 +91,8 @@ class GameController extends ChangeNotifier {
       if (dragging) return PlaceResult.ignored;
       mistakes++;
       combo = 0;
+      lastMistakeCell = cell;
+      lastMistakeAt = _clock();
       score = Scoring.afterMistake(score);
       notifyListeners();
       return PlaceResult.wrong;

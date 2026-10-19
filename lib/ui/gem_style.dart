@@ -9,8 +9,9 @@ import '../models/puzzle.dart';
 class GemPaints {
   GemPaints(this.color)
       : base = Paint()..color = color,
-        light = Paint()..color = _shift(color, 0.16),
-        dark = Paint()..color = _shift(color, -0.18),
+        light = Paint()..color = Color.lerp(color, Colors.white, 0.38)!,
+        dark = Paint()..color = Color.lerp(color, Colors.black, 0.28)!,
+        table = Paint()..color = Color.lerp(color, Colors.white, 0.16)!,
         pale = Paint()..color = Color.lerp(color, Colors.white, 0.72)!,
         paleSelected = Paint()..color = Color.lerp(color, Colors.white, 0.45)!,
         onColor = color.computeLuminance() > 0.5 ? const Color(0xFF3B2F36) : Colors.white;
@@ -19,20 +20,16 @@ class GemPaints {
   final Paint base;
   final Paint light;
   final Paint dark;
+  final Paint table;
   final Paint pale;
   final Paint paleSelected;
   final Color onColor;
-
-  static Color _shift(Color c, double amount) {
-    final hsl = HSLColor.fromColor(c);
-    return hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0)).toColor();
-  }
 
   static List<GemPaints> forPuzzle(Puzzle p) => [for (final c in p.palette) GemPaints(c)];
 }
 
 final _facetPaint = Paint()
-  ..color = const Color(0x22000000)
+  ..color = const Color(0x1F000000)
   ..strokeWidth = 0.8;
 final _glossPaint = Paint()..color = const Color(0x99FFFFFF);
 final _shinePaint = Paint();
@@ -51,22 +48,26 @@ void drawGem(Canvas canvas, Rect cell, GemPaints g, {double shine = 0, double po
   final rw = r.width;
   final radius = Radius.circular(rw * 0.2);
 
+  // Dark rim, a lit top-left bevel, the crown, then a brighter table facet.
   canvas.drawRRect(RRect.fromRectAndRadius(r, radius), g.dark);
   canvas.drawRRect(
-    RRect.fromRectAndRadius(Rect.fromLTRB(r.left, r.top, r.right - rw * 0.12, r.bottom - rw * 0.12), radius),
+    RRect.fromRectAndRadius(Rect.fromLTRB(r.left, r.top, r.right - rw * 0.08, r.bottom - rw * 0.08), radius),
     g.light,
   );
-  final table = Rect.fromLTRB(r.left + rw * 0.24, r.top + rw * 0.24, r.right - rw * 0.2, r.bottom - rw * 0.2);
+  final crown = Rect.fromLTRB(r.left + rw * 0.08, r.top + rw * 0.08, r.right - rw * 0.12, r.bottom - rw * 0.12);
+  canvas.drawRRect(RRect.fromRectAndRadius(crown, Radius.circular(rw * 0.14)), g.base);
+  final table = crown.deflate(rw * 0.2);
   if (w >= 16) {
-    canvas.drawLine(r.topLeft, table.topLeft, _facetPaint);
-    canvas.drawLine(r.topRight, table.topRight, _facetPaint);
-    canvas.drawLine(r.bottomLeft, table.bottomLeft, _facetPaint);
-    canvas.drawLine(r.bottomRight, table.bottomRight, _facetPaint);
+    final k = rw * 0.05;
+    canvas.drawLine(crown.topLeft.translate(k, k), table.topLeft, _facetPaint);
+    canvas.drawLine(crown.topRight.translate(-k, k), table.topRight, _facetPaint);
+    canvas.drawLine(crown.bottomLeft.translate(k, -k), table.bottomLeft, _facetPaint);
+    canvas.drawLine(crown.bottomRight.translate(-k, -k), table.bottomRight, _facetPaint);
   }
-  canvas.drawRRect(RRect.fromRectAndRadius(table, Radius.circular(rw * 0.08)), g.base);
+  canvas.drawRRect(RRect.fromRectAndRadius(table, Radius.circular(rw * 0.06)), g.table);
   if (w >= 8) {
     canvas.drawOval(
-      Rect.fromLTWH(table.left + rw * 0.04, table.top + rw * 0.04, rw * 0.2, rw * 0.11),
+      Rect.fromLTWH(crown.left + rw * 0.06, crown.top + rw * 0.05, rw * 0.22, rw * 0.12),
       _glossPaint,
     );
   }

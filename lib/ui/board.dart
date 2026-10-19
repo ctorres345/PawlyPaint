@@ -25,7 +25,9 @@ class BoardView extends ChangeNotifier {
     viewport = size;
     this.cols = cols;
     this.rows = rows;
-    final fitScale = math.min(size.width / (cols * kCell), size.height / (rows * kCell)) * 0.9;
+    // Keep clear of the screen edges, where a swipe would trigger the system back gesture.
+    const edge = 36.0;
+    final fitScale = math.min((size.width - 2 * edge) / (cols * kCell), (size.height - 2 * edge) / (rows * kCell));
     minScale = fitScale * 0.8;
     maxScale = math.max(fitScale * 1.2, 72 / kCell);
     scale = fitScale;
@@ -234,6 +236,9 @@ class BoardPainter extends CustomPainter {
     ..color = const Color(0x2E000000)
     ..strokeWidth = 1;
   static final _ring = Paint()..style = PaintingStyle.stroke;
+  static final _miss = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round;
 
   final Map<String, TextPainter> _labels = {};
   double _labelSize = 0;
@@ -343,6 +348,21 @@ class BoardPainter extends CustomPainter {
           if (s > 0.94) sparkle = (s - 0.94) / 0.06;
         }
         drawGem(canvas, rect, paints[p.cells[i]], shine: shine, pop: pop, sparkle: sparkle);
+      }
+    }
+
+    // A wrong tap shows a fading red cross.
+    final missCell = game.lastMistakeCell, missAt = game.lastMistakeAt;
+    if (missCell != null && missAt != null && game.placed[missCell] == 0) {
+      final age = now.difference(missAt).inMilliseconds;
+      if (age < 600) {
+        final rect = Rect.fromLTWH(o.dx + (missCell % p.width) * cs, o.dy + (missCell ~/ p.width) * cs, cs, cs)
+            .deflate(cs * 0.22);
+        _miss
+          ..color = const Color(0xFFE53935).withValues(alpha: 1 - age / 600)
+          ..strokeWidth = math.max(2, cs * 0.12);
+        canvas.drawLine(rect.topLeft, rect.bottomRight, _miss);
+        canvas.drawLine(rect.topRight, rect.bottomLeft, _miss);
       }
     }
   }
