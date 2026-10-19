@@ -65,63 +65,82 @@ class _PuzzleTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final done = record != null;
     final progress = saved == null ? 0.0 : saved!.placedCount / puzzle.cellCount;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: unlocked ? onOpen : null,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CustomPaint(painter: PuzzleThumbPainter(puzzle, placed: saved?.placed, complete: done)),
-                      if (!done)
-                        Center(
-                          child: Icon(
-                            unlocked ? Icons.question_mark_rounded : Icons.lock_rounded,
-                            size: 40,
-                            color: scheme.outline,
+    final label = done
+        ? '${puzzle.title}, ${record!.bestStars} of 3 stars, best score ${record!.bestScore}'
+        : !unlocked
+            ? 'Picture ${index + 1}, locked'
+            : saved != null
+                ? 'Picture ${index + 1}, ${(progress * 100).floor()} percent done'
+                : 'Picture ${index + 1}, ${puzzle.width} by ${puzzle.height}, ${puzzle.colorCount} colors';
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: unlocked
+              ? onOpen
+              : () => ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(const SnackBar(
+                  content: Text('Finish the picture before this one to unlock it.'),
+                  behavior: SnackBarBehavior.floating,
+                )),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CustomPaint(painter: PuzzleThumbPainter(puzzle, placed: saved?.placed, complete: done)),
+                        if (!done)
+                          Center(
+                            child: Icon(
+                              unlocked ? Icons.question_mark_rounded : Icons.lock_rounded,
+                              size: 40,
+                              color: scheme.outline,
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                done ? puzzle.title : 'No. ${index + 1}',
-                style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              if (done)
-                Row(
-                  children: [
-                    for (var s = 0; s < 3; s++)
-                      Icon(
-                        s < record!.bestStars ? Icons.star_rounded : Icons.star_outline_rounded,
-                        size: 18,
-                        color: s < record!.bestStars ? const Color(0xFFFFC107) : scheme.outlineVariant,
-                      ),
-                    const Spacer(),
-                    Text('${record!.bestScore}', style: text.labelMedium),
-                  ],
-                )
-              else
+                const SizedBox(height: 8),
                 Text(
-                  saved != null
-                      ? '${(progress * 100).floor()}% done'
-                      : '${puzzle.width}×${puzzle.height} · ${puzzle.colorCount} colors',
-                  style: text.labelMedium,
+                  done ? puzzle.title : 'No. ${index + 1}',
+                  style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-            ],
+                const SizedBox(height: 2),
+                if (done)
+                  Row(
+                    children: [
+                      for (var s = 0; s < 3; s++)
+                        Icon(
+                          s < record!.bestStars ? Icons.star_rounded : Icons.star_outline_rounded,
+                          size: 18,
+                          color: s < record!.bestStars ? const Color(0xFFFFC107) : scheme.outlineVariant,
+                        ),
+                      const Spacer(),
+                      Text('${record!.bestScore}', style: text.labelMedium),
+                    ],
+                  )
+                else
+                  Text(
+                    saved != null
+                        ? '${(progress * 100).floor()}% done'
+                        : '${puzzle.width}×${puzzle.height} · ${puzzle.colorCount} colors',
+                    style: text.labelMedium,
+                  ),
+              ],
+            ),
           ),
         ),
       ),

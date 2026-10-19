@@ -73,15 +73,18 @@ class _CourseCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final total = course.puzzles.length;
     final size = course.puzzles.first;
-    return Opacity(
-      opacity: unlocked ? 1 : 0.55,
+    // Locked courses are grayed out, but their text stays fully readable.
+    final accent = unlocked ? course.accent : Color.lerp(course.accent, const Color(0xFFE6E1E3), 0.7)!;
+    return Semantics(
+      button: true,
+      enabled: unlocked,
       child: Material(
         borderRadius: BorderRadius.circular(24),
         clipBehavior: Clip.antiAlias,
         child: Ink(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [course.accent, Color.lerp(course.accent, Colors.white, 0.55)!],
+              colors: [accent, Color.lerp(accent, Colors.white, 0.55)!],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -89,7 +92,9 @@ class _CourseCard extends StatelessWidget {
           child: InkWell(
             onTap: unlocked
                 ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CourseScreen(course: course)))
-                : null,
+                : () => ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(content: Text(lockedHint), behavior: SnackBarBehavior.floating)),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -99,7 +104,7 @@ class _CourseCard extends StatelessWidget {
                     children: [
                       Text(course.title, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
                       const Spacer(),
-                      if (!unlocked) const Icon(Icons.lock_rounded),
+                      if (!unlocked) const Icon(Icons.lock_rounded, semanticLabel: 'Locked'),
                       if (unlocked) ...[
                         const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
                         Text(' $stars / ${total * 3}', style: text.titleSmall),

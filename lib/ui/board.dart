@@ -341,7 +341,7 @@ class BoardPainter extends CustomPainter {
       final label = labels.putIfAbsent((color, isSel, dimmed), () {
         final ink = isSel
             ? HSLColor.fromColor(paints[color].color).withLightness(0.25).toColor()
-            : (dimmed ? const Color(0xFFB9B1B5) : const Color(0xFF6D5F66));
+            : (dimmed ? const Color(0xFF9C9297) : const Color(0xFF5E5157));
         return TextPainter(
           text: TextSpan(
             text: p.symbolFor(color),

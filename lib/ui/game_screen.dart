@@ -50,6 +50,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Respect the system "remove animations" setting: the drills stay still.
+    if (MediaQuery.of(context).disableAnimations) {
+      shimmer.stop();
+    } else if (!shimmer.isAnimating) {
+      shimmer.repeat();
+    }
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       game.pause();
@@ -102,7 +113,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(const SnackBar(
-            content: Text('✨ Color complete! On to the next one.'),
+            content: Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFD54F)),
+                SizedBox(width: 12),
+                Expanded(child: Text('Color complete! On to the next one.')),
+              ],
+            ),
             behavior: SnackBarBehavior.floating,
             duration: Duration(milliseconds: 1400),
           ));
@@ -126,9 +143,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       seconds: game.seconds,
     );
     setState(() => _celebrate = true);
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
     final (toScale, toOffset) = view.fitTransform();
     final fromScale = view.scale, fromOffset = view.offset;
-    final glide = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    final glide = AnimationController(vsync: this, duration: Duration(milliseconds: reduceMotion ? 1 : 900));
     final curve = CurvedAnimation(parent: glide, curve: Curves.easeInOutCubic);
     glide.addListener(() => view.setTransform(
           lerpDouble(fromScale, toScale, curve.value)!,
@@ -241,22 +259,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
             ),
           ],
         ),
-        body: Column(
-          children: [
-            ListenableBuilder(
-              listenable: Listenable.merge([game, clock]),
-              builder: (context, _) => _StatsBar(
-                progress: game.progress,
-                seconds: clock.value,
-                score: game.score,
-                combo: game.combo,
-              ),
-            ),
-            Expanded(
-              child: ClipRect(
-                child: Stack(
-                  children: [
-                    Positioned.fill(
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final landscape = constraints.maxWidth > constraints.maxHeight;
+            final canvas = ClipRect(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Semantics(
+                      label: 'Painting canvas',
+                      hint: 'Tap or drag over the cells with the selected number. Pinch to zoom.',
                       child: Board(
                         game: game,
                         view: view,
@@ -267,21 +279,50 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                         onResult: _onResult,
                       ),
                     ),
-                    if (_showTips) Positioned(left: 12, right: 12, top: 12, child: _Tips(onDone: _dismissTips)),
-                  ],
-                ),
+                  ),
+                  if (_showTips) Positioned(left: 12, right: 12, top: 12, child: _Tips(onDone: _dismissTips)),
+                ],
               ),
-            ),
-            SafeArea(
-              top: false,
-              child: Tray(
-                game: game,
-                paints: paints,
-                sort: sort,
-                onSortChanged: (s) => setState(() => sort = s),
+            );
+            final tray = Tray(
+              game: game,
+              paints: paints,
+              sort: sort,
+              axis: landscape ? Axis.vertical : Axis.horizontal,
+              onSortChanged: (s) => setState(() => sort = s),
+            );
+            final stats = ListenableBuilder(
+              listenable: Listenable.merge([game, clock]),
+              builder: (context, _) => _StatsBar(
+                progress: game.progress,
+                seconds: clock.value,
+                score: game.score,
+                combo: game.combo,
               ),
-            ),
-          ],
+            );
+            if (landscape) {
+              return Column(
+                children: [
+                  stats,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(child: SafeArea(right: false, top: false, child: canvas)),
+                        SafeArea(left: false, top: false, child: tray),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }
+            return Column(
+              children: [
+                stats,
+                Expanded(child: canvas),
+                SafeArea(top: false, child: tray),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -356,19 +397,30 @@ class _StatsBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text('${(progress * 100).floor()}%', style: text.labelLarge),
-          const SizedBox(width: 16),
-          const Icon(Icons.timer_outlined, size: 18),
-          const SizedBox(width: 4),
-          Text(time, style: text.labelLarge),
-          const SizedBox(width: 16),
-          const Icon(Icons.diamond_outlined, size: 18),
-          const SizedBox(width: 4),
-          Text('$score', style: text.labelLarge),
-          if (combo >= 10) ...[
-            const SizedBox(width: 8),
-            Text('×$combo', style: text.labelLarge?.copyWith(color: scheme.primary, fontWeight: FontWeight.w800)),
-          ],
+          Flexible(
+            flex: 0,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                children: [
+                  Text('${(progress * 100).floor()}%', style: text.labelLarge),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.timer_outlined, size: 18, semanticLabel: 'Time'),
+                  const SizedBox(width: 4),
+                  Text(time, style: text.labelLarge),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.diamond_outlined, size: 18, semanticLabel: 'Score'),
+                  const SizedBox(width: 4),
+                  Text('$score', style: text.labelLarge),
+                  if (combo >= 10) ...[
+                    const SizedBox(width: 8),
+                    Text('×$combo',
+                        style: text.labelLarge?.copyWith(color: scheme.primary, fontWeight: FontWeight.w800)),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

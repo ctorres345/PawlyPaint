@@ -8,19 +8,29 @@ enum TraySort { number, remaining }
 /// The drill tray: one chip per color with its symbol and how many are left.
 /// Finished colors move to the end, and the selected color scrolls into view.
 class Tray extends StatefulWidget {
-  const Tray({super.key, required this.game, required this.paints, required this.sort, required this.onSortChanged});
+  const Tray({
+    super.key,
+    required this.game,
+    required this.paints,
+    required this.sort,
+    required this.onSortChanged,
+    this.axis = Axis.horizontal,
+  });
 
   final GameController game;
   final List<GemPaints> paints;
   final TraySort sort;
   final ValueChanged<TraySort> onSortChanged;
 
+  /// Horizontal along the bottom in portrait, vertical along the side in landscape.
+  final Axis axis;
+
   @override
   State<Tray> createState() => _TrayState();
 }
 
 class _TrayState extends State<Tray> {
-  static const _chipExtent = 66.0; // chip width plus its margins
+  double get _chipExtent => widget.axis == Axis.horizontal ? 66 : 92; // chip size plus margins
   final _scroll = ScrollController();
   List<int> _order = const [];
   Object? _orderKey;
@@ -72,42 +82,54 @@ class _TrayState extends State<Tray> {
       builder: (context, _) {
         final order = _currentOrder();
         _revealSelected(order);
-        return Container(
-          height: 104,
-          decoration: BoxDecoration(
+        final horizontal = widget.axis == Axis.horizontal;
+        final list = ListView.builder(
+          controller: _scroll,
+          scrollDirection: widget.axis,
+          padding: const EdgeInsets.all(6),
+          itemExtent: _chipExtent,
+          itemCount: order.length,
+          itemBuilder: (context, i) {
+            final c = order[i];
+            return Center(
+              child: _ColorChip(
+                key: ValueKey(c),
+                symbol: game.puzzle.symbolFor(c),
+                paints: widget.paints[c],
+                remaining: game.remaining[c],
+                selected: game.selected == c,
+                onTap: () => game.select(c),
+              ),
+            );
+          },
+        );
+        final sortButton = IconButton(
+          tooltip: sort == TraySort.number ? 'Sorted by number' : 'Sorted by drills left',
+          icon: Icon(sort == TraySort.number ? Icons.format_list_numbered_rounded : Icons.sort_rounded),
+          onPressed: () => widget.onSortChanged(sort == TraySort.number ? TraySort.remaining : TraySort.number),
+        );
+        // Chips have a fixed size, so very large system text is capped here
+        // rather than overflowing them.
+        return MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: Material(
             color: scheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 12, offset: Offset(0, -2))],
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 4),
-              IconButton(
-                tooltip: sort == TraySort.number ? 'Sorted by number' : 'Sorted by drills left',
-                icon: Icon(sort == TraySort.number ? Icons.format_list_numbered : Icons.sort),
-                onPressed: () => widget.onSortChanged(sort == TraySort.number ? TraySort.remaining : TraySort.number),
+            elevation: 6,
+            shadowColor: const Color(0x55000000),
+            borderRadius: horizontal
+                ? const BorderRadius.vertical(top: Radius.circular(20))
+                : const BorderRadius.horizontal(left: Radius.circular(20)),
+            child: SizedBox(
+              height: horizontal ? 108 : null,
+              width: horizontal ? null : 96,
+              child: Flex(
+                direction: widget.axis,
+                children: [
+                  Padding(padding: const EdgeInsets.all(4), child: sortButton),
+                  Expanded(child: list),
+                ],
               ),
-              Expanded(
-                child: ListView.builder(
-                  controller: _scroll,
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-                  itemExtent: _chipExtent,
-                  itemCount: order.length,
-                  itemBuilder: (context, i) {
-                    final c = order[i];
-                    return _ColorChip(
-                      key: ValueKey(c),
-                      symbol: game.puzzle.symbolFor(c),
-                      paints: widget.paints[c],
-                      remaining: game.remaining[c],
-                      selected: game.selected == c,
-                      onTap: () => game.select(c),
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -135,47 +157,55 @@ class _ColorChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final done = remaining == 0;
-    return GestureDetector(
-      onTap: done ? null : onTap,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 250),
-        opacity: done ? 0.45 : 1,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 180),
-          scale: selected ? 1.12 : 1,
-          child: Container(
-            width: 58,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              color: selected ? scheme.primaryContainer : Colors.transparent,
-              border: Border.all(color: selected ? scheme.primary : Colors.transparent, width: 2),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: CustomPaint(
-                    painter: _ChipGemPainter(paints),
-                    child: Center(
-                      child: done
-                          ? Icon(Icons.check_rounded, size: 22, color: paints.onColor)
-                          : Text(
-                              symbol,
-                              style: TextStyle(fontWeight: FontWeight.w800, color: paints.onColor),
-                            ),
+    return Semantics(
+      button: true,
+      selected: selected,
+      enabled: !done,
+      label: done ? 'Color $symbol, done' : 'Color $symbol, $remaining left',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: done ? null : onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 250),
+          opacity: done ? 0.45 : 1,
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 180),
+            scale: selected ? 1.12 : 1,
+            child: Container(
+              width: 58,
+              margin: const EdgeInsets.all(4),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: selected ? scheme.primaryContainer : Colors.transparent,
+                border: Border.all(color: selected ? scheme.primary : Colors.transparent, width: 2),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CustomPaint(
+                      painter: _ChipGemPainter(paints),
+                      child: Center(
+                        child: done
+                            ? Icon(Icons.check_rounded, size: 22, color: paints.onColor)
+                            : Text(
+                                symbol,
+                                style: TextStyle(fontWeight: FontWeight.w800, color: paints.onColor),
+                              ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  done ? 'Done' : '$remaining',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    done ? 'Done' : '$remaining',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
