@@ -133,17 +133,19 @@ class ProgressStore extends ChangeNotifier {
 
   bool isCompleted(String id) => _records.containsKey(id);
 
-  int completedIn(Course c) => c.puzzles.where((p) => isCompleted(p.id)).length;
-  int starsIn(Course c) => c.puzzles.fold(0, (sum, p) => sum + (_records[p.id]?.bestStars ?? 0));
+  int completedIn(List<Puzzle> puzzles) => puzzles.where((p) => isCompleted(p.id)).length;
+  int starsIn(List<Puzzle> puzzles) => puzzles.fold(0, (sum, p) => sum + (_records[p.id]?.bestStars ?? 0));
 
-  bool isCourseUnlocked(List<Course> courses, int index) =>
-      index == 0 || completedIn(courses[index - 1]) >= unlockAfter;
+  /// Easy is always open; a harder level opens after [unlockAfter] finished
+  /// pictures in the level before it.
+  bool isLevelUnlocked(Course c, int index) => index == 0 || completedIn(c.levels[index - 1].puzzles) >= unlockAfter;
 
-  bool isPuzzleUnlocked(Course c, int index) =>
-      index == 0 ||
-      isCompleted(c.puzzles[index - 1].id) ||
-      isCompleted(c.puzzles[index].id) ||
-      _saved.containsKey(c.puzzles[index].id);
+  /// Inside a level, a picture opens when the one before it is finished
+  /// (or once it has been finished or started).
+  bool isPuzzleUnlocked(Level level, int index) {
+    final id = level.puzzles[index].id;
+    return index == 0 || isCompleted(level.puzzles[index - 1].id) || isCompleted(id) || _saved.containsKey(id);
+  }
 
   Future<void> saveGame(String id, SavedGame game) {
     _saved[id] = game;

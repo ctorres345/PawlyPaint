@@ -69,18 +69,40 @@ class Puzzle {
   }
 }
 
+enum Difficulty {
+  easy('Easy', 'Small canvases, a handful of colors'),
+  medium('Medium', 'Bigger pictures with soft shading'),
+  hard('Hard', 'Large canvases and rich palettes');
+
+  const Difficulty(this.label, this.blurb);
+
+  final String label;
+  final String blurb;
+}
+
+/// One difficulty section of a course.
+class Level {
+  const Level({required this.difficulty, required this.puzzles});
+
+  final Difficulty difficulty;
+  final List<Puzzle> puzzles;
+}
+
+/// A themed collection of pictures, split into Easy, Medium and Hard.
 class Course {
   const Course({
     required this.id,
     required this.title,
     required this.subtitle,
     required this.accent,
-    required this.puzzles,
+    required this.levels,
   });
 
   final String id;
   final String title;
   final String subtitle;
   final Color accent;
-  final List<Puzzle> puzzles;
+  final List<Level> levels;
+
+  List<Puzzle> get puzzles => [for (final l in levels) ...l.puzzles];
 }

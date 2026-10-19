@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/courses.dart' show unlockAfter;
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import 'game_screen.dart';
@@ -15,28 +16,103 @@ class CourseScreen extends StatelessWidget {
     final store = ProgressScope.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(course.title)),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 200,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          childAspectRatio: 0.78,
-        ),
-        itemCount: course.puzzles.length,
-        itemBuilder: (context, i) {
-          final puzzle = course.puzzles[i];
-          return _PuzzleTile(
-            index: i,
-            puzzle: puzzle,
-            unlocked: store.isPuzzleUnlocked(course, i),
-            record: store.record(puzzle.id),
-            saved: store.saved(puzzle.id),
-            onOpen: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => GameScreen(puzzle: puzzle, store: store)),
+      body: CustomScrollView(
+        slivers: [
+          for (var l = 0; l < course.levels.length; l++) ...[
+            SliverToBoxAdapter(
+              child: _LevelHeader(
+                course: course,
+                level: course.levels[l],
+                completed: store.completedIn(course.levels[l].puzzles),
+                unlocked: store.isLevelUnlocked(course, l),
+                previous: l == 0 ? null : course.levels[l - 1],
+              ),
             ),
-          );
-        },
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              sliver: SliverGrid.builder(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 0.78,
+                ),
+                itemCount: course.levels[l].puzzles.length,
+                itemBuilder: (context, i) {
+                  final level = course.levels[l];
+                  final puzzle = level.puzzles[i];
+                  final levelOpen = store.isLevelUnlocked(course, l);
+                  return _PuzzleTile(
+                    index: i,
+                    puzzle: puzzle,
+                    unlocked: levelOpen && store.isPuzzleUnlocked(level, i),
+                    lockedHint: levelOpen
+                        ? 'Finish the picture before this one to unlock it.'
+                        : 'Finish $unlockAfter ${course.levels[l - 1].difficulty.label} pictures to unlock '
+                            '${level.difficulty.label}.',
+                    record: store.record(puzzle.id),
+                    saved: store.savedFor(puzzle),
+                    onOpen: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => GameScreen(puzzle: puzzle, store: store)),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        ],
+      ),
+    );
+  }
+}
+
+class _LevelHeader extends StatelessWidget {
+  const _LevelHeader({
+    required this.course,
+    required this.level,
+    required this.completed,
+    required this.unlocked,
+    required this.previous,
+  });
+
+  final Course course;
+  final Level level;
+  final int completed;
+  final bool unlocked;
+  final Level? previous;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final size = level.puzzles.first;
+    return Semantics(
+      header: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(level.difficulty.label, style: text.titleLarge),
+                  Text(
+                    unlocked
+                        ? '${level.difficulty.blurb} · ${size.width}×${size.height}'
+                        : 'Finish $unlockAfter ${previous!.difficulty.label} pictures to unlock',
+                    style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            if (unlocked)
+              Text('$completed/${level.puzzles.length}', style: text.titleSmall)
+            else
+              Icon(Icons.lock_rounded, color: scheme.outline, semanticLabel: 'Locked'),
+          ],
+        ),
       ),
     );
   }
@@ -47,6 +123,7 @@ class _PuzzleTile extends StatelessWidget {
     required this.index,
     required this.puzzle,
     required this.unlocked,
+    required this.lockedHint,
     required this.record,
     required this.saved,
     required this.onOpen,
@@ -55,6 +132,7 @@ class _PuzzleTile extends StatelessWidget {
   final int index;
   final Puzzle puzzle;
   final bool unlocked;
+  final String lockedHint;
   final PuzzleRecord? record;
   final SavedGame? saved;
   final VoidCallback onOpen;
@@ -83,8 +161,8 @@ class _PuzzleTile extends StatelessWidget {
               ? onOpen
               : () => ScaffoldMessenger.of(context)
                 ..hideCurrentSnackBar()
-                ..showSnackBar(const SnackBar(
-                  content: Text('Finish the picture before this one to unlock it.'),
+                ..showSnackBar(SnackBar(
+                  content: Text(lockedHint),
                   behavior: SnackBarBehavior.floating,
                 )),
           child: Padding(

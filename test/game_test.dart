@@ -23,6 +23,15 @@ void main() {
   group('courses', () {
     final courses = buildCourses();
 
+    test('every course has at least 5 pictures for each difficulty', () {
+      for (final course in courses) {
+        expect(course.levels.map((l) => l.difficulty), Difficulty.values, reason: course.id);
+        for (final level in course.levels) {
+          expect(level.puzzles.length, greaterThanOrEqualTo(5), reason: '${course.id} ${level.difficulty}');
+        }
+      }
+    });
+
     test('every picture builds at its course size and uses every palette color', () {
       for (final course in courses) {
         for (final p in course.puzzles) {
@@ -140,18 +149,21 @@ void main() {
   });
 
   group('progress', () {
-    test('courses and pictures unlock in order', () async {
-      final courses = buildCourses();
+    test('levels and pictures unlock in order', () async {
+      final course = buildCourses().first;
       final store = ProgressStore.memory();
-      final beginner = courses.first;
-      expect(store.isPuzzleUnlocked(beginner, 0), isTrue);
-      expect(store.isPuzzleUnlocked(beginner, 1), isFalse);
-      expect(store.isCourseUnlocked(courses, 1), isFalse);
+      final easy = course.levels.first;
+      expect(store.isLevelUnlocked(course, 0), isTrue);
+      expect(store.isPuzzleUnlocked(easy, 0), isTrue);
+      expect(store.isPuzzleUnlocked(easy, 1), isFalse);
+      expect(store.isLevelUnlocked(course, 1), isFalse);
       for (var i = 0; i < unlockAfter; i++) {
-        await store.recordCompletion(beginner.puzzles[i].id, score: 100, stars: 2, seconds: 60);
+        await store.recordCompletion(easy.puzzles[i].id, score: 100, stars: 2, seconds: 60);
       }
-      expect(store.isPuzzleUnlocked(beginner, unlockAfter), isTrue);
-      expect(store.isCourseUnlocked(courses, 1), isTrue);
+      expect(store.isPuzzleUnlocked(easy, unlockAfter), isTrue);
+      expect(store.isLevelUnlocked(course, 1), isTrue);
+      expect(store.isLevelUnlocked(course, 2), isFalse);
+      expect(store.starsIn(course.puzzles), unlockAfter * 2);
     });
 
     test('best results are kept', () async {
