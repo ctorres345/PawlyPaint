@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/game_controller.dart';
+import '../state/settings.dart' show currentLook;
 import 'gem_style.dart';
 
 enum TraySort { number, remaining }
@@ -218,10 +219,11 @@ class _ChipGemPainter extends CustomPainter {
   _ChipGemPainter(this.paints);
 
   final GemPaints paints;
+  final Object look = currentLook();
 
   @override
   void paint(Canvas canvas, Size size) => drawGem(canvas, Offset.zero & size, paints);
 
   @override
-  bool shouldRepaint(_ChipGemPainter old) => old.paints != paints;
+  bool shouldRepaint(_ChipGemPainter old) => old.paints != paints || old.look != look;
 }

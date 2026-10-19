@@ -83,7 +83,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   final SharedPreferences _prefs;
-  final _player = AudioPlayer();
+  final _player = _quietPlayer();
   final _rng = math.Random();
 
   bool muted;
@@ -119,7 +119,15 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Quick repeating sounds share a small pool of players so rapid taps
   /// don't cut each other off.
-  final Map<Sfx, AudioPool> _pools = {};
+  /// A few players per sound, used in turn so quick repeats overlap.
+  static const _voices = 3;
+  final Map<Sfx, List<AudioPlayer>> _sfxPlayers = {};
+  final Map<Sfx, int> _nextVoice = {};
+
+  /// audioplayers redraws the screen every frame while a player plays, to
+  /// report its position. Nothing here needs the position, so that is off:
+  /// otherwise the music alone keeps the whole app rendering nonstop.
+  static AudioPlayer _quietPlayer() => AudioPlayer()..positionUpdater = null;
   final Map<Sfx, DateTime> _lastPlayed = {};
   bool _inGame = false;
   bool _appActive = true;
@@ -167,12 +175,9 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     if (last != null && now.difference(last).inMilliseconds < 45) return;
     _lastPlayed[sfx] = now;
     try {
-      final pool = _pools[sfx] ??= await AudioPool.create(
-        source: AssetSource(sfx.asset),
-        maxPlayers: 4,
-        playerMode: PlayerMode.lowLatency,
-      );
-      await pool.start(volume: sfxVolume);
+      final voices = _sfxPlayers[sfx] ??= List.generate(_voices, (_) => _quietPlayer());
+      final i = _nextVoice[sfx] = ((_nextVoice[sfx] ?? -1) + 1) % _voices;
+      await voices[i].play(AssetSource(sfx.asset), volume: sfxVolume, mode: PlayerMode.lowLatency);
     } catch (e) {
       debugPrint('Sound effect failed: $e');
     }
@@ -208,6 +213,8 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       // loops until the level ends or starts over.
       await _player.setReleaseMode(ReleaseMode.loop);
       await _player.play(AssetSource(_inGame ? current!.asset : _menuAsset), volume: musicVolume);
+      // The app may have gone to the background while the track loaded.
+      if (!_appActive) await _player.pause();
     } catch (e) {
       // Music is a nice-to-have; never let an audio hiccup break the game.
       debugPrint('Music failed: $e');
@@ -220,7 +227,13 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     if (active == _appActive) return;
     _appActive = active;
     if (active) {
-      _start();
+      // Pick up where the song left off (pulling down Control Center or a
+      // notification shouldn't restart it); start fresh only if it stopped.
+      if (_player.state == PlayerState.paused && !muted) {
+        unawaited(_player.resume());
+      } else {
+        _start();
+      }
     } else {
       unawaited(_player.pause());
     }
@@ -230,8 +243,10 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _player.dispose();
-    for (final pool in _pools.values) {
-      pool.dispose();
+    for (final voices in _sfxPlayers.values) {
+      for (final p in voices) {
+        p.dispose();
+      }
     }
     super.dispose();
   }

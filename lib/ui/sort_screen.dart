@@ -19,6 +19,7 @@ import 'coach.dart';
 import 'completion_sheet.dart';
 import 'desk.dart';
 import 'gem_style.dart';
+import 'idle_shimmer.dart';
 import 'music_sheet.dart';
 
 /// Sort mode: the picture starts scrambled; tap wrong beads to send them to
@@ -42,7 +43,9 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   late final SortController game;
   late final List<GemPaints> paints;
   final view = BoardView();
-  late final AnimationController shimmer;
+  late final IdleShimmer _shimmer;
+  bool _animate = true;
+  AnimationController get shimmer => _shimmer.controller;
   late final Ticker _ticker;
   final clock = ValueNotifier<int>(0);
 
@@ -57,6 +60,10 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   /// True while the player holds the preview, showing the finished picture.
   bool peeking = false;
   bool _finished = false;
+  int _savedVersion = 0;
+
+  /// The zoom-out after finishing; kept so leaving mid-way can stop it.
+  AnimationController? _glide;
   bool _celebrate = false;
   int _unsaved = 0;
   MusicController? _music;
@@ -92,7 +99,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     super.initState();
     game = SortController(widget.puzzle, resume: widget.store.sortSaved(widget.puzzle.id));
     paints = GemPaints.forPuzzle(widget.puzzle);
-    shimmer = AnimationController(vsync: this, duration: const Duration(milliseconds: 4200))..repeat();
+    _shimmer = IdleShimmer(this)..poke();
     _ticker = createTicker((_) {
       game.tick();
       final hintAt = game.hintAt, missAt = game.mistakeAt;
@@ -101,9 +108,12 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
           (hintAt != null && now.difference(hintAt).inMilliseconds < 2600) ||
           (missAt != null && now.difference(missAt).inMilliseconds < 700)) {
         frame.value++;
+      } else {
+        // Nothing moving: stop ticking until the next tap, shake or hint.
+        frame.value++;
+        _ticker.stop();
       }
-    })
-      ..start();
+    });
     clock.value = game.seconds;
     _clockTick = Timer.periodic(const Duration(seconds: 1), (_) => clock.value = game.seconds);
     WidgetsBinding.instance.addObserver(this);
@@ -117,10 +127,11 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
       _music = MusicScope.read(context);
       _music!.enterGame();
     }
-    if (MediaQuery.of(context).disableAnimations) {
-      shimmer.stop();
-    } else if (!shimmer.isAnimating) {
-      shimmer.repeat();
+    // Respect the system "remove animations" setting: the drills stay still.
+    final animate = !MediaQuery.of(context).disableAnimations;
+    if (animate != _animate) {
+      _animate = animate;
+      _shimmer.allowed = animate;
     }
   }
 
@@ -136,30 +147,43 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     game.pause();
-    if (!_finished && !widget.tutorial && game.game.placed + game.game.shakes > 0) {
+    if (!_finished &&
+        !widget.tutorial &&
+        game.game.placed + game.game.shakes > 0 &&
+        game.boardVersion != _savedVersion) {
       final state = game.toJson();
       final store = widget.store, id = widget.puzzle.id;
       Future.microtask(() => store.saveSort(id, state));
     }
     final music = _music;
     if (music != null) Future.microtask(music.leaveGame);
+    _music = null;
+    _glide?.dispose();
     _clockTick?.cancel();
     _ticker.dispose();
     clock.dispose();
     frame.dispose();
-    shimmer.dispose();
+    _shimmer.dispose();
     game.dispose();
     view.dispose();
     super.dispose();
   }
 
   void _save() {
-    if (_finished || widget.tutorial) return;
+    // Only write when the board changed since the last save.
+    if (_finished || widget.tutorial || game.boardVersion == _savedVersion) return;
+    _savedVersion = game.boardVersion;
     _unsaved = 0;
     widget.store.saveSort(widget.puzzle.id, game.toJson());
   }
 
+  /// Runs the per-frame ticker while beads fly or a hint pulses.
+  void _wakeTicker() {
+    if (!_ticker.isActive) _ticker.start();
+  }
+
   void _tap(Offset local) {
+    _wakeTicker();
     final cell = view.cellAt(local);
     if (cell == null) return;
     if (view.cellSize < 10) {
@@ -207,6 +231,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   }
 
   void _hint() {
+    _wakeTicker();
     final cell = game.hint();
     if (cell == null) return;
     // On big canvases, zoom in a little so the hinted bead is easy to tap.
@@ -252,14 +277,14 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     setState(() => _celebrate = true);
     final (toScale, toOffset) = view.fitTransform();
     final fromScale = view.scale, fromOffset = view.offset;
-    final glide = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    final glide = _glide = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
     final curve = CurvedAnimation(parent: glide, curve: Curves.easeInOutCubic);
     glide.addListener(() => view.setTransform(
           lerpDouble(fromScale, toScale, curve.value)!,
           Offset.lerp(fromOffset, toOffset, curve.value)!,
         ));
     await glide.forward();
-    glide.dispose();
+    if (!mounted) return;
     await Future<void>.delayed(const Duration(milliseconds: 1600));
     final isBest = await best;
     if (!mounted) return;
@@ -327,7 +352,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
+        if (didPop || _finished) return;
         _save();
         if (widget.tutorial) widget.store.markSortTutorialSeen();
         Navigator.of(context).pop();
@@ -370,36 +395,43 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
           children: [
             Column(
               children: [
-                ListenableBuilder(
-                  listenable: Listenable.merge([game, clock]),
+                RepaintBoundary(
+                    child: ListenableBuilder(
+                  listenable: SettingsScope.of(context).relaxed ? game : Listenable.merge([game, clock]),
                   builder: (context, _) => _SortStats(
                     relaxed: game.relaxed,
                     progress: game.progress,
                     seconds: clock.value,
                     left: game.game.wrongCount,
                   ),
-                ),
+                )),
                 Expanded(
                   child: ClipRect(
                     child: Stack(
                       children: [
-                        Positioned.fill(child: CustomPaint(painter: DeskPainter(SettingsScope.of(context).theme))),
+                        Positioned.fill(
+                          child: RepaintBoundary(
+                              child: CustomPaint(painter: DeskPainter(SettingsScope.of(context).theme))),
+                        ),
                         Positioned.fill(
                           child: Semantics(
                             label: 'Scrambled picture',
                             hint: 'Tap a bead that is in the wrong place to send it to the tray.',
-                            child: _SortBoard(
-                              key: _boardKey,
-                              game: game,
-                              view: view,
-                              shimmer: shimmer,
-                              frame: frame,
-                              paints: paints,
-                              showWrong: showWrong,
-                              peek: peeking,
-                              celebrate: _celebrate,
-                              onTap: _tap,
-                            ),
+                            child: Listener(
+                                onPointerDown: (_) => _shimmer.poke(),
+                                child: RepaintBoundary(
+                                    child: _SortBoard(
+                                  key: _boardKey,
+                                  game: game,
+                                  view: view,
+                                  shimmer: shimmer,
+                                  frame: frame,
+                                  paints: paints,
+                                  showWrong: showWrong,
+                                  peek: peeking,
+                                  celebrate: _celebrate,
+                                  onTap: _tap,
+                                ))),
                           ),
                         ),
                         if (!_showTips && !_finished)
@@ -448,6 +480,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                     paints: paints,
                     onShake: () {
                       if (game.shake()) {
+                        _wakeTicker();
                         _settings.medium();
                         _music?.play(Sfx.shake);
                       }

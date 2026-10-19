@@ -53,8 +53,8 @@ class Puzzle {
 
   /// 32-bit FNV-1a over the width and cells.
   static int _signature(int width, Uint8List cells) {
-    var h = 0x811C9DC5;
-    for (final b in [width, ...cells]) {
+    var h = ((0x811C9DC5 ^ width) * 0x01000193) & 0xFFFFFFFF;
+    for (final b in cells) {
       h = ((h ^ b) * 0x01000193) & 0xFFFFFFFF;
     }
     return h;

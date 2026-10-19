@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -7,6 +8,7 @@ import '../state/progress_store.dart';
 import '../state/settings.dart';
 import 'badges.dart';
 import 'gem_style.dart';
+import 'idle_shimmer.dart';
 
 /// Every finished picture, to admire.
 class GalleryScreen extends StatelessWidget {
@@ -118,24 +120,20 @@ class PictureViewer extends StatefulWidget {
 }
 
 class _PictureViewerState extends State<PictureViewer> with SingleTickerProviderStateMixin {
-  late final AnimationController shimmer;
+  late final IdleShimmer _shimmer = IdleShimmer(this, idleAfter: const Duration(seconds: 30))..poke();
   late final paints = GemPaints.forPuzzle(widget.puzzle);
-
-  @override
-  void initState() {
-    super.initState();
-    shimmer = AnimationController(vsync: this, duration: const Duration(milliseconds: 4200))..repeat();
-  }
+  final _cache = _GemsCache();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.of(context).disableAnimations) shimmer.stop();
+    _shimmer.allowed = !MediaQuery.of(context).disableAnimations;
   }
 
   @override
   void dispose() {
-    shimmer.dispose();
+    _shimmer.dispose();
+    _cache.dispose();
     super.dispose();
   }
 
@@ -179,8 +177,11 @@ class _PictureViewerState extends State<PictureViewer> with SingleTickerProvider
                         color: SettingsScope.of(context).theme.sheet,
                         child: Padding(
                           padding: const EdgeInsets.all(12),
-                          child: CustomPaint(
-                            painter: _FinishedPainter(widget.puzzle, paints, shimmer),
+                          child: Listener(
+                            onPointerDown: (_) => _shimmer.poke(),
+                            child: CustomPaint(
+                              painter: _FinishedPainter(widget.puzzle, paints, _shimmer.controller, _cache),
+                            ),
                           ),
                         ),
                       ),
@@ -200,33 +201,59 @@ class _PictureViewerState extends State<PictureViewer> with SingleTickerProvider
   }
 }
 
+/// The finished gems, recorded once and replayed under the shimmer.
+class _GemsCache {
+  ui.Picture? picture;
+  Object? key;
+
+  void dispose() {
+    picture?.dispose();
+    picture = null;
+  }
+}
+
 class _FinishedPainter extends CustomPainter {
-  _FinishedPainter(this.puzzle, this.paints, this.shimmer) : super(repaint: shimmer);
+  _FinishedPainter(this.puzzle, this.paints, this.shimmer, this.cache) : super(repaint: shimmer);
 
   final Puzzle puzzle;
   final List<GemPaints> paints;
   final Animation<double> shimmer;
+  final _GemsCache cache;
+  final Object look = currentLook();
 
   @override
   void paint(Canvas canvas, Size size) {
     final cs = math.min(size.width / puzzle.width, size.height / puzzle.height);
+    Rect cell(int i) => Rect.fromLTWH((i % puzzle.width) * cs, (i ~/ puzzle.width) * cs, cs, cs);
+    final key = (size, look);
+    if (cache.key != key || cache.picture == null) {
+      cache.dispose();
+      cache.key = key;
+      final rec = ui.PictureRecorder();
+      final c = Canvas(rec);
+      for (var i = 0; i < puzzle.cellCount; i++) {
+        drawGem(c, cell(i), paints[puzzle.cells[i]]);
+      }
+      cache.picture = rec.endRecording();
+    }
+    canvas.drawPicture(cache.picture!);
+
+    // Only the moving light is drawn each frame.
     final t = shimmer.value;
     final span = (puzzle.width + puzzle.height).toDouble();
     final band = t * 1.6 - 0.3;
     for (var i = 0; i < puzzle.cellCount; i++) {
       final x = i % puzzle.width, y = i ~/ puzzle.width;
-      final rect = Rect.fromLTWH(x * cs, y * cs, cs, cs);
-      drawGem(canvas, rect, paints[puzzle.cells[i]]);
       final shine = (1 - ((x + y) / span - band).abs() / 0.07).clamp(0.0, 1.0);
-      if (shine > 0) drawGemShine(canvas, rect, shine);
+      if (shine > 0) drawGemShine(canvas, cell(i), shine);
       final hash = (i * 2654435761) & 0xFFFF;
       if (hash % 5 == 0) {
         final s = math.sin(2 * math.pi * (t * 3 + hash / 0xFFFF));
-        if (s > 0.94) drawGemSparkle(canvas, rect, (s - 0.94) / 0.06);
+        if (s > 0.94) drawGemSparkle(canvas, cell(i), (s - 0.94) / 0.06);
       }
     }
   }
 
   @override
-  bool shouldRepaint(_FinishedPainter old) => old.puzzle != puzzle;
+  bool shouldRepaint(_FinishedPainter old) => old.puzzle != puzzle || old.look != look;
 }

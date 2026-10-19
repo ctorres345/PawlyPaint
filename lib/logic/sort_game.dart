@@ -82,10 +82,14 @@ class SortGame {
   int get freeSlots => capacity - tray.length;
   bool isWrong(int cell) => current[cell] >= 0 && current[cell] != target[cell];
   bool isHole(int cell) => current[cell] < 0;
-  int get wrongCount => [
-        for (var i = 0; i < current.length; i++)
-          if (current[i] != target[i]) i
-      ].length;
+  int get wrongCount {
+    var n = 0;
+    for (var i = 0; i < current.length; i++) {
+      if (current[i] != target[i]) n++;
+    }
+    return n;
+  }
+
   bool get isComplete => wrongCount == 0;
 
   /// True when the tray is full and no hole wants anything in it.

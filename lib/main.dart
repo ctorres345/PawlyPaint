@@ -8,9 +8,8 @@ import 'ui/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final store = await ProgressStore.load();
-  final music = await MusicController.load();
-  final settings = await AppSettings.load();
+  // Load everything at once rather than one after another.
+  final (store, music, settings) = await (ProgressStore.load(), MusicController.load(), AppSettings.load()).wait;
   runApp(PawlyPaintApp(store: store, music: music, settings: settings));
   music.playMenu();
 }
