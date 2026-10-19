@@ -235,13 +235,7 @@ class _DailyCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => openWithTutorial(
-            context,
-            mode: PlayMode.paint,
-            store: store,
-            tutorial: () => GameScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
-            open: () => GameScreen(puzzle: puzzle, store: store, daily: true),
-          ),
+          onTap: () => _pickDailyMode(context, store, puzzle),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -302,6 +296,55 @@ class _DailyCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Asks whether to play today's picture in Paint or Sort mode.
+void _pickDailyMode(BuildContext context, ProgressStore store, Puzzle puzzle) {
+  void play(PlayMode mode) => openWithTutorial(
+        context,
+        mode: mode,
+        store: store,
+        tutorial: () => mode == PlayMode.sort
+            ? SortScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true)
+            : GameScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
+        open: () => mode == PlayMode.sort
+            ? SortScreen(puzzle: puzzle, store: store, daily: true)
+            : GameScreen(puzzle: puzzle, store: store, daily: true),
+      );
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheet) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text('How do you want to play today?', style: Theme.of(sheet).textTheme.titleMedium),
+          ),
+          ListTile(
+            leading: const Icon(Icons.brush_rounded),
+            title: const Text('Paint'),
+            subtitle: const Text('Fill numbered spots with matching drills'),
+            onTap: () {
+              Navigator.pop(sheet);
+              play(PlayMode.paint);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.swap_horiz_rounded),
+            title: const Text('Sort'),
+            subtitle: const Text('Unscramble the picture using the tray'),
+            onTap: () {
+              Navigator.pop(sheet);
+              play(PlayMode.sort);
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Lets the player replay either tutorial.

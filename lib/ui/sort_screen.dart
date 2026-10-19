@@ -25,10 +25,13 @@ import 'music_sheet.dart';
 /// Sort mode: the picture starts scrambled; tap wrong beads to send them to
 /// the tray, and the right beads fly back into place.
 class SortScreen extends StatefulWidget {
-  const SortScreen({super.key, required this.puzzle, required this.store, this.tutorial = false});
+  const SortScreen({super.key, required this.puzzle, required this.store, this.daily = false, this.tutorial = false});
 
   final Puzzle puzzle;
   final ProgressStore store;
+
+  /// Opened from today's daily picture, so finishing it counts for the streak.
+  final bool daily;
 
   /// The guided first picture: nothing is saved or scored.
   final bool tutorial;
@@ -265,6 +268,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     }
     final relaxed = game.relaxed;
     final stars = relaxed ? 0 : game.stars;
+    if (widget.daily) widget.store.recordDaily(DateTime.now());
     final best = widget.store.recordCompletion(
       PlayMode.sort.key(widget.puzzle.id),
       score: relaxed ? 0 : game.score,
@@ -320,7 +324,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     await widget.store.resetPuzzle(PlayMode.sort.key(widget.puzzle.id));
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => SortScreen(puzzle: widget.puzzle, store: widget.store)),
+      MaterialPageRoute(builder: (_) => SortScreen(puzzle: widget.puzzle, store: widget.store, daily: widget.daily)),
     );
   }
 
