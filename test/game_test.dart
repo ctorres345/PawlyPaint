@@ -4,6 +4,7 @@ import 'dart:ui' show Color, Offset, Size;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
+import 'package:pawlypaint/data/simplify.dart';
 import 'package:pawlypaint/logic/line.dart';
 import 'package:pawlypaint/logic/scoring.dart';
 import 'package:pawlypaint/logic/sort_game.dart';
@@ -58,6 +59,39 @@ void main() {
         }
       }
       expect(close, isEmpty);
+    });
+
+    test('simplifying flattens backdrop dots and merges look-alike shades, but keeps shapes', () {
+      // 0 background, 1 dots, 2 and 3 nearly the same red, 4 white shape.
+      const rows = [
+        '01000100',
+        '00000000',
+        '00222200',
+        '00233300',
+        '00000000',
+        '00444400',
+        '10000001',
+        '00000000',
+      ];
+      final p = Puzzle(
+        id: 's',
+        title: 'S',
+        width: 8,
+        height: 8,
+        cells: Uint8List.fromList([for (final r in rows) ...r.split('').map(int.parse)]),
+        palette: const [
+          Color(0xFFFCE4EC),
+          Color(0xFFF8BBD0),
+          Color(0xFFE53950),
+          Color(0xFFE8455A),
+          Color(0xFF3949AB),
+        ],
+      );
+      final s = simplifyPicture(p, minDistance: 22);
+      expect(s.colorCount, 3);
+      expect(s.cells[1], s.cells[0], reason: 'dots join the background');
+      expect(s.cells[2 * 8 + 2], s.cells[3 * 8 + 4], reason: 'look-alike reds merge');
+      expect(s.cells[5 * 8 + 2], isNot(s.cells[0]), reason: 'shapes stay');
     });
 
     test('puzzle ids are unique', () {

@@ -7,6 +7,7 @@ import 'art/minecraft.dart';
 import 'art/sweets.dart';
 import 'art/vocaloid.dart';
 import 'artworks.dart';
+import 'simplify.dart';
 
 /// Inside a course, Easy is open from the start and each harder level opens
 /// once [unlockAfter] pictures of the level before it are finished. Inside a
@@ -15,6 +16,11 @@ const unlockAfter = 3;
 
 /// Canvas size for each difficulty.
 const _sizes = {Difficulty.easy: 16, Difficulty.medium: 24, Difficulty.hard: 32};
+
+/// How far apart (CIE Lab ΔE) every two colors must be on Easy and Medium,
+/// which also get a plain background. Hard keeps the full drawing: subtle
+/// shades and busy backdrops are what make it hard.
+const _minDistance = {Difficulty.easy: 22.0, Difficulty.medium: 16.0};
 
 /// Every course, drawn once on first use.
 final List<Course> allCourses = buildCourses();
@@ -178,8 +184,14 @@ Course _course(
           Level(
             difficulty: difficulty,
             puzzles: [
-              for (final MapEntry(key: slug, value: draw) in pictures.entries) draw('$id-$slug', _sizes[difficulty]!),
+              for (final MapEntry(key: slug, value: draw) in pictures.entries)
+                _forDifficulty(draw('$id-$slug', _sizes[difficulty]!), difficulty),
             ],
           ),
       ],
     );
+
+Puzzle _forDifficulty(Puzzle p, Difficulty difficulty) {
+  final minDistance = _minDistance[difficulty];
+  return minDistance == null ? p : simplifyPicture(p, minDistance: minDistance);
+}
