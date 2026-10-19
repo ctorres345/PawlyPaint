@@ -65,7 +65,7 @@ class _MusicSheet extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: Text('While painting', style: text.titleSmall),
               ),
-              option(null, Icons.shuffle_rounded, 'Shuffle', 'Swap between all three themes'),
+              option(null, Icons.shuffle_rounded, 'Random', 'A random theme for each picture'),
               for (final t in MusicTheme.values)
                 option(
                   t,

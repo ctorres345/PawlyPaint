@@ -18,7 +18,7 @@ enum MusicTheme {
   final String asset;
 }
 
-/// Picks the next theme for shuffle play: never the same one twice in a row.
+/// Picks a random theme for the next picture: never the same one twice in a row.
 MusicTheme nextShuffleTheme(MusicTheme? last, math.Random rng) {
   final options = MusicTheme.values.where((t) => t != last).toList();
   return options[rng.nextInt(options.length)];
@@ -31,7 +31,6 @@ const _menuAsset = 'music/menu.m4a';
 class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   MusicController._(this._prefs, {required this.muted, required this.choice}) {
     WidgetsBinding.instance.addObserver(this);
-    _player.onPlayerComplete.listen((_) => _onTrackEnded());
   }
 
   static const _mutedKey = 'music_muted';
@@ -107,6 +106,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> setChoice(MusicTheme? value) async {
+    if (value == choice) return;
     choice = value;
     notifyListeners();
     if (value == null) {
@@ -117,11 +117,6 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     if (_inGame) playGame();
   }
 
-  void _onTrackEnded() {
-    // Shuffle mode swaps to another theme each time one finishes.
-    if (_inGame && choice == null) playGame();
-  }
-
   Future<void> _start() async {
     notifyListeners();
     // A newer request may arrive while this one awaits; only the latest plays.
@@ -129,8 +124,9 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _player.stop();
       if (muted || !_appActive || generation != _generation) return;
-      final shuffle = _inGame && choice == null;
-      await _player.setReleaseMode(shuffle ? ReleaseMode.release : ReleaseMode.loop);
+      // One theme per level: shuffle picks it when the level starts, and it
+      // loops until the level ends or starts over.
+      await _player.setReleaseMode(ReleaseMode.loop);
       await _player.play(AssetSource(_inGame ? current!.asset : _menuAsset), volume: _volume);
     } catch (e) {
       // Music is a nice-to-have; never let an audio hiccup break the game.

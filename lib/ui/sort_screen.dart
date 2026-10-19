@@ -44,6 +44,9 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   final _trayKey = GlobalKey();
   final _stackKey = GlobalKey();
   bool showWrong = false;
+
+  /// True while the player holds the preview, showing the finished picture.
+  bool peeking = false;
   bool _finished = false;
   bool _celebrate = false;
   int _unsaved = 0;
@@ -323,11 +326,21 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                               frame: frame,
                               paints: paints,
                               showWrong: showWrong,
+                              peek: peeking,
                               celebrate: _celebrate,
                               onTap: _tap,
                             ),
                           ),
                         ),
+                        if (!_showTips && !_finished)
+                          Positioned(
+                            left: 10,
+                            top: 10,
+                            child: _PeekThumb(
+                              puzzle: widget.puzzle,
+                              onPeek: (on) => setState(() => peeking = on),
+                            ),
+                          ),
                         if (_showTips)
                           Positioned(
                             left: 12,
@@ -475,6 +488,7 @@ class _SortBoard extends StatefulWidget {
     required this.frame,
     required this.paints,
     required this.showWrong,
+    required this.peek,
     required this.celebrate,
     required this.onTap,
   });
@@ -485,6 +499,7 @@ class _SortBoard extends StatefulWidget {
   final Listenable frame;
   final List<GemPaints> paints;
   final bool showWrong;
+  final bool peek;
   final bool celebrate;
   final ValueChanged<Offset> onTap;
 
@@ -546,6 +561,7 @@ class _SortBoardState extends State<_SortBoard> {
               frame: widget.frame,
               paints: widget.paints,
               showWrong: widget.showWrong,
+              peek: widget.peek,
               celebrate: widget.celebrate,
               cache: _cache,
             ),
@@ -588,6 +604,7 @@ class _SortBoardPainter extends CustomPainter {
     required this.frame,
     required this.paints,
     required this.showWrong,
+    required this.peek,
     required this.celebrate,
     required this.cache,
   }) : super(repaint: Listenable.merge([game, view, shimmer, frame]));
@@ -598,6 +615,7 @@ class _SortBoardPainter extends CustomPainter {
   final Listenable frame;
   final List<GemPaints> paints;
   final bool showWrong;
+  final bool peek;
   final bool celebrate;
   final _SortCache cache;
 
@@ -617,7 +635,7 @@ class _SortBoardPainter extends CustomPainter {
   }
 
   void _record() {
-    final key = (game.boardVersion, showWrong);
+    final key = (game.boardVersion, showWrong, peek);
     if (cache.key == key && cache.picture != null) return;
     cache.dispose();
     cache.key = key;
@@ -628,7 +646,8 @@ class _SortBoardPainter extends CustomPainter {
     final sheet = RRect.fromRectAndRadius(board.inflate(kCell * 0.6), const Radius.circular(kCell * 0.4));
     c.drawRRect(sheet.shift(const Offset(0, 4)), _sheetShadow);
     c.drawRRect(sheet, _sheet);
-    final cur = game.game.current;
+    // While peeking, show the finished picture instead of the board.
+    final cur = peek ? game.game.target : game.game.current;
     for (var i = 0; i < cur.length; i++) {
       final rect = _cell(i);
       if (cur[i] < 0) {
@@ -636,7 +655,7 @@ class _SortBoardPainter extends CustomPainter {
         continue;
       }
       drawGem(c, rect, paints[cur[i]]);
-      if (showWrong && game.game.isWrong(i)) {
+      if (showWrong && !peek && game.game.isWrong(i)) {
         c.drawCircle(rect.center, kCell * 0.1, _wrongDot);
       }
     }
@@ -656,7 +675,7 @@ class _SortBoardPainter extends CustomPainter {
 
     // Spots whose bead is still on its way stay empty until it lands.
     final sheetPaint = _sheet;
-    for (final cell in game.arriving.keys) {
+    for (final cell in peek ? const <int>[] : game.arriving.keys) {
       final rect = _cell(cell);
       canvas.drawRect(rect, sheetPaint);
       drawSocket(canvas, rect);
@@ -713,7 +732,11 @@ class _SortBoardPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SortBoardPainter old) =>
-      old.game != game || old.showWrong != showWrong || old.celebrate != celebrate || old.paints != paints;
+      old.game != game ||
+      old.showWrong != showWrong ||
+      old.peek != peek ||
+      old.celebrate != celebrate ||
+      old.paints != paints;
 }
 
 /// The tray of collected beads, with its shake button.
@@ -871,4 +894,50 @@ class _FlightPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FlightPainter old) => true;
+}
+
+/// A small preview of the finished picture. Hold it to see the whole
+/// finished picture on the canvas.
+class _PeekThumb extends StatelessWidget {
+  const _PeekThumb({required this.puzzle, required this.onPeek});
+
+  final Puzzle puzzle;
+  final ValueChanged<bool> onPeek;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Semantics(
+      button: true,
+      label: 'Preview the finished picture',
+      hint: 'Press and hold',
+      child: Listener(
+        onPointerDown: (_) => onPeek(true),
+        onPointerUp: (_) => onPeek(false),
+        onPointerCancel: (_) => onPeek(false),
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(context).colorScheme.surface,
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SizedBox.square(
+                    dimension: 56,
+                    child: CustomPaint(painter: PuzzleThumbPainter(puzzle, complete: true)),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text('Hold to peek', style: text.labelSmall),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
