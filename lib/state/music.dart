@@ -61,8 +61,14 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   static const _sfxVolumeKey = 'sfx_volume';
 
   static Future<MusicController> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString(_choiceKey);
+    SharedPreferences? prefs;
+    try {
+      prefs = await SharedPreferences.getInstance();
+    } catch (e) {
+      // Music still plays; choices just aren't remembered.
+      debugPrint('Music settings unavailable: $e');
+    }
+    final name = prefs?.getString(_choiceKey);
     // Respect the iPhone's silent switch and mix politely with other audio.
     try {
       await AudioPlayer.global.setAudioContext(AudioContext(
@@ -74,15 +80,15 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     }
     return MusicController._(
       prefs,
-      muted: prefs.getBool(_mutedKey) ?? false,
+      muted: prefs?.getBool(_mutedKey) ?? false,
       choice: MusicTheme.values.where((t) => t.name == name).firstOrNull,
-      sfxOn: prefs.getBool(_sfxKey) ?? true,
-      musicVolume: prefs.getDouble(_musicVolumeKey) ?? 0.55,
-      sfxVolume: prefs.getDouble(_sfxVolumeKey) ?? 0.5,
+      sfxOn: prefs?.getBool(_sfxKey) ?? true,
+      musicVolume: prefs?.getDouble(_musicVolumeKey) ?? 0.55,
+      sfxVolume: prefs?.getDouble(_sfxVolumeKey) ?? 0.5,
     );
   }
 
-  final SharedPreferences _prefs;
+  final SharedPreferences? _prefs;
   final _player = _quietPlayer();
   final _rng = math.Random();
 
@@ -108,13 +114,13 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _player.setVolume(v);
     } catch (_) {}
-    await _prefs.setDouble(_musicVolumeKey, v);
+    await _prefs?.setDouble(_musicVolumeKey, v);
   }
 
   Future<void> setSfxVolume(double v) async {
     sfxVolume = v;
     notifyListeners();
-    await _prefs.setDouble(_sfxVolumeKey, v);
+    await _prefs?.setDouble(_sfxVolumeKey, v);
   }
 
   /// Quick repeating sounds share a small pool of players so rapid taps
@@ -164,7 +170,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> setSfx(bool value) async {
     sfxOn = value;
     notifyListeners();
-    await _prefs.setBool(_sfxKey, value);
+    await _prefs?.setBool(_sfxKey, value);
   }
 
   /// Plays a sound effect; very rapid repeats (a fast drag) are thinned out.
@@ -186,7 +192,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> setMuted(bool value) async {
     muted = value;
     notifyListeners();
-    await _prefs.setBool(_mutedKey, value);
+    await _prefs?.setBool(_mutedKey, value);
     _start();
   }
 
@@ -195,9 +201,9 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     choice = value;
     notifyListeners();
     if (value == null) {
-      await _prefs.remove(_choiceKey);
+      await _prefs?.remove(_choiceKey);
     } else {
-      await _prefs.setString(_choiceKey, value.name);
+      await _prefs?.setString(_choiceKey, value.name);
     }
     if (_inGame) playGame();
   }

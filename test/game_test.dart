@@ -13,6 +13,7 @@ import 'package:pawlypaint/state/achievements.dart';
 import 'package:pawlypaint/state/game_controller.dart';
 import 'package:pawlypaint/state/music.dart';
 import 'package:pawlypaint/state/progress_store.dart';
+import 'package:pawlypaint/state/sort_controller.dart';
 import 'package:pawlypaint/ui/board.dart';
 
 Puzzle _tiny() => Puzzle(
@@ -216,6 +217,25 @@ void main() {
   });
 
   group('sort mode', () {
+    test('a broken or mismatched Sort save starts fresh instead of crashing', () {
+      final p = buildCourses().first.levels.first.puzzles.first;
+      final good = SortController(p).toJson();
+      expect(SortController(p, resume: good).game.encodeBoard(), good['board']);
+      final missing = Map<String, dynamic>.of(good)..remove('shakes');
+      expect(SortController(p, resume: missing).game.shakes, 0);
+      final tooMany = Map<String, dynamic>.of(good)..['tray'] = 'A' * 99;
+      expect(SortController(p, resume: tooMany).game.tray, isEmpty);
+    });
+
+    test('wrong taps mark the game as needing a save', () {
+      final p = buildCourses().first.levels.first.puzzles.first;
+      final c = SortController(p);
+      final before = c.saveVersion;
+      final right = List.generate(p.cellCount, (i) => i).firstWhere((i) => !c.game.isWrong(i));
+      c.tap(right);
+      expect(c.saveVersion, isNot(before));
+    });
+
     final puzzle = buildCourses().first.levels[1].puzzles.first;
     SortGame fresh() => SortGame.scrambled(
           width: puzzle.width,

@@ -27,7 +27,7 @@ class _CourseScreenState extends State<CourseScreen> {
 
   static double? _sortProgress(Map<String, dynamic>? save, Puzzle p) {
     final board = save?['board'];
-    if (board is! String || board.length != p.cellCount) return null;
+    if (save?['signature'] != p.signature || board is! String || board.length != p.cellCount) return null;
     var right = 0;
     for (var i = 0; i < p.cellCount; i++) {
       if (board.codeUnitAt(i) - 0x41 == p.cells[i]) right++;
@@ -96,7 +96,9 @@ class _CourseScreenState extends State<CourseScreen> {
                   return _PuzzleTile(
                     index: i,
                     puzzle: puzzle,
-                    unlocked: levelOpen && store.isPuzzleUnlocked(level, i, mode),
+                    // A picture already played (say, as the daily picture) stays open.
+                    unlocked:
+                        (levelOpen && store.isPuzzleUnlocked(level, i, mode)) || store.isCompleted(mode.key(puzzle.id)),
                     lockedHint: levelOpen
                         ? 'Finish the picture before this one to unlock it.'
                         : 'Finish $unlockAfter ${course.levels[l - 1].difficulty.label} pictures to unlock '

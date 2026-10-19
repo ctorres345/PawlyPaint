@@ -131,6 +131,9 @@ class GameController extends ChangeNotifier {
     return result;
   }
 
+  /// Changes whenever anything worth saving changes (drills or counted mistakes).
+  int get saveVersion => boardVersion + mistakes;
+
   int get stars => Scoring.stars(mistakes: mistakes, cells: puzzle.cellCount);
 
   /// The next color that still needs drills, preferring the lowest number.

@@ -93,7 +93,7 @@ class SortGame {
   bool get isComplete => wrongCount == 0;
 
   /// True when the tray is full and no hole wants anything in it.
-  bool get isStuck => freeSlots == 0 && !isComplete;
+  bool get isStuck => freeSlots <= 0 && !isComplete;
 
   /// Taps [cell]: sends the patch of touching wrong beads of the same color
   /// down to the tray, as far as there is room, filling holes as it goes.

@@ -34,13 +34,7 @@ class SortController extends ChangeNotifier {
   SortController(this.puzzle, {Map<String, dynamic>? resume, DateTime Function()? clock})
       : _clock = clock ?? DateTime.now,
         game = _restore(puzzle, resume) ?? _fresh(puzzle) {
-    if (resume != null && _restore(puzzle, resume) != null) {
-      game
-        ..shakes = resume['shakes'] as int
-        ..mistakes = resume['mistakes'] as int
-        ..placed = resume['placed'] as int;
-      _baseSeconds = resume['seconds'] as int;
-    }
+    if (_restore(puzzle, resume) != null) _baseSeconds = resume!['seconds'] as int? ?? 0;
   }
 
   /// Scramble amount and tray size by canvas size. The tray is roomy (full
@@ -66,14 +60,21 @@ class SortController extends ChangeNotifier {
     if (j == null || j['signature'] != p.signature) return null;
     try {
       final board = SortGame.decodeBoard(j['board'] as String);
-      if (board.length != p.cellCount) return null;
-      return SortGame(
-        width: p.width,
-        target: p.cells,
-        current: board,
-        tray: SortGame.decodeTray(j['tray'] as String),
-        capacity: settingsFor(p).$2,
-      );
+      final tray = SortGame.decodeTray(j['tray'] as String);
+      final capacity = settingsFor(p).$2;
+      final colors = p.colorCount;
+      // Holes always equal tray beads; anything else is a broken save.
+      if (board.length != p.cellCount ||
+          tray.length > capacity ||
+          board.where((c) => c < 0).length != tray.length ||
+          board.any((c) => c >= colors) ||
+          tray.any((c) => c < 0 || c >= colors)) {
+        return null;
+      }
+      return SortGame(width: p.width, target: p.cells, current: board, tray: tray, capacity: capacity)
+        ..shakes = j['shakes'] as int? ?? 0
+        ..mistakes = j['mistakes'] as int? ?? 0
+        ..placed = j['placed'] as int? ?? 0;
     } catch (_) {
       return null;
     }
@@ -112,6 +113,9 @@ class SortController extends ChangeNotifier {
     return since == null ? _baseSeconds : _baseSeconds + _clock().difference(since).inSeconds;
   }
 
+  /// Changes whenever anything worth saving changes (board or counted mistakes).
+  int get saveVersion => boardVersion + game.mistakes;
+
   int get stars => Scoring.sortStars(shakes: game.shakes, mistakes: game.mistakes);
   int get score => Scoring.sortScore(placed: game.placed, shakes: game.shakes, mistakes: game.mistakes);
 
@@ -128,7 +132,8 @@ class SortController extends ChangeNotifier {
 
   SortTapResult tap(int cell) {
     if (isComplete) return SortTapResult.ignored;
-    if (game.isHole(cell)) return SortTapResult.ignored;
+    // A cell whose bead is still flying in looks empty, so it isn't a mistake.
+    if (game.isHole(cell) || arriving.containsKey(cell)) return SortTapResult.ignored;
     if (!game.isWrong(cell)) {
       if (!relaxed) game.tap(cell);
       mistakeCell = cell;
@@ -136,7 +141,7 @@ class SortController extends ChangeNotifier {
       notifyListeners();
       return SortTapResult.wrong;
     }
-    if (game.freeSlots == 0) {
+    if (game.freeSlots <= 0) {
       notifyListeners();
       return SortTapResult.trayFull;
     }

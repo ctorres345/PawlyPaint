@@ -79,7 +79,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   @override
   void initState() {
     super.initState();
-    game = GameController(widget.puzzle, resume: widget.store.savedFor(widget.puzzle));
+    game = GameController(widget.puzzle, resume: widget.tutorial ? null : widget.store.savedFor(widget.puzzle));
     paints = GemPaints.forPuzzle(widget.puzzle);
     _shimmer = IdleShimmer(this)..poke();
     clock.value = game.seconds;
@@ -119,7 +119,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     WidgetsBinding.instance.removeObserver(this);
     game.pause();
     // The tree is locked during dispose, so the store notifies its listeners afterwards.
-    if (!_finished && game.placedCount > 0 && !widget.tutorial && game.boardVersion != _savedVersion) {
+    if (!_finished && game.placedCount > 0 && !widget.tutorial && game.saveVersion != _savedVersion) {
       final snapshot = game.snapshot();
       final store = widget.store, id = widget.puzzle.id;
       Future.microtask(() => store.saveGame(id, snapshot));
@@ -138,8 +138,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
 
   void _save() {
     // Only write when the board changed since the last save.
-    if (_finished || game.placedCount == 0 || widget.tutorial || game.boardVersion == _savedVersion) return;
-    _savedVersion = game.boardVersion;
+    if (_finished || game.placedCount == 0 || widget.tutorial || game.saveVersion == _savedVersion) return;
+    _savedVersion = game.saveVersion;
     _unsavedPlacements = 0;
     widget.store.saveGame(widget.puzzle.id, game.snapshot());
   }
@@ -216,7 +216,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     }
     final relaxed = game.relaxed;
     final stars = relaxed ? 0 : game.stars;
-    if (widget.daily) widget.store.recordDaily(DateTime.now());
+    if (widget.daily) recordDailyIfToday(widget.store, widget.puzzle);
     final best = widget.store.recordCompletion(
       widget.puzzle.id,
       score: relaxed ? 0 : game.score,
@@ -293,7 +293,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     await widget.store.resetPuzzle(widget.puzzle.id);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => GameScreen(puzzle: widget.puzzle, store: widget.store, daily: widget.daily)),
+      MaterialPageRoute(
+          builder: (_) =>
+              GameScreen(puzzle: widget.puzzle, store: widget.store, daily: widget.daily, tutorial: widget.tutorial)),
     );
   }
 

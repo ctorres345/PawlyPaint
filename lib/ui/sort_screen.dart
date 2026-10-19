@@ -101,7 +101,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   @override
   void initState() {
     super.initState();
-    game = SortController(widget.puzzle, resume: widget.store.sortSaved(widget.puzzle.id));
+    game = SortController(widget.puzzle, resume: widget.tutorial ? null : widget.store.sortSaved(widget.puzzle.id));
     paints = GemPaints.forPuzzle(widget.puzzle);
     _shimmer = IdleShimmer(this)..poke();
     _ticker = createTicker((_) {
@@ -154,7 +154,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     if (!_finished &&
         !widget.tutorial &&
         game.game.placed + game.game.shakes > 0 &&
-        game.boardVersion != _savedVersion) {
+        game.saveVersion != _savedVersion) {
       final state = game.toJson();
       final store = widget.store, id = widget.puzzle.id;
       Future.microtask(() => store.saveSort(id, state));
@@ -175,8 +175,8 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
 
   void _save() {
     // Only write when the board changed since the last save.
-    if (_finished || widget.tutorial || game.boardVersion == _savedVersion) return;
-    _savedVersion = game.boardVersion;
+    if (_finished || widget.tutorial || game.saveVersion == _savedVersion) return;
+    _savedVersion = game.saveVersion;
     _unsaved = 0;
     widget.store.saveSort(widget.puzzle.id, game.toJson());
   }
@@ -276,7 +276,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     }
     final relaxed = game.relaxed;
     final stars = relaxed ? 0 : game.stars;
-    if (widget.daily) widget.store.recordDaily(DateTime.now());
+    if (widget.daily) recordDailyIfToday(widget.store, widget.puzzle);
     final best = widget.store.recordCompletion(
       PlayMode.sort.key(widget.puzzle.id),
       score: relaxed ? 0 : game.score,
@@ -333,7 +333,9 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     await widget.store.resetPuzzle(PlayMode.sort.key(widget.puzzle.id));
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => SortScreen(puzzle: widget.puzzle, store: widget.store, daily: widget.daily)),
+      MaterialPageRoute(
+          builder: (_) =>
+              SortScreen(puzzle: widget.puzzle, store: widget.store, daily: widget.daily, tutorial: widget.tutorial)),
     );
   }
 
@@ -909,7 +911,7 @@ class _TrayPanel extends StatelessWidget {
       listenable: game,
       builder: (context, _) {
         final g = game.game;
-        final full = g.freeSlots == 0 && !g.isComplete;
+        final full = g.freeSlots <= 0 && !g.isComplete;
         final rows = (g.capacity / SortTrayPainter.columns).ceil();
         return Material(
           color: scheme.surface,

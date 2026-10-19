@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/courses.dart' show unlockAfter;
+import '../data/courses.dart' show allCourses, unlockAfter;
 import '../models/puzzle.dart';
 
 /// Best result for a finished picture.
@@ -91,6 +91,13 @@ int nextStreak({required int streak, required String? lastDone, required DateTim
   if (lastDone == todayKey) return streak;
   final yesterday = dayKey(DateTime(today.year, today.month, today.day - 1));
   return lastDone == yesterday ? streak + 1 : 1;
+}
+
+/// Counts [p] toward the daily streak, but only if it is still today's
+/// picture (the app may have stayed open past midnight).
+Future<void> recordDailyIfToday(ProgressStore store, Puzzle p) async {
+  final today = DateTime.now();
+  if (store.dailyPuzzleId(today, [for (final c in allCourses) ...c.puzzles]) == p.id) await store.recordDaily(today);
 }
 
 /// Records, saved games and unlock rules, persisted on the device.
