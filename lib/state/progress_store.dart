@@ -26,12 +26,16 @@ class PuzzleRecord {
 /// A picture left half done, so it can be resumed later.
 class SavedGame {
   const SavedGame({
+    required this.signature,
     required this.placed,
     required this.score,
     required this.combo,
     required this.mistakes,
     required this.seconds,
   });
+
+  /// [Puzzle.signature] of the picture this was saved from.
+  final int signature;
 
   /// One character per cell: '1' placed, '0' empty.
   final String placed;
@@ -42,10 +46,17 @@ class SavedGame {
 
   int get placedCount => '1'.allMatches(placed).length;
 
-  Map<String, Object> toJson() =>
-      {'placed': placed, 'score': score, 'combo': combo, 'mistakes': mistakes, 'seconds': seconds};
+  Map<String, Object> toJson() => {
+        'signature': signature,
+        'placed': placed,
+        'score': score,
+        'combo': combo,
+        'mistakes': mistakes,
+        'seconds': seconds
+      };
 
   static SavedGame fromJson(Map<String, dynamic> j) => SavedGame(
+        signature: j['signature'] as int,
         placed: j['placed'] as String,
         score: j['score'] as int,
         combo: j['combo'] as int,
@@ -59,6 +70,19 @@ class ProgressStore extends ChangeNotifier {
   ProgressStore._(this._prefs, this._records, this._saved);
 
   static const _key = 'progress_v1';
+  static const _backupKey = 'progress_v1_backup';
+  static const _version = 1;
+
+  static void _parseEach(Object? map, void Function(String, Map<String, dynamic>) add) {
+    if (map is! Map<String, dynamic>) return;
+    map.forEach((k, v) {
+      try {
+        add(k, v as Map<String, dynamic>);
+      } catch (_) {
+        // Skip the broken entry.
+      }
+    });
+  }
 
   final SharedPreferences? _prefs;
   final Map<String, PuzzleRecord> _records;
@@ -68,19 +92,23 @@ class ProgressStore extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final records = <String, PuzzleRecord>{};
     final saved = <String, SavedGame>{};
+    var seenTutorial = false;
     final raw = prefs.getString(_key);
     if (raw != null) {
+      Map<String, dynamic> j;
       try {
-        final j = jsonDecode(raw) as Map<String, dynamic>;
-        (j['records'] as Map<String, dynamic>? ?? {})
-            .forEach((k, v) => records[k] = PuzzleRecord.fromJson(v as Map<String, dynamic>));
-        (j['saved'] as Map<String, dynamic>? ?? {})
-            .forEach((k, v) => saved[k] = SavedGame.fromJson(v as Map<String, dynamic>));
+        j = jsonDecode(raw) as Map<String, dynamic>;
       } catch (_) {
-        // Unreadable progress starts fresh rather than crashing the app.
+        // Keep the unreadable blob so it can be recovered by hand, then start fresh.
+        await prefs.setString(_backupKey, raw);
+        j = const {};
       }
+      // Entries are parsed one by one, so one bad entry never loses the rest.
+      _parseEach(j['records'], (k, v) => records[k] = PuzzleRecord.fromJson(v));
+      _parseEach(j['saved'], (k, v) => saved[k] = SavedGame.fromJson(v));
+      seenTutorial = j['seenTutorial'] == true;
     }
-    return ProgressStore._(prefs, records, saved);
+    return ProgressStore._(prefs, records, saved).._seenTutorial = seenTutorial;
   }
 
   /// In-memory store for tests.
@@ -88,6 +116,21 @@ class ProgressStore extends ChangeNotifier {
 
   PuzzleRecord? record(String id) => _records[id];
   SavedGame? saved(String id) => _saved[id];
+
+  /// The saved game for [p], only if it was saved from this exact picture.
+  SavedGame? savedFor(Puzzle p) {
+    final g = _saved[p.id];
+    return g != null && g.signature == p.signature && g.placed.length == p.cellCount ? g : null;
+  }
+
+  bool get seenTutorial => _seenTutorial;
+  bool _seenTutorial = false;
+
+  Future<void> markTutorialSeen() {
+    _seenTutorial = true;
+    return _persist();
+  }
+
   bool isCompleted(String id) => _records.containsKey(id);
 
   int completedIn(Course c) => c.puzzles.where((p) => isCompleted(p.id)).length;
@@ -97,7 +140,10 @@ class ProgressStore extends ChangeNotifier {
       index == 0 || completedIn(courses[index - 1]) >= unlockAfter;
 
   bool isPuzzleUnlocked(Course c, int index) =>
-      index == 0 || isCompleted(c.puzzles[index - 1].id) || isCompleted(c.puzzles[index].id) || _saved.containsKey(c.puzzles[index].id);
+      index == 0 ||
+      isCompleted(c.puzzles[index - 1].id) ||
+      isCompleted(c.puzzles[index].id) ||
+      _saved.containsKey(c.puzzles[index].id);
 
   Future<void> saveGame(String id, SavedGame game) {
     _saved[id] = game;
@@ -129,13 +175,20 @@ class ProgressStore extends ChangeNotifier {
   Future<void> _persist() async {
     final prefs = _prefs;
     if (prefs == null) return;
-    await prefs.setString(
-      _key,
-      jsonEncode({
-        'records': _records.map((k, v) => MapEntry(k, v.toJson())),
-        'saved': _saved.map((k, v) => MapEntry(k, v.toJson())),
-      }),
-    );
+    try {
+      await prefs.setString(
+        _key,
+        jsonEncode({
+          'version': _version,
+          'seenTutorial': _seenTutorial,
+          'records': _records.map((k, v) => MapEntry(k, v.toJson())),
+          'saved': _saved.map((k, v) => MapEntry(k, v.toJson())),
+        }),
+      );
+    } catch (e) {
+      // A failed write keeps the in-memory progress; the next save retries.
+      debugPrint('Saving progress failed: $e');
+    }
   }
 }
 

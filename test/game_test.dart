@@ -1,12 +1,14 @@
 import 'dart:typed_data';
-import 'dart:ui' show Color;
+import 'dart:ui' show Color, Offset, Size;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
+import 'package:pawlypaint/logic/line.dart';
 import 'package:pawlypaint/logic/scoring.dart';
 import 'package:pawlypaint/models/puzzle.dart';
 import 'package:pawlypaint/state/game_controller.dart';
 import 'package:pawlypaint/state/progress_store.dart';
+import 'package:pawlypaint/ui/board.dart';
 
 Puzzle _tiny() => Puzzle(
       id: 't',
@@ -49,11 +51,17 @@ void main() {
       expect(Scoring.afterMistake(100), 85);
     });
 
-    test('stars come from accuracy and time', () {
-      expect(Scoring.stars(mistakes: 0, cells: 256, seconds: 100, parSeconds: 300), 3);
-      expect(Scoring.stars(mistakes: 0, cells: 256, seconds: 400, parSeconds: 300), 2);
-      expect(Scoring.stars(mistakes: 10, cells: 256, seconds: 100, parSeconds: 300), 2);
-      expect(Scoring.stars(mistakes: 40, cells: 256, seconds: 100, parSeconds: 300), 1);
+    test('stars only depend on accuracy', () {
+      expect(Scoring.stars(mistakes: 3, cells: 256), 3);
+      expect(Scoring.stars(mistakes: 10, cells: 256), 2);
+      expect(Scoring.stars(mistakes: 40, cells: 256), 1);
+    });
+
+    test('the time bonus is capped at a fifth of the drill points', () {
+      expect(Scoring.timeBonus(100, 300, 256), 200);
+      expect(Scoring.timeBonus(0, 1200, 1024), 1200);
+      expect(Scoring.timeBonus(10, 5000, 100), 200);
+      expect(Scoring.timeBonus(400, 300, 256), 0);
     });
   });
 
@@ -78,12 +86,56 @@ void main() {
       expect(g.isComplete, isTrue);
     });
 
+    test('a save from a different picture is not resumed', () {
+      final g = GameController(_tiny())..place(0);
+      final other = Puzzle(
+        id: 't',
+        title: 'Changed',
+        width: 2,
+        height: 2,
+        cells: Uint8List.fromList([1, 0, 1, 1]),
+        palette: const [Color(0xFF000000), Color(0xFFFFFFFF)],
+      );
+      final store = ProgressStore.memory()..saveGame('t', g.snapshot());
+      expect(store.savedFor(other), isNull);
+      expect(store.savedFor(_tiny()), isNotNull);
+      expect(GameController(other, resume: g.snapshot()).placedCount, 0);
+    });
+
+    test('saved games and records survive a JSON round trip', () {
+      final g = GameController(_tiny())..place(0);
+      final saved = SavedGame.fromJson(g.snapshot().toJson());
+      expect((saved.signature, saved.placed, saved.score), (_tiny().signature, '1000', g.score));
+      final r = PuzzleRecord.fromJson(const PuzzleRecord(bestScore: 5, bestStars: 2, bestSeconds: 9).toJson());
+      expect((r.bestScore, r.bestStars, r.bestSeconds), (5, 2, 9));
+    });
+
     test('a snapshot resumes the same board', () {
       final g = GameController(_tiny())..place(0);
       final resumed = GameController(_tiny(), resume: g.snapshot());
       expect(resumed.placedCount, 1);
       expect(resumed.remaining, [0, 3]);
       expect(resumed.score, g.score);
+    });
+  });
+
+  group('drag line', () {
+    test('covers every cell between the ends, both included', () {
+      expect(cellsOnLine((0, 0), (3, 0)).toList(), [(0, 0), (1, 0), (2, 0), (3, 0)]);
+      expect(cellsOnLine((2, 2), (2, 2)).toList(), [(2, 2)]);
+      final diag = cellsOnLine((0, 0), (4, 2)).toList();
+      expect((diag.first, diag.last, diag.length), ((0, 0), (4, 2), 5));
+    });
+  });
+
+  group('view', () {
+    test('fits the canvas, finds cells and keeps zoom in range', () {
+      final v = BoardView()..fit(const Size(400, 600), 16, 16);
+      expect(v.cellSize * 16, closeTo(400 - 2 * BoardView.edge, 0.001));
+      expect(v.cellAt(v.offset + Offset(v.cellSize * 2.5, v.cellSize * 3.5)), (2, 3));
+      expect(v.cellAt(v.offset - const Offset(1, 1)), isNull);
+      v.zoomAt(const Offset(200, 300), 100);
+      expect(v.scale, v.maxScale);
     });
   });
 

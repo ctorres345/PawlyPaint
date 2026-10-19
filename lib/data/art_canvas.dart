@@ -74,8 +74,7 @@ class ArtCanvas {
     }
   }
 
-  void rect(double l, double t, double r, double b, int c) =>
-      fill((x, y) => x >= l && x <= r && y >= t && y <= b, c);
+  void rect(double l, double t, double r, double b, int c) => fill((x, y) => x >= l && x <= r && y >= t && y <= b, c);
 
   void circle(double cx, double cy, double r, int c) => fill(inCircle(cx, cy, r), c);
 
@@ -94,8 +93,7 @@ class ArtCanvas {
 
   void heart(double cx, double cy, double size, int c) => fill(inHeart(cx, cy, size), c);
 
-  void star(double cx, double cy, double outer, double inner, int points, int c,
-          {double rotation = -math.pi / 2}) =>
+  void star(double cx, double cy, double outer, double inner, int points, int c, {double rotation = -math.pi / 2}) =>
       polygon(starPoints(cx, cy, outer, inner, points, rotation: rotation), c);
 
   /// Turns the drawing into a [Puzzle], dropping palette colors it never used.
@@ -157,8 +155,7 @@ class ArtCanvas {
         return inside;
       };
 
-  static ShapeTest inLine(double x1, double y1, double x2, double y2, double thickness) =>
-      (x, y) {
+  static ShapeTest inLine(double x1, double y1, double x2, double y2, double thickness) => (x, y) {
         final vx = x2 - x1, vy = y2 - y1;
         final len2 = vx * vx + vy * vy;
         final t = len2 == 0 ? 0.0 : (((x - x1) * vx + (y - y1) * vy) / len2).clamp(0.0, 1.0);
@@ -174,8 +171,7 @@ class ArtCanvas {
         return a * a * a - u * u * v * v * v <= 0;
       };
 
-  static List<(double, double)> starPoints(
-      double cx, double cy, double outer, double inner, int points,
+  static List<(double, double)> starPoints(double cx, double cy, double outer, double inner, int points,
       {double rotation = -math.pi / 2}) {
     final pts = <(double, double)>[];
     for (var i = 0; i < points * 2; i++) {

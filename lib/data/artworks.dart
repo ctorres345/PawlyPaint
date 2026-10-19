@@ -135,8 +135,7 @@ Puzzle daisy(String id, int n) {
   c.ellipse(0.62, 0.74, 0.13, 0.055, leaf, angle: -0.5);
   for (var i = 0; i < 10; i++) {
     final a = i * 2 * math.pi / 10;
-    c.ellipse(0.5 + 0.22 * math.cos(a), 0.40 + 0.22 * math.sin(a), 0.13, 0.058,
-        math.sin(a) > 0.3 ? petalShade : petal,
+    c.ellipse(0.5 + 0.22 * math.cos(a), 0.40 + 0.22 * math.sin(a), 0.13, 0.058, math.sin(a) > 0.3 ? petalShade : petal,
         angle: a);
   }
   c.fillShaded(ArtCanvas.inCircle(0.5, 0.40, 0.12), 0.5, 0.40, 0.12, const [centerDark, center, centerLight]);
@@ -320,6 +319,7 @@ Puzzle tulips(String id, int n) {
     ]);
     c.fillShaded((x, y) => cup(x, y) || petals(x, y), cx, cy - 0.03, 0.10, [dark, light, light]);
   }
+
   tulip(0.30, 0.36, redDark, red);
   tulip(0.70, 0.36, yellowDark, yellow);
   tulip(0.5, 0.28, pinkDark, pink);
@@ -343,7 +343,16 @@ Puzzle moonlight(String id, int n) {
   final disc = ArtCanvas.inCircle(0.70, 0.25, 0.16);
   final bite = ArtCanvas.inCircle(0.77, 0.20, 0.135);
   c.fillShaded((x, y) => disc(x, y) && !bite(x, y), 0.70, 0.25, 0.16, const [moonShade, moon, moon]);
-  const stars = [(0.10, 0.10), (0.25, 0.18), (0.40, 0.08), (0.15, 0.35), (0.52, 0.30), (0.88, 0.45), (0.35, 0.45), (0.92, 0.08)];
+  const stars = [
+    (0.10, 0.10),
+    (0.25, 0.18),
+    (0.40, 0.08),
+    (0.15, 0.35),
+    (0.52, 0.30),
+    (0.88, 0.45),
+    (0.35, 0.45),
+    (0.92, 0.08)
+  ];
   for (var i = 0; i < stars.length; i++) {
     final (x, y) = stars[i];
     c.dot(x, y, i % 3 == 0 ? starWarm : star);

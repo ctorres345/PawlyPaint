@@ -1,4 +1,7 @@
 /// Pure scoring rules, kept free of Flutter so they are easy to test.
+///
+/// The game is meant to be calm rather than a race, so stars only depend on
+/// accuracy and the time bonus is a small extra.
 class Scoring {
   static const drillPoints = 10;
   static const mistakePenalty = 15;
@@ -10,14 +13,17 @@ class Scoring {
   /// Score after a wrong tap; never drops below zero.
   static int afterMistake(int score) => score > mistakePenalty ? score - mistakePenalty : 0;
 
-  /// Bonus added at the end for beating the par time.
-  static int timeBonus(int seconds, int parSeconds) => (parSeconds - seconds).clamp(0, parSeconds);
+  /// Bonus for finishing under par, capped at a fifth of the base drill points.
+  static int timeBonus(int seconds, int parSeconds, int cells) {
+    final cap = cells * drillPoints ~/ 5;
+    return (parSeconds - seconds).clamp(0, cap);
+  }
 
-  /// 1 to 3 stars, from accuracy and time.
-  static int stars({required int mistakes, required int cells, required int seconds, required int parSeconds}) {
+  /// 3 stars for at most 1% mistakes, 2 for at most 5%, otherwise 1.
+  static int stars({required int mistakes, required int cells}) {
     final perfectLimit = (cells * 0.01).ceil().clamp(1, cells);
     final goodLimit = (cells * 0.05).ceil().clamp(3, cells);
-    if (mistakes <= perfectLimit && seconds <= parSeconds) return 3;
+    if (mistakes <= perfectLimit) return 3;
     if (mistakes <= goodLimit) return 2;
     return 1;
   }

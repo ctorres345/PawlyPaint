@@ -1,13 +1,19 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../logic/line.dart';
 import '../state/game_controller.dart';
 import 'gem_style.dart';
 
 /// Size of one cell at zoom 1, in logical pixels.
 const double kCell = 24;
+
+/// Below this on-screen cell size a tap zooms in instead of placing a drill,
+/// since the numbers are too small to read.
+const double kMinTapCell = 18;
 
 /// Zoom and pan of the canvas inside its viewport.
 class BoardView extends ChangeNotifier {
@@ -21,17 +27,31 @@ class BoardView extends ChangeNotifier {
 
   double get cellSize => kCell * scale;
 
+  /// Keeps the canvas clear of the screen edges, where a swipe would trigger
+  /// the system back gesture.
+  static const edge = 36.0;
+
+  /// Scale and offset that show the whole canvas centered.
+  (double, Offset) fitTransform() {
+    final s = math.min((viewport.width - 2 * edge) / (cols * kCell), (viewport.height - 2 * edge) / (rows * kCell));
+    return (s, Offset((viewport.width - cols * kCell * s) / 2, (viewport.height - rows * kCell * s) / 2));
+  }
+
   void fit(Size size, int cols, int rows) {
     viewport = size;
     this.cols = cols;
     this.rows = rows;
-    // Keep clear of the screen edges, where a swipe would trigger the system back gesture.
-    const edge = 36.0;
-    final fitScale = math.min((size.width - 2 * edge) / (cols * kCell), (size.height - 2 * edge) / (rows * kCell));
-    minScale = fitScale * 0.8;
-    maxScale = math.max(fitScale * 1.2, 72 / kCell);
-    scale = fitScale;
-    offset = Offset((size.width - cols * cellSize) / 2, (size.height - rows * cellSize) / 2);
+    final (s, o) = fitTransform();
+    minScale = s * 0.8;
+    maxScale = math.max(s * 1.2, 72 / kCell);
+    scale = s;
+    offset = o;
+    notifyListeners();
+  }
+
+  void setTransform(double scale, Offset offset) {
+    this.scale = scale;
+    this.offset = offset;
     notifyListeners();
   }
 
@@ -62,6 +82,14 @@ class BoardView extends ChangeNotifier {
   /// Board coordinates (in cells) of the viewport center.
   Offset get centerCell => (viewport.center(Offset.zero) - offset) / cellSize;
 
+  /// The cell under a point in the viewport, or null outside the canvas.
+  (int, int)? cellAt(Offset local) {
+    final p = (local - offset) / cellSize;
+    final x = p.dx.floor(), y = p.dy.floor();
+    if (x < 0 || y < 0 || x >= cols || y >= rows) return null;
+    return (x, y);
+  }
+
   void _clamp() {
     final bw = cols * cellSize, bh = rows * cellSize;
     offset = Offset(
@@ -80,6 +108,7 @@ class Board extends StatefulWidget {
     required this.shimmer,
     required this.paints,
     required this.highlight,
+    required this.celebrate,
     required this.onResult,
   });
 
@@ -88,7 +117,10 @@ class Board extends StatefulWidget {
   final Animation<double> shimmer;
   final List<GemPaints> paints;
   final bool highlight;
-  final ValueChanged<PlaceResult> onResult;
+
+  /// Extra sparkle while the finished picture is revealed.
+  final bool celebrate;
+  final void Function(PlaceResult result, {required bool dragging}) onResult;
 
   @override
   State<Board> createState() => _BoardState();
@@ -100,49 +132,38 @@ class _BoardState extends State<Board> {
   bool _wasMulti = false;
   double _lastScale = 1;
   (int, int)? _lastCell;
+  Offset? _downAt;
+  final _cache = BoardCache();
 
   GameController get game => widget.game;
   BoardView get view => widget.view;
 
-  (int, int)? _cellAt(Offset local) {
-    final p = (local - view.offset) / view.cellSize;
-    final x = p.dx.floor(), y = p.dy.floor();
-    if (x < 0 || y < 0 || x >= game.puzzle.width || y >= game.puzzle.height) return null;
-    return (x, y);
-  }
-
   void _placeAt((int, int) cell, {required bool dragging}) {
     final (x, y) = cell;
     final result = game.place(y * game.puzzle.width + x, dragging: dragging);
-    if (result != PlaceResult.ignored) widget.onResult(result);
+    if (result != PlaceResult.ignored) widget.onResult(result, dragging: dragging);
+  }
+
+  void _tap(Offset local) {
+    final cell = view.cellAt(local);
+    if (cell == null) return;
+    if (view.cellSize < kMinTapCell) {
+      view.zoomAt(local, 40 / view.cellSize);
+      return;
+    }
+    _placeAt(cell, dragging: false);
   }
 
   /// Fills every cell on the line from the last drag point, so fast swipes
   /// don't skip cells.
   void _dragTo(Offset local) {
-    final cell = _cellAt(local);
+    final cell = view.cellAt(local);
     if (cell == null) {
       _lastCell = null;
       return;
     }
-    final from = _lastCell ?? cell;
-    var (x0, y0) = from;
-    final (x1, y1) = cell;
-    final dx = (x1 - x0).abs(), dy = -(y1 - y0).abs();
-    final sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
-    var err = dx + dy;
-    while (true) {
-      _placeAt((x0, y0), dragging: true);
-      if (x0 == x1 && y0 == y1) break;
-      final e2 = 2 * err;
-      if (e2 >= dy) {
-        err += dy;
-        x0 += sx;
-      }
-      if (e2 <= dx) {
-        err += dx;
-        y0 += sy;
-      }
+    for (final c in cellsOnLine(_lastCell ?? cell, cell)) {
+      _placeAt(c, dragging: true);
     }
     _lastCell = cell;
   }
@@ -158,21 +179,24 @@ class _BoardState extends State<Board> {
         });
       }
       return Listener(
+        onPointerDown: (e) => _downAt = e.localPosition,
         onPointerSignal: (e) {
           if (e is PointerScrollEvent) view.zoomAt(e.localPosition, e.scrollDelta.dy > 0 ? 0.9 : 1.1);
         },
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapUp: (d) {
-            final cell = _cellAt(d.localPosition);
-            if (cell != null) _placeAt(cell, dragging: false);
-          },
+          onTapUp: (d) => _tap(d.localPosition),
           onScaleStart: (d) {
             _pointers = d.pointerCount;
             _wasMulti = d.pointerCount > 1;
             _lastScale = 1;
             _lastCell = null;
-            if (!_wasMulti) _dragTo(d.localFocalPoint);
+            if (!_wasMulti) {
+              // The recognizer starts after the finger moved a little; begin
+              // from where it went down so the first cell isn't skipped.
+              if (_downAt != null) _dragTo(_downAt!);
+              _dragTo(d.localFocalPoint);
+            }
           },
           onScaleUpdate: (d) {
             if (d.pointerCount != _pointers) {
@@ -201,11 +225,34 @@ class _BoardState extends State<Board> {
               shimmer: widget.shimmer,
               paints: widget.paints,
               highlight: widget.highlight,
+              celebrate: widget.celebrate,
+              cache: _cache,
             ),
           ),
         ),
       );
     });
+  }
+
+  @override
+  void dispose() {
+    _cache.dispose();
+    super.dispose();
+  }
+}
+
+/// The parts of the canvas that only change when a drill is placed or the
+/// selection changes, recorded once in board units and replayed every frame.
+class BoardCache {
+  ui.Picture? base;
+  ui.Picture? labels;
+  Object? key;
+
+  void dispose() {
+    base?.dispose();
+    labels?.dispose();
+    base = labels = null;
+    key = null;
   }
 }
 
@@ -216,6 +263,8 @@ class BoardPainter extends CustomPainter {
     required this.shimmer,
     required this.paints,
     required this.highlight,
+    required this.celebrate,
+    required this.cache,
   }) : super(repaint: Listenable.merge([game, view, shimmer]));
 
   final GameController game;
@@ -223,12 +272,13 @@ class BoardPainter extends CustomPainter {
   final Animation<double> shimmer;
   final List<GemPaints> paints;
   final bool highlight;
+  final bool celebrate;
+  final BoardCache cache;
 
   static final _sheet = Paint()..color = const Color(0xFFFBF8F3);
   static final _sheetShadow = Paint()
     ..color = const Color(0x33000000)
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-  static final _dim = Paint()..color = const Color(0xFFEDEAE6);
   static final _gridFine = Paint()
     ..color = const Color(0x14000000)
     ..strokeWidth = 0.6;
@@ -240,114 +290,131 @@ class BoardPainter extends CustomPainter {
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round;
 
-  final Map<String, TextPainter> _labels = {};
-  double _labelSize = 0;
+  bool get _smart => highlight && !game.isColorDone(game.selected) && !game.isComplete;
 
-  TextPainter _label(int color, bool selected, bool dimmed, double fontSize) {
-    if (fontSize != _labelSize) {
-      _labels.clear();
-      _labelSize = fontSize;
+  void _rebuildCache() {
+    final key = (game.boardVersion, highlight, game.isComplete);
+    if (cache.key == key && cache.base != null) return;
+    cache.dispose();
+    cache.key = key;
+    final p = game.puzzle;
+    final sel = game.selected;
+    final smart = _smart;
+
+    // Sheet, tinted cells, grid and placed drills.
+    var rec = ui.PictureRecorder();
+    var c = Canvas(rec);
+    final board = Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell);
+    final sheet = RRect.fromRectAndRadius(board.inflate(kCell * 0.6), const Radius.circular(kCell * 0.4));
+    c.drawRRect(sheet.shift(const Offset(0, 4)), _sheetShadow);
+    c.drawRRect(sheet, _sheet);
+    for (var i = 0; i < p.cellCount; i++) {
+      if (game.placed[i] == 1) continue;
+      final color = p.cells[i];
+      final rect = Rect.fromLTWH((i % p.width) * kCell, (i ~/ p.width) * kCell, kCell, kCell);
+      final g = paints[color];
+      c.drawRect(rect, !smart ? g.pale : (color == sel ? g.paleSelected : g.dim));
     }
-    final key = '$color-$selected-$dimmed';
-    return _labels.putIfAbsent(key, () {
-      final ink = selected
-          ? HSLColor.fromColor(paints[color].color).withLightness(0.25).toColor()
-          : (dimmed ? const Color(0xFFB9B1B5) : const Color(0xFF6D5F66));
-      return TextPainter(
-        text: TextSpan(
-          text: game.puzzle.symbolFor(color),
-          style: TextStyle(
-            fontSize: fontSize,
-            color: ink,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+    if (!game.isComplete) {
+      for (var x = 0; x <= p.width; x++) {
+        c.drawLine(Offset(x * kCell, 0), Offset(x * kCell, board.bottom), x % 10 == 0 ? _gridMajor : _gridFine);
+      }
+      for (var y = 0; y <= p.height; y++) {
+        c.drawLine(Offset(0, y * kCell), Offset(board.right, y * kCell), y % 10 == 0 ? _gridMajor : _gridFine);
+      }
+    }
+    for (var i = 0; i < p.cellCount; i++) {
+      if (game.placed[i] == 0) continue;
+      drawGem(c, Rect.fromLTWH((i % p.width) * kCell, (i ~/ p.width) * kCell, kCell, kCell), paints[p.cells[i]]);
+    }
+    cache.base = rec.endRecording();
+
+    // Numbers on the empty cells, drawn only when zoomed in enough to read.
+    rec = ui.PictureRecorder();
+    c = Canvas(rec);
+    final labels = <(int, bool, bool), TextPainter>{};
+    for (var i = 0; i < p.cellCount; i++) {
+      if (game.placed[i] == 1) continue;
+      final color = p.cells[i];
+      final isSel = smart && color == sel;
+      final dimmed = smart && !isSel;
+      final label = labels.putIfAbsent((color, isSel, dimmed), () {
+        final ink = isSel
+            ? HSLColor.fromColor(paints[color].color).withLightness(0.25).toColor()
+            : (dimmed ? const Color(0xFFB9B1B5) : const Color(0xFF6D5F66));
+        return TextPainter(
+          text: TextSpan(
+            text: p.symbolFor(color),
+            style: TextStyle(
+              fontSize: kCell * 0.42,
+              color: ink,
+              fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+            ),
           ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-    });
+          textDirection: TextDirection.ltr,
+        )..layout();
+      });
+      final center = Offset((i % p.width + 0.5) * kCell, (i ~/ p.width + 0.5) * kCell);
+      label.paint(c, center - Offset(label.width / 2, label.height / 2));
+    }
+    for (final l in labels.values) {
+      l.dispose();
+    }
+    cache.labels = rec.endRecording();
   }
 
   @override
   void paint(Canvas canvas, Size size) {
+    _rebuildCache();
     final p = game.puzzle;
-    final cs = view.cellSize;
-    final o = view.offset;
-    final board = Rect.fromLTWH(o.dx, o.dy, p.width * cs, p.height * cs);
-    final sheet = RRect.fromRectAndRadius(board.inflate(math.max(8, cs * 0.6)), const Radius.circular(10));
-    canvas.drawRRect(sheet.shift(const Offset(0, 4)), _sheetShadow);
-    canvas.drawRRect(sheet, _sheet);
+    canvas.save();
+    canvas.translate(view.offset.dx, view.offset.dy);
+    canvas.scale(view.scale);
+    canvas.drawPicture(cache.base!);
+    if (view.cellSize >= 13) canvas.drawPicture(cache.labels!);
 
-    final x0 = math.max(0, (-o.dx / cs).floor());
-    final y0 = math.max(0, (-o.dy / cs).floor());
-    final x1 = math.min(p.width - 1, ((size.width - o.dx) / cs).floor());
-    final y1 = math.min(p.height - 1, ((size.height - o.dy) / cs).floor());
-    if (x1 < x0 || y1 < y0) return;
-
-    final sel = game.selected;
-    final smart = highlight && !game.isColorDone(sel);
     final t = shimmer.value;
-    final pulse = 0.5 + 0.5 * math.sin(t * math.pi * 8);
-    final showLabels = cs >= 13;
-    final fontSize = (cs * 0.42).roundToDouble();
-
-    // Empty cells: a printed, color-tinted canvas with numbers.
-    for (var y = y0; y <= y1; y++) {
-      for (var x = x0; x <= x1; x++) {
-        final i = y * p.width + x;
-        if (game.placed[i] == 1) continue;
-        final color = p.cells[i];
-        final rect = Rect.fromLTWH(o.dx + x * cs, o.dy + y * cs, cs, cs);
-        final isSel = smart && color == sel;
-        final dimmed = smart && !isSel;
-        canvas.drawRect(rect, isSel ? paints[color].paleSelected : (dimmed ? _dim : paints[color].pale));
-        if (isSel) {
-          _ring
-            ..color = paints[color].color.withValues(alpha: 0.35 + 0.45 * pulse)
-            ..strokeWidth = math.max(1, cs * 0.08);
-          canvas.drawRect(rect.deflate(cs * 0.08), _ring);
-        }
-        if (showLabels) {
-          final label = _label(color, isSel, dimmed, fontSize);
-          label.paint(canvas, rect.center - Offset(label.width / 2, label.height / 2));
-        }
-      }
-    }
-
-    // Grid lines, with a stronger line every 10 cells like a real kit.
-    if (cs >= 6) {
-      for (var x = x0; x <= x1 + 1; x++) {
-        final dx = o.dx + x * cs;
-        canvas.drawLine(Offset(dx, o.dy + y0 * cs), Offset(dx, o.dy + (y1 + 1) * cs), x % 10 == 0 ? _gridMajor : _gridFine);
-      }
-      for (var y = y0; y <= y1 + 1; y++) {
-        final dy = o.dy + y * cs;
-        canvas.drawLine(Offset(o.dx + x0 * cs, dy), Offset(o.dx + (x1 + 1) * cs, dy), y % 10 == 0 ? _gridMajor : _gridFine);
-      }
-    }
-
-    // Placed drills, with a light sweep and the odd twinkle.
     final now = DateTime.now();
-    final band = t * 1.6 - 0.3;
+    Rect cellRect(int i) => Rect.fromLTWH((i % p.width) * kCell, (i ~/ p.width) * kCell, kCell, kCell);
+
+    // Pulsing outline on the cells still waiting for the selected color.
+    if (_smart) {
+      final pulse = 0.5 + 0.5 * math.sin(t * math.pi * 8);
+      _ring
+        ..color = paints[game.selected].color.withValues(alpha: 0.35 + 0.45 * pulse)
+        ..strokeWidth = math.max(kCell * 0.08, 1.5 / view.scale);
+      for (final i in p.cellsByColor[game.selected]) {
+        if (game.placed[i] == 0) canvas.drawRect(cellRect(i).deflate(kCell * 0.08), _ring);
+      }
+    }
+
+    // A band of light sweeping diagonally across the placed drills.
     final span = (p.width + p.height).toDouble();
-    for (var y = y0; y <= y1; y++) {
-      for (var x = x0; x <= x1; x++) {
-        final i = y * p.width + x;
-        if (game.placed[i] == 0) continue;
-        final rect = Rect.fromLTWH(o.dx + x * cs, o.dy + y * cs, cs, cs);
-        final shine = (1 - ((x + y) / span - band).abs() / 0.06).clamp(0.0, 1.0);
-        var pop = 0.0;
-        final at = game.recentPlacements[i];
-        if (at != null) {
-          final age = now.difference(at).inMilliseconds;
-          if (age < 220) pop = 0.3 * (1 - age / 220);
-        }
-        var sparkle = 0.0;
-        final hash = (i * 2654435761) & 0xFFFF;
-        if (hash % 9 == 0) {
-          final s = math.sin(2 * math.pi * (t * 2 + hash / 0xFFFF));
-          if (s > 0.94) sparkle = (s - 0.94) / 0.06;
-        }
-        drawGem(canvas, rect, paints[p.cells[i]], shine: shine, pop: pop, sparkle: sparkle);
+    final band = t * 1.6 - 0.3;
+    final sFrom = math.max(0, ((band - 0.06) * span).floor());
+    final sTo = math.min(p.width + p.height - 2, ((band + 0.06) * span).ceil());
+    for (var s = sFrom; s <= sTo; s++) {
+      final shine = (1 - (s / span - band).abs() / 0.06).clamp(0.0, 1.0);
+      if (shine <= 0) continue;
+      for (var x = math.max(0, s - p.height + 1); x <= math.min(p.width - 1, s); x++) {
+        final i = (s - x) * p.width + x;
+        if (game.placed[i] == 1) drawGemShine(canvas, cellRect(i), shine);
+      }
+    }
+
+    // The odd twinkle, and lots of them while the finished picture is revealed.
+    for (var i = 0; i < p.cellCount; i++) {
+      final hash = (i * 2654435761) & 0xFFFF;
+      if (hash % (celebrate ? 3 : 9) != 0 || game.placed[i] == 0) continue;
+      final s = math.sin(2 * math.pi * (t * (celebrate ? 6 : 2) + hash / 0xFFFF));
+      if (s > 0.94) drawGemSparkle(canvas, cellRect(i), (s - 0.94) / 0.06);
+    }
+
+    // Drills that just landed pop above their neighbours.
+    for (final MapEntry(key: i, value: at) in game.recentPlacements.entries) {
+      final age = now.difference(at).inMilliseconds;
+      if (age < 220 && game.placed[i] == 1) {
+        drawGem(canvas, cellRect(i), paints[p.cells[i]], pop: 0.3 * (1 - age / 220));
       }
     }
 
@@ -356,17 +423,18 @@ class BoardPainter extends CustomPainter {
     if (missCell != null && missAt != null && game.placed[missCell] == 0) {
       final age = now.difference(missAt).inMilliseconds;
       if (age < 600) {
-        final rect = Rect.fromLTWH(o.dx + (missCell % p.width) * cs, o.dy + (missCell ~/ p.width) * cs, cs, cs)
-            .deflate(cs * 0.22);
+        final rect = cellRect(missCell).deflate(kCell * 0.22);
         _miss
           ..color = const Color(0xFFE53935).withValues(alpha: 1 - age / 600)
-          ..strokeWidth = math.max(2, cs * 0.12);
+          ..strokeWidth = kCell * 0.12;
         canvas.drawLine(rect.topLeft, rect.bottomRight, _miss);
         canvas.drawLine(rect.topRight, rect.bottomLeft, _miss);
       }
     }
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(BoardPainter old) => old.game != game || old.highlight != highlight || old.paints != paints;
+  bool shouldRepaint(BoardPainter old) =>
+      old.game != game || old.highlight != highlight || old.paints != paints || old.celebrate != celebrate;
 }

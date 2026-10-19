@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -14,6 +13,7 @@ class GemPaints {
         table = Paint()..color = Color.lerp(color, Colors.white, 0.16)!,
         pale = Paint()..color = Color.lerp(color, Colors.white, 0.72)!,
         paleSelected = Paint()..color = Color.lerp(color, Colors.white, 0.45)!,
+        dim = Paint()..color = Color.lerp(color, const Color(0xFFEDEAE6), 0.85)!,
         onColor = color.computeLuminance() > 0.5 ? const Color(0xFF3B2F36) : Colors.white;
 
   final Color color;
@@ -23,6 +23,10 @@ class GemPaints {
   final Paint table;
   final Paint pale;
   final Paint paleSelected;
+
+  /// Cells of other colors while one color is highlighted: grayed but
+  /// keeping a hint of their tint, like a printed canvas.
+  final Paint dim;
   final Color onColor;
 
   static List<GemPaints> forPuzzle(Puzzle p) => [for (final c in p.palette) GemPaints(c)];
@@ -37,16 +41,19 @@ final _sparklePaint = Paint()
   ..color = Colors.white
   ..strokeCap = StrokeCap.round;
 
-/// Draws one faceted square drill filling [cell].
-///
-/// [shine] (0..1) brightens it as the shimmer band passes, [pop] (0..0.3)
-/// enlarges it right after it lands, and [sparkle] (0..1) adds a twinkle.
-void drawGem(Canvas canvas, Rect cell, GemPaints g, {double shine = 0, double pop = 0, double sparkle = 0}) {
-  final w = cell.width;
-  var r = cell.deflate(w * 0.05);
+/// Outer rect and corner radius of a drill inside [cell].
+(Rect, Radius) _gemBounds(Rect cell, double pop) {
+  var r = cell.deflate(cell.width * 0.05);
   if (pop > 0) r = Rect.fromCenter(center: r.center, width: r.width * (1 + pop), height: r.height * (1 + pop));
+  return (r, Radius.circular(r.width * 0.2));
+}
+
+/// Draws one faceted square drill filling [cell]. [pop] (0..0.3) enlarges it
+/// right after it lands.
+void drawGem(Canvas canvas, Rect cell, GemPaints g, {double pop = 0}) {
+  final w = cell.width;
+  final (r, radius) = _gemBounds(cell, pop);
   final rw = r.width;
-  final radius = Radius.circular(rw * 0.2);
 
   // Dark rim, a lit top-left bevel, the crown, then a brighter table facet.
   canvas.drawRRect(RRect.fromRectAndRadius(r, radius), g.dark);
@@ -71,17 +78,24 @@ void drawGem(Canvas canvas, Rect cell, GemPaints g, {double shine = 0, double po
       _glossPaint,
     );
   }
-  if (shine > 0) {
-    _shinePaint.color = Colors.white.withValues(alpha: 0.5 * shine);
-    canvas.drawRRect(RRect.fromRectAndRadius(r, radius), _shinePaint);
-  }
-  if (sparkle > 0 && w >= 10) {
-    final c = Offset(r.left + rw * 0.32, r.top + rw * 0.3);
-    final len = rw * 0.45 * sparkle;
-    _sparklePaint.strokeWidth = math.max(1, rw * 0.06);
-    canvas.drawLine(c.translate(-len, 0), c.translate(len, 0), _sparklePaint);
-    canvas.drawLine(c.translate(0, -len), c.translate(0, len), _sparklePaint);
-  }
+}
+
+/// Brightens a placed drill as the shimmer band passes; [amount] is 0..1.
+void drawGemShine(Canvas canvas, Rect cell, double amount) {
+  final (r, radius) = _gemBounds(cell, 0);
+  _shinePaint.color = Colors.white.withValues(alpha: 0.5 * amount);
+  canvas.drawRRect(RRect.fromRectAndRadius(r, radius), _shinePaint);
+}
+
+/// A four-point twinkle on a placed drill; [amount] is 0..1.
+void drawGemSparkle(Canvas canvas, Rect cell, double amount) {
+  final (r, _) = _gemBounds(cell, 0);
+  final rw = r.width;
+  final c = Offset(r.left + rw * 0.32, r.top + rw * 0.3);
+  final len = rw * 0.45 * amount;
+  _sparklePaint.strokeWidth = rw * 0.06;
+  canvas.drawLine(c.translate(-len, 0), c.translate(len, 0), _sparklePaint);
+  canvas.drawLine(c.translate(0, -len), c.translate(0, len), _sparklePaint);
 }
 
 /// Small preview of a picture. Unfinished pictures stay a mystery, picross

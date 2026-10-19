@@ -6,8 +6,8 @@ import 'gem_style.dart';
 enum TraySort { number, remaining }
 
 /// The drill tray: one chip per color with its symbol and how many are left.
-/// Finished colors move to the end.
-class Tray extends StatelessWidget {
+/// Finished colors move to the end, and the selected color scrolls into view.
+class Tray extends StatefulWidget {
   const Tray({super.key, required this.game, required this.paints, required this.sort, required this.onSortChanged});
 
   final GameController game;
@@ -15,23 +15,63 @@ class Tray extends StatelessWidget {
   final TraySort sort;
   final ValueChanged<TraySort> onSortChanged;
 
-  List<int> _order() {
+  @override
+  State<Tray> createState() => _TrayState();
+}
+
+class _TrayState extends State<Tray> {
+  static const _chipExtent = 66.0; // chip width plus its margins
+  final _scroll = ScrollController();
+  List<int> _order = const [];
+  Object? _orderKey;
+  int? _shownSelected;
+
+  GameController get game => widget.game;
+
+  /// The order only changes when sorting is toggled or a color finishes, so
+  /// chips never shuffle under the thumb while playing.
+  List<int> _currentOrder() {
+    final doneCount = Iterable<int>.generate(game.remaining.length).where(game.isColorDone).length;
+    final key = (widget.sort, doneCount);
+    if (key == _orderKey) return _order;
+    _orderKey = key;
     final colors = List<int>.generate(game.remaining.length, (i) => i);
     final open = colors.where((c) => !game.isColorDone(c)).toList();
     final done = colors.where(game.isColorDone).toList();
-    if (sort == TraySort.remaining) {
+    if (widget.sort == TraySort.remaining) {
       open.sort((a, b) => game.remaining[b].compareTo(game.remaining[a]));
     }
-    return [...open, ...done];
+    return _order = [...open, ...done];
+  }
+
+  void _revealSelected(List<int> order) {
+    if (_shownSelected == game.selected) return;
+    _shownSelected = game.selected;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      final index = order.indexOf(game.selected);
+      final pos = _scroll.position;
+      final target = (index * _chipExtent - (pos.viewportDimension - _chipExtent) / 2)
+          .clamp(pos.minScrollExtent, pos.maxScrollExtent);
+      _scroll.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final sort = widget.sort;
     return ListenableBuilder(
       listenable: game,
       builder: (context, _) {
-        final order = _order();
+        final order = _currentOrder();
+        _revealSelected(order);
         return Container(
           height: 104,
           decoration: BoxDecoration(
@@ -45,20 +85,21 @@ class Tray extends StatelessWidget {
               IconButton(
                 tooltip: sort == TraySort.number ? 'Sorted by number' : 'Sorted by drills left',
                 icon: Icon(sort == TraySort.number ? Icons.format_list_numbered : Icons.sort),
-                onPressed: () =>
-                    onSortChanged(sort == TraySort.number ? TraySort.remaining : TraySort.number),
+                onPressed: () => widget.onSortChanged(sort == TraySort.number ? TraySort.remaining : TraySort.number),
               ),
               Expanded(
                 child: ListView.builder(
+                  controller: _scroll,
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                  itemExtent: _chipExtent,
                   itemCount: order.length,
                   itemBuilder: (context, i) {
                     final c = order[i];
                     return _ColorChip(
                       key: ValueKey(c),
                       symbol: game.puzzle.symbolFor(c),
-                      paints: paints[c],
+                      paints: widget.paints[c],
                       remaining: game.remaining[c],
                       selected: game.selected == c,
                       onTap: () => game.select(c),

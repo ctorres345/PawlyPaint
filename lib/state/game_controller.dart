@@ -12,7 +12,7 @@ class GameController extends ChangeNotifier {
       : _clock = clock ?? DateTime.now,
         placed = Uint8List(puzzle.cellCount),
         remaining = List<int>.of(puzzle.counts) {
-    if (resume != null && resume.placed.length == puzzle.cellCount) {
+    if (resume != null && resume.signature == puzzle.signature && resume.placed.length == puzzle.cellCount) {
       for (var i = 0; i < puzzle.cellCount; i++) {
         if (resume.placed.codeUnitAt(i) == 0x31) {
           placed[i] = 1;
@@ -53,6 +53,10 @@ class GameController extends ChangeNotifier {
   int? lastMistakeCell;
   DateTime? lastMistakeAt;
 
+  /// Bumped whenever the board's look changes (a drill placed or a new
+  /// color selected), so the canvas knows when to redraw its cached layer.
+  int boardVersion = 0;
+
   int get placedCount => _placedCount;
   bool get isComplete => _placedCount == puzzle.cellCount;
   double get progress => _placedCount / puzzle.cellCount;
@@ -79,6 +83,7 @@ class GameController extends ChangeNotifier {
   void select(int color) {
     if (color == selected) return;
     selected = color;
+    boardVersion++;
     notifyListeners();
   }
 
@@ -101,6 +106,7 @@ class GameController extends ChangeNotifier {
     placed[cell] = 1;
     remaining[color]--;
     _placedCount++;
+    boardVersion++;
     combo++;
     score += Scoring.pointsForDrill(combo);
     final now = _clock();
@@ -110,7 +116,7 @@ class GameController extends ChangeNotifier {
     var result = PlaceResult.placed;
     if (isComplete) {
       pause();
-      score += Scoring.timeBonus(seconds, puzzle.parSeconds);
+      score += Scoring.timeBonus(seconds, puzzle.parSeconds, puzzle.cellCount);
       result = PlaceResult.puzzleComplete;
     } else if (remaining[color] == 0) {
       selected = firstIncompleteColor() ?? selected;
@@ -120,12 +126,7 @@ class GameController extends ChangeNotifier {
     return result;
   }
 
-  int get stars => Scoring.stars(
-        mistakes: mistakes,
-        cells: puzzle.cellCount,
-        seconds: seconds,
-        parSeconds: puzzle.parSeconds,
-      );
+  int get stars => Scoring.stars(mistakes: mistakes, cells: puzzle.cellCount);
 
   /// The next color that still needs drills, preferring the lowest number.
   int? firstIncompleteColor() {
@@ -136,6 +137,7 @@ class GameController extends ChangeNotifier {
   }
 
   SavedGame snapshot() => SavedGame(
+        signature: puzzle.signature,
         placed: String.fromCharCodes(placed.map((p) => p == 1 ? 0x31 : 0x30)),
         score: score,
         combo: combo,
