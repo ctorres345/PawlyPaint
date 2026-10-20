@@ -13,6 +13,13 @@ If you enjoy it, you can [buy me a coffee on Ko-fi](https://ko-fi.com/pandavelop
 
 <a href="https://ko-fi.com/pandaveloper"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi" height="36"></a>
 
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Home screen with courses" width="200">
+  <img src="docs/screenshots/paint.png" alt="Paint mode with a combo streak" width="200">
+  <img src="docs/screenshots/sort.png" alt="Sort mode with beads in the tray" width="200">
+  <img src="docs/screenshots/time-attack.png" alt="Time Attack levels" width="200">
+</p>
+
 ## What's in it
 
 - **Two ways to play every picture**
