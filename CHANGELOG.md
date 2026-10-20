@@ -50,7 +50,7 @@ Every PawlyPaint version, newest first. Android APKs are on the [Releases page](
 
 ## 0.5.0 (2026-10-19)
 
-- Sort works with taps like Jewel Coloring: tap a misplaced bead to pick it up, tap the tray to stash it, tap an empty spot to drop it where it belongs.
+- Sort works with taps: tap a misplaced bead to pick it up, tap the tray to stash it, tap an empty spot to drop it where it belongs.
 - Combos in Sort: quick good drops in a row (within 6 s) earn bonus points.
 - Time Attack mode: sort a surprise picture before the clock runs out. Hard and Extreme unlock after a win on the level before.
 - Home shows Paint and Sort progress separately.
@@ -108,7 +108,7 @@ Every PawlyPaint version, newest first. Android APKs are on the [Releases page](
 
 ## 0.2.0 (2026-10-19)
 
-- Sort mode, inspired by Jewel Coloring: pick Paint or Sort at the top of any course.
+- Sort mode: pick Paint or Sort at the top of any course.
 
 ## 0.1.0 (2026-10-19)
 

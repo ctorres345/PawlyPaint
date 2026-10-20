@@ -58,7 +58,7 @@ class SortSelection {
 /// beads of [trayColor], then drop them on [toCell] (or in the tray when null).
 typedef SortStep = ({int? fromCell, int? trayColor, int? toCell});
 
-/// Pure rules for Sort mode, Jewel Coloring style.
+/// Pure rules for Sort mode.
 ///
 /// The picture starts full, but some beads are swapped around so they sit in
 /// the wrong place. Everything works by taps: tap a wrong bead to pick up
