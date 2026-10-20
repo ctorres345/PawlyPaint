@@ -7,6 +7,8 @@
 A cozy jewel (diamond) painting game for iPhone and Android, built with Flutter.
 Made for one very special player: it isn't on any app store.
 
+My girlfriend was frustrated with the different jewel painting games in the Android store due to their invasive ads. I had some free time and wanted a good excuse to practice Flutter and test some Claude skills, so we spent a day building something she loves.
+
 ## What's in it
 
 - **Two ways to play every picture**
