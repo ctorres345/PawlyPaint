@@ -7,6 +7,7 @@ import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/data/simplify.dart';
 import 'package:pawlypaint/logic/boosters.dart';
 import 'package:pawlypaint/logic/line.dart';
+import 'package:pawlypaint/logic/patches.dart';
 import 'package:pawlypaint/logic/scoring.dart';
 import 'package:pawlypaint/logic/sort_game.dart';
 import 'package:pawlypaint/logic/time_attack.dart';
@@ -646,6 +647,56 @@ void main() {
       expect(store.boosters(Booster.wand), 2);
       expect(store.boosters(Booster.brush), Booster.starter[Booster.brush]! + 1);
       expect(boosterReward(width: 16, stars: 2, daily: false), {Booster.bomb: 1});
+    });
+  });
+
+  group('paint polish', () {
+    test('combo milestones fire once at 25, 50, then every 50', () {
+      expect(Scoring.paintComboMilestone(23, 24), isNull);
+      expect(Scoring.paintComboMilestone(24, 25), 25);
+      expect(Scoring.paintComboMilestone(25, 26), isNull);
+      expect(Scoring.paintComboMilestone(48, 52), 50, reason: 'a brush stroke can jump past it');
+      expect(Scoring.paintComboMilestone(99, 100), 100);
+      expect(Scoring.paintComboMilestone(140, 150), 150);
+      expect(Scoring.paintComboMilestone(30, 0), isNull);
+    });
+
+    test('streak levels step up', () {
+      expect([0, 24, 25, 59, 60].map(Scoring.paintStreakLevel), [0, 0, 1, 1, 2]);
+      expect([0, 2, 3, 5, 6].map(Scoring.sortStreakLevel), [0, 0, 1, 1, 2]);
+      expect(Sfx.placeAt(9), Sfx.place3);
+      expect(Sfx.landAt(0), Sfx.land);
+    });
+
+    test('the largest patch joins side neighbors only, not diagonals or row wraps', () {
+      // 4 wide: {0,1,4} touch; 3 and 4 are on different rows; 10 and 15 only touch diagonally.
+      expect(largestPatch(4, 4, [0, 1, 4, 3, 10, 15]), unorderedEquals([0, 1, 4]));
+      expect(largestPatch(4, 4, [7, 3, 2]), unorderedEquals([3, 7, 2]));
+      expect(largestPatch(4, 4, const <int>[]), isEmpty);
+    });
+
+    test('drills are remembered in order, across leaving the picture', () {
+      final g = GameController(_tiny())..select(1);
+      g.place(3);
+      g.select(0);
+      g.place(0);
+      expect(g.order, [3, 0]);
+      final again = GameController(_tiny(), resume: SavedGame.fromJson(g.snapshot().toJson()));
+      expect(again.order, [3, 0]);
+    });
+
+    test('older saves without an order still replay every placed drill', () {
+      final g = GameController(_tiny())
+        ..select(1)
+        ..place(1)
+        ..place(2);
+      final json = g.snapshot().toJson()..remove('order');
+      final again = GameController(_tiny(), resume: SavedGame.fromJson(json));
+      expect(again.order, unorderedEquals([1, 2]));
+      again
+        ..select(1)
+        ..place(3);
+      expect(again.order.last, 3);
     });
   });
 }

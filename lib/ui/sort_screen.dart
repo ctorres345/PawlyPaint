@@ -22,6 +22,7 @@ import 'completion_sheet.dart';
 import 'desk.dart';
 import 'gem_style.dart';
 import 'idle_shimmer.dart';
+import 'mini_map.dart';
 import 'music_sheet.dart';
 
 /// Sort mode: the picture starts scrambled. Tap misplaced beads to pick them
@@ -262,10 +263,17 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
         _music?.play(Sfx.place);
         if (++_unsaved >= 10) _save();
       case SortTapResult.sorted:
+        // The chime and the thump brighten as the combo grows.
+        final level = Scoring.sortStreakLevel(game.combo);
         _settings.light();
         _music?.play(Sfx.place);
         // The chime lands with the beads flying into place.
-        Future.delayed(const Duration(milliseconds: 450), () => _music?.play(Sfx.land));
+        Future.delayed(const Duration(milliseconds: 450), () {
+          if (!mounted) return;
+          if (level == 1) _settings.medium();
+          if (level == 2) _settings.heavy();
+          _music?.play(Sfx.landAt(level));
+        });
         if (game.combo >= 2) _comboBar.forward(from: 0);
         if (++_unsaved >= 10) _save();
       case SortTapResult.wrong:
@@ -608,6 +616,22 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                             right: 10,
                             top: 10,
                             child: _ComboMeter(game: game, bar: _comboBar),
+                          ),
+                        if (!_showTips && !_finished && !widget.tutorial)
+                          Positioned(
+                            right: 10,
+                            bottom: 10,
+                            child: MiniMap(
+                              width: widget.puzzle.width,
+                              height: widget.puzzle.height,
+                              board: game,
+                              version: () => game.boardVersion,
+                              cellPaint: (i) {
+                                final c = game.game.current[i];
+                                return c < 0 ? null : paints[c].base;
+                              },
+                              view: view,
+                            ),
                           ),
                         if (widget.tutorial && _coach < _coachSteps.length)
                           Positioned(

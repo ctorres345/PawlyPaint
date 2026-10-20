@@ -53,4 +53,22 @@ class Scoring {
   /// Extra points for [beads] dropped into place at combo [combo] (1 = no
   /// combo yet): 2 points a bead for each step past the first, up to [maxCombo].
   static int comboBonus(int combo, int beads) => beads * 2 * (combo.clamp(1, maxCombo) - 1);
+
+  /// How lively a Paint streak of [combo] drills feels (0 to 2): the tick
+  /// and the vibration get brighter as it grows.
+  static int paintStreakLevel(int combo) => combo >= 60 ? 2 : (combo >= 25 ? 1 : 0);
+
+  /// The same for a Sort combo of good drops.
+  static int sortStreakLevel(int combo) => combo >= 6 ? 2 : (combo >= 3 ? 1 : 0);
+
+  /// The Paint combo milestone passed going from [before] to [after] drills
+  /// in a row (25, 50, then every 50), or null. A wide brush stroke can jump
+  /// several at once, so this checks the whole range.
+  static int? paintComboMilestone(int before, int after) {
+    int? hit;
+    for (var m = 25; m <= after; m = m < 50 ? 50 : m + 50) {
+      if (m > before) hit = m;
+    }
+    return hit;
+  }
 }

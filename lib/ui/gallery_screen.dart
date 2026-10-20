@@ -9,6 +9,7 @@ import '../state/settings.dart';
 import 'badges.dart';
 import 'gem_style.dart';
 import 'idle_shimmer.dart';
+import 'picture_export.dart';
 
 /// Every finished picture, to admire.
 class GalleryScreen extends StatelessWidget {
@@ -193,7 +194,9 @@ class _PictureViewerState extends State<PictureViewer> with SingleTickerProvider
             Text(widget.course.title, style: text.titleMedium),
             const SizedBox(height: 8),
             Wrap(spacing: 24, children: [stars(PlayMode.paint), stars(PlayMode.sort)]),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            SavePictureButton(puzzle: widget.puzzle),
+            const SizedBox(height: 16),
           ],
         ),
       ),

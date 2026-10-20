@@ -60,6 +60,7 @@ class SavedGame {
     required this.seconds,
     this.excusedMistakes = false,
     this.brushColor,
+    this.order = const [],
   });
 
   /// [Puzzle.signature] of the picture this was saved from.
@@ -78,6 +79,9 @@ class SavedGame {
   /// The color a wide brush was working on, so leaving doesn't waste it.
   final int? brushColor;
 
+  /// Cells in the order they were filled, for the replay at the end.
+  final List<int> order;
+
   int get placedCount => '1'.allMatches(placed).length;
 
   Map<String, Object> toJson() => {
@@ -89,6 +93,7 @@ class SavedGame {
         'seconds': seconds,
         'relaxed': excusedMistakes,
         if (brushColor != null) 'brush': brushColor!,
+        if (order.isNotEmpty) 'order': order,
       };
 
   static SavedGame fromJson(Map<String, dynamic> j) => SavedGame(
@@ -100,6 +105,7 @@ class SavedGame {
         seconds: j['seconds'] as int,
         excusedMistakes: j['relaxed'] == true,
         brushColor: j['brush'] as int?,
+        order: j['order'] is List ? (j['order'] as List).whereType<int>().toList() : const [],
       );
 }
 

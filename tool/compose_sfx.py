@@ -52,14 +52,36 @@ def place():
     return mix((0, tick), (0, click))
 
 
-def land():
+def place_up(f=2640):
+    # The tick, brighter: a long drag or combo builds through these.
+    return mix((0, bell(f, 0.09, decay=45)), (at(0.015), bell(f * 1.5, 0.07, decay=60)))
+
+
+def land(lo=900):
     # A gentle "plip" for a bead flying into its spot.
     out = []
     for i in range(at(0.09)):
         t = i / SR
-        f = 900 + 900 * t / 0.09
+        f = lo + lo * t / 0.09
         out.append(math.sin(2 * math.pi * f * t) * math.exp(-35 * t) * min(1, t / 0.002))
     return out
+
+
+def combo():
+    # A quick rising sparkle for a combo milestone.
+    notes = [1568.0, 2093.0, 2637.0, 3136.0]
+    return mix(*[(at(i * 0.05), bell(f, 0.35, 9)) for i, f in enumerate(notes)])
+
+
+def boom():
+    # A soft "whump" with a twinkle on top, for the bomb and magic wand.
+    thump = []
+    for i in range(at(0.3)):
+        t = i / SR
+        f = 140 - 80 * t / 0.3
+        thump.append(math.sin(2 * math.pi * f * t) * math.exp(-12 * t) * min(1, t / 0.004))
+    twinkle = [(at(0.08 + i * 0.04), bell(2349 + i * 350, 0.3, 10)) for i in range(5)]
+    return mix((0, thump), *twinkle)
 
 
 def color_done():
@@ -99,6 +121,8 @@ def shake():
 if __name__ == '__main__':
     d = sys.argv[1]
     for name, fn in [('place', place), ('land', land), ('color', color_done), ('complete', complete),
-                     ('wrong', wrong), ('shake', shake)]:
+                     ('wrong', wrong), ('shake', shake), ('place2', place_up),
+                     ('place3', lambda: place_up(3136)), ('land2', lambda: land(1200)),
+                     ('land3', lambda: land(1500)), ('combo', combo), ('boom', boom)]:
         write(f'{d}/{name}.wav', fn())
         print(name)

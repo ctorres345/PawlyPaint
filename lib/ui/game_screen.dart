@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../data/courses.dart' show allCourses;
 import '../logic/boosters.dart';
+import '../logic/patches.dart';
+import '../logic/scoring.dart';
 import '../models/puzzle.dart';
 import '../state/achievements.dart';
 import '../state/game_controller.dart';
@@ -14,6 +16,7 @@ import '../state/settings.dart';
 import 'board.dart';
 import 'booster_bar.dart';
 import 'coach.dart';
+import 'combo_pop.dart';
 import 'completion_sheet.dart';
 import 'desk.dart';
 import 'gem_style.dart';
@@ -56,6 +59,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   bool _finished = false;
   bool _bombArmed = false;
   int _savedVersion = 0;
+
+  /// The combo before the last drill, to spot milestones.
+  int _comboBefore = 0;
+  int? _pop;
+  int _popKey = 0;
 
   /// The zoom-out after finishing; kept so leaving mid-way can stop it.
   AnimationController? _glide;
@@ -148,12 +156,34 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     widget.store.saveGame(widget.puzzle.id, game.snapshot());
   }
 
-  /// A light tick per drill, thinned out during fast drags.
-  void _tick() {
+  /// A tick per drill, thinned out during fast drags. It firms up as the
+  /// streak grows.
+  void _tick(int level) {
     final now = DateTime.now();
     if (now.difference(_lastHaptic).inMilliseconds < 40) return;
     _lastHaptic = now;
-    _settings.selection();
+    switch (level) {
+      case 0:
+        _settings.selection();
+      case 1:
+        _settings.light();
+      default:
+        _settings.medium();
+    }
+  }
+
+  /// Pops a "Combo ×N!" badge when the streak passes 25, 50, 100...
+  bool _checkMilestone() {
+    final before = _comboBefore;
+    _comboBefore = game.combo;
+    if (widget.tutorial || game.relaxed) return false;
+    final hit = Scoring.paintComboMilestone(before, game.combo);
+    if (hit == null) return false;
+    setState(() {
+      _pop = hit;
+      _popKey++;
+    });
+    return true;
   }
 
   void _onResult(PlaceResult result, {required bool dragging}) {
@@ -161,17 +191,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       if (_coach == 0) setState(() => _coach = 1);
       if (_coach == 1 && dragging && ++_dragPlacements >= 3) setState(() => _coach = 2);
     }
+    final milestone = result != PlaceResult.ignored && _checkMilestone();
     switch (result) {
       case PlaceResult.wrong:
         _settings.medium();
         _music?.play(Sfx.wrong);
       case PlaceResult.placed:
-        _tick();
-        _music?.play(Sfx.place);
+        if (milestone) {
+          _settings.heavy();
+          _music?.play(Sfx.combo);
+        } else {
+          final level = Scoring.paintStreakLevel(game.combo);
+          _tick(level);
+          _music?.play(Sfx.placeAt(level));
+        }
         if (++_unsavedPlacements >= 25) _save();
       case PlaceResult.colorComplete:
         _settings.light();
-        _music?.play(Sfx.color);
+        _music?.play(milestone ? Sfx.combo : Sfx.color);
         _shimmer.poke();
         _save();
       case PlaceResult.puzzleComplete:
@@ -254,6 +291,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       relaxed: relaxed,
       badges: badges,
       boosters: reward,
+      replayOrder: game.order,
     );
     if (mounted) Navigator.of(context).pop();
   }
@@ -326,8 +364,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final result = game.fill(cells, origin: origin);
     _shimmer.poke();
     _settings.heavy();
+    _music?.play(Sfx.boom);
     if (result == PlaceResult.placed) {
-      _music?.play(Sfx.color);
       _save();
     } else {
       _onResult(result, dragging: false);
@@ -349,7 +387,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     return best;
   }
 
-  /// Jumps to the remaining cell of the selected color closest to the view center.
+  /// Jumps to the biggest patch of the selected color still to paint. With
+  /// only a few spots left (they pulse on the canvas), goes to the nearest.
   void _findNext() {
     final p = widget.puzzle;
     final open = [
@@ -357,8 +396,28 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         if (game.placed[i] == 0) i
     ];
     if (open.isEmpty) return;
-    final best = _nearestToCenter(open);
-    view.focusCell(best % p.width, best ~/ p.width);
+    _shimmer.poke();
+    var target = _nearestToCenter(open);
+    if (open.length > 5) {
+      final patch = largestPatch(p.width, p.height, open);
+      var cx = 0.0, cy = 0.0;
+      for (final i in patch) {
+        cx += i % p.width;
+        cy += i ~/ p.width;
+      }
+      cx /= patch.length;
+      cy /= patch.length;
+      // The patch's own cell nearest its middle, so a ring-shaped patch still lands on paint.
+      var bestDist = double.infinity;
+      for (final i in patch) {
+        final dx = i % p.width - cx, dy = i ~/ p.width - cy;
+        if (dx * dx + dy * dy < bestDist) {
+          bestDist = dx * dx + dy * dy;
+          target = i;
+        }
+      }
+    }
+    view.focusCell(target % p.width, target ~/ p.width);
   }
 
   Future<void> _confirmRestart() async {
@@ -410,11 +469,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
           actions: [
             ListenableBuilder(
               listenable: game,
-              builder: (context, _) => IconButton(
-                tooltip: 'Find the next ${widget.puzzle.symbolFor(game.selected)}',
-                icon: const Icon(Icons.center_focus_strong_rounded),
-                onPressed: _finished ? null : _findNext,
-              ),
+              builder: (context, _) {
+                final left = game.remaining[game.selected];
+                return IconButton(
+                  tooltip: 'Find the next ${widget.puzzle.symbolFor(game.selected)}',
+                  icon: Badge(
+                    isLabelVisible: !_finished && left > 0 && left <= 5,
+                    backgroundColor: scheme.primary,
+                    label: Text('$left'),
+                    child: const Icon(Icons.center_focus_strong_rounded),
+                  ),
+                  onPressed: _finished ? null : _findNext,
+                );
+              },
             ),
             const MusicButton(),
             IconButton(
@@ -470,7 +537,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                     ),
                   ),
                   if (!widget.tutorial && !_showTips)
-                    Positioned(top: 10, right: 10, child: MiniMap(game: game, view: view, paints: paints)),
+                    Positioned(top: 10, right: 10, child: MiniMap.paint(game: game, view: view, paints: paints)),
+                  if (_pop != null && !_finished)
+                    Positioned(
+                      top: 24,
+                      left: 0,
+                      right: 0,
+                      child: Center(child: ComboPop(key: ValueKey(_popKey), combo: _pop!)),
+                    ),
                   if (!widget.tutorial && !_finished)
                     Positioned(
                       right: 6,
@@ -579,7 +653,7 @@ class _Tips extends StatelessWidget {
             tip(Icons.palette_outlined, 'Pick a color in the tray. Its cells light up on the canvas.'),
             tip(Icons.touch_app_outlined, 'Tap a glowing cell, or drag across them to fill a row.'),
             tip(Icons.pinch_outlined, 'Pinch or use two fingers to zoom and move around.'),
-            tip(Icons.center_focus_strong_rounded, 'Lost a cell? The target button finds the next one.'),
+            tip(Icons.center_focus_strong_rounded, 'Lost a cell? The target button jumps to the biggest patch left.'),
             tip(Icons.auto_fix_high_rounded, 'Stuck? The bomb, magic wand and wide brush fill spots for you.'),
             Align(
               alignment: Alignment.centerRight,
@@ -647,8 +721,23 @@ class _StatsBar extends StatelessWidget {
                     Text('$score', style: text.labelLarge),
                     if (combo >= 10) ...[
                       const SizedBox(width: 8),
-                      Text('×$combo',
-                          style: text.labelLarge?.copyWith(color: scheme.primary, fontWeight: FontWeight.w800)),
+                      // Grows and warms up as the streak gets longer.
+                      AnimatedScale(
+                        scale: 1 + 0.12 * Scoring.paintStreakLevel(combo),
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOutBack,
+                        child: Row(
+                          children: [
+                            if (Scoring.paintStreakLevel(combo) > 0)
+                              const Icon(Icons.local_fire_department_rounded, size: 18, color: Color(0xFFFF7043)),
+                            Text('×$combo',
+                                style: text.labelLarge?.copyWith(
+                                    color:
+                                        Scoring.paintStreakLevel(combo) > 1 ? const Color(0xFFF4511E) : scheme.primary,
+                                    fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                      ),
                     ],
                   ],
                 ],

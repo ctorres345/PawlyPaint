@@ -1,7 +1,7 @@
 name: pawlypaint
 description: A cozy jewel painting game with picross-style courses.
 publish_to: 'none'
-version: 0.6.0+16
+version: 0.7.0+17
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -10,6 +10,7 @@ dependencies:
   audioplayers: ^6.8.1
   flutter:
     sdk: flutter
+  gal: ^2.3.3
   shared_preferences: ^2.3.2
 
 dev_dependencies:

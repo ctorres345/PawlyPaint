@@ -10,11 +10,39 @@ import 'gem_style.dart';
 /// A small copy of the whole canvas with a box around the part on screen.
 /// Shown only while zoomed in; tap or drag it to move around.
 class MiniMap extends StatefulWidget {
-  const MiniMap({super.key, required this.game, required this.view, required this.paints, this.maxSide = 96});
+  const MiniMap({
+    super.key,
+    required this.width,
+    required this.height,
+    required this.board,
+    required this.version,
+    required this.cellPaint,
+    required this.view,
+    this.maxSide = 96,
+  });
 
-  final GameController game;
+  /// The Paint canvas: painted drills in color, the rest pale.
+  MiniMap.paint({Key? key, required GameController game, required BoardView view, required List<GemPaints> paints})
+      : this(
+          key: key,
+          width: game.puzzle.width,
+          height: game.puzzle.height,
+          board: game,
+          version: () => game.boardVersion,
+          cellPaint: (i) => game.placed[i] == 1 ? paints[game.puzzle.cells[i]].base : paints[game.puzzle.cells[i]].pale,
+          view: view,
+        );
+
+  final int width;
+  final int height;
+
+  /// Notifies when the board changes; [version] says whether it did.
+  final Listenable board;
+  final int Function() version;
+
+  /// How cell i looks on the map, or null to leave it empty.
+  final Paint? Function(int i) cellPaint;
   final BoardView view;
-  final List<GemPaints> paints;
   final double maxSide;
 
   @override
@@ -33,10 +61,8 @@ class _MiniMapState extends State<MiniMap> {
     return r.left > 0.5 || r.top > 0.5 || r.right < view.cols - 0.5 || r.bottom < view.rows - 0.5;
   }
 
-  void _jump(Offset local, Size size) {
-    final p = widget.game.puzzle;
-    view.centerOn(local.dx / size.width * p.width, local.dy / size.height * p.height);
-  }
+  void _jump(Offset local, Size size) =>
+      view.centerOn(local.dx / size.width * widget.width, local.dy / size.height * widget.height);
 
   @override
   void dispose() {
@@ -46,9 +72,8 @@ class _MiniMapState extends State<MiniMap> {
 
   @override
   Widget build(BuildContext context) {
-    final p = widget.game.puzzle;
-    final cell = widget.maxSide / math.max(p.width, p.height);
-    final size = Size(p.width * cell, p.height * cell);
+    final cell = widget.maxSide / math.max(widget.width, widget.height);
+    final size = Size(widget.width * cell, widget.height * cell);
     return ListenableBuilder(
       listenable: view,
       builder: (context, _) => IgnorePointer(
@@ -72,7 +97,7 @@ class _MiniMapState extends State<MiniMap> {
                 child: RepaintBoundary(
                   child: CustomPaint(
                     size: size,
-                    painter: _MiniMapPainter(widget.game, view, widget.paints, _cache),
+                    painter: _MiniMapPainter(widget, _cache),
                   ),
                 ),
               ),
@@ -95,37 +120,34 @@ class _MapCache {
 }
 
 class _MiniMapPainter extends CustomPainter {
-  _MiniMapPainter(this.game, this.view, this.paints, this.cache) : super(repaint: Listenable.merge([game, view]));
+  _MiniMapPainter(this.map, this.cache) : super(repaint: Listenable.merge([map.board, map.view]));
 
-  final GameController game;
-  final BoardView view;
-  final List<GemPaints> paints;
+  final MiniMap map;
   final _MapCache cache;
 
   static final _frame = Paint()
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2
     ..color = const Color(0xFFE91E63);
-  static final _fill = Paint();
-
   @override
   void paint(Canvas canvas, Size size) {
-    final p = game.puzzle;
-    final cell = size.width / p.width;
-    if (cache.version != game.boardVersion || cache.picture == null) {
+    final w = map.width;
+    final cell = size.width / w;
+    final version = map.version();
+    if (cache.version != version || cache.picture == null) {
       cache.dispose();
-      cache.version = game.boardVersion;
+      cache.version = version;
       final rec = ui.PictureRecorder();
       final c = Canvas(rec);
-      for (var i = 0; i < p.cellCount; i++) {
-        final g = paints[p.cells[i]];
-        final rect = Rect.fromLTWH((i % p.width) * cell, (i ~/ p.width) * cell, cell + 0.3, cell + 0.3);
-        c.drawRect(rect, game.placed[i] == 1 ? (_fill..color = g.color) : g.pale);
+      for (var i = 0; i < w * map.height; i++) {
+        final paint = map.cellPaint(i);
+        if (paint == null) continue;
+        c.drawRect(Rect.fromLTWH((i % w) * cell, (i ~/ w) * cell, cell + 0.3, cell + 0.3), paint);
       }
       cache.picture = rec.endRecording();
     }
     canvas.drawPicture(cache.picture!);
-    final r = view.visibleCells;
+    final r = map.view.visibleCells;
     final frame = Rect.fromLTRB(r.left * cell, r.top * cell, r.right * cell, r.bottom * cell)
         .intersect(Offset.zero & size)
         .deflate(1);
@@ -133,5 +155,9 @@ class _MiniMapPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_MiniMapPainter old) => old.game != game || old.paints != paints;
+  bool shouldRepaint(_MiniMapPainter old) {
+    // A new board (a restart) means the cached picture is stale too.
+    if (old.map.board != map.board) cache.version = null;
+    return old.map != map;
+  }
 }

@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Saving finished pictures to the gallery on Android 9 and older. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
     <application
         android:label="PawlyPaint"
         android:name="${applicationName}"

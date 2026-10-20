@@ -33,7 +33,19 @@ enum Sfx {
   color('sfx/color.wav'),
   complete('sfx/complete.wav'),
   wrong('sfx/wrong.wav'),
-  shake('sfx/shake.wav');
+  shake('sfx/shake.wav'),
+  place2('sfx/place2.wav'),
+  place3('sfx/place3.wav'),
+  land2('sfx/land2.wav'),
+  land3('sfx/land3.wav'),
+  combo('sfx/combo.wav'),
+  boom('sfx/boom.wav');
+
+  /// The drill tick for a streak at [level] (0 to 2): it brightens as it grows.
+  static Sfx placeAt(int level) => const [place, place2, place3][level.clamp(0, 2)];
+
+  /// The bead landing chime for a combo at [level] (0 to 2).
+  static Sfx landAt(int level) => const [land, land2, land3][level.clamp(0, 2)];
 
   const Sfx(this.asset);
 

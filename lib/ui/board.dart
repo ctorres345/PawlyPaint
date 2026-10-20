@@ -319,6 +319,7 @@ class BoardPainter extends CustomPainter {
     ..strokeWidth = 1;
   static final _ring = Paint()..style = PaintingStyle.stroke;
   static final _blast = Paint()..style = PaintingStyle.stroke;
+  static final _beacon = Paint()..style = PaintingStyle.stroke;
   static final _miss = Paint()
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round;
@@ -484,6 +485,22 @@ class BoardPainter extends CustomPainter {
           ..color = const Color(0xFFFFD54F).withValues(alpha: 0.9 * (1 - k))
           ..strokeWidth = kCell * (0.5 - 0.35 * k);
         canvas.drawCircle(cellRect(blastCell).center, kCell * (0.5 + 5 * Curves.easeOutCubic.transform(k)), _blast);
+      }
+    }
+
+    // The last few spots of a color pulse so they're easy to spot, even
+    // zoomed out: the rings keep a minimum size on screen.
+    final sel = game.selected;
+    if (_smart && game.remaining[sel] <= 5) {
+      final k = (now.millisecondsSinceEpoch % 1200) / 1200;
+      final minR = 16 / view.scale;
+      for (final i in p.cellsByColor[sel]) {
+        if (game.placed[i] == 1) continue;
+        final r = math.max(kCell * 0.7, minR) * (1 + 0.6 * k);
+        _beacon
+          ..color = const Color(0xFFEC407A).withValues(alpha: 0.85 * (1 - k))
+          ..strokeWidth = math.max(kCell * 0.12, 2.5 / view.scale);
+        canvas.drawCircle(cellRect(i).center, r, _beacon);
       }
     }
 

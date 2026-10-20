@@ -27,6 +27,18 @@ class GameController extends ChangeNotifier {
       mistakes = resume.mistakes;
       _baseSeconds = resume.seconds;
       excusedMistakes = resume.excusedMistakes;
+      // Older saves have no order; their drills replay first, color by color.
+      final seen = <int>{};
+      for (final c in resume.order) {
+        if (c >= 0 && c < puzzle.cellCount && placed[c] == 1 && seen.add(c)) order.add(c);
+      }
+      if (order.length < _placedCount) {
+        order.insertAll(0, [
+          for (final cells in puzzle.cellsByColor)
+            for (final c in cells)
+              if (placed[c] == 1 && !seen.contains(c)) c,
+        ]);
+      }
       final b = resume.brushColor;
       if (b != null && b < remaining.length && remaining[b] > 0) brushColor = b;
     }
@@ -57,6 +69,9 @@ class GameController extends ChangeNotifier {
 
   int _baseSeconds = 0;
   DateTime? _runningSince;
+
+  /// Cells in the order their drills went down, for the finished replay.
+  final List<int> order = [];
 
   /// When each recent drill landed, for the pop animation.
   final Map<int, DateTime> recentPlacements = {};
@@ -170,6 +185,7 @@ class GameController extends ChangeNotifier {
     remaining[color]--;
     _placedCount++;
     boardVersion++;
+    order.add(cell);
     recentPlacements[cell] = at;
     if (remaining[color] > 0) return false;
     lastColorDone = color;
@@ -249,5 +265,6 @@ class GameController extends ChangeNotifier {
         seconds: seconds,
         excusedMistakes: excusedMistakes,
         brushColor: brushColor,
+        order: List.of(order),
       );
 }

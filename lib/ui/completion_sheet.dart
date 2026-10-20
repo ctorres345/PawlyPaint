@@ -6,6 +6,8 @@ import '../state/achievements.dart';
 import 'badges.dart';
 import 'booster_bar.dart' show boosterIcon;
 import 'gem_style.dart';
+import 'picture_export.dart';
+import 'replay.dart';
 
 Future<void> showCompletionSheet(
   BuildContext context, {
@@ -20,6 +22,7 @@ Future<void> showCompletionSheet(
   Map<Booster, int> boosters = const {},
   int? bestCombo,
   int? secondsLeft,
+  List<int>? replayOrder,
   String title = 'Masterpiece complete!',
   String done = 'Back to the course',
 }) {
@@ -126,7 +129,21 @@ Future<void> showCompletionSheet(
                   ],
                 ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 4,
+                children: [
+                  if (replayOrder != null && replayOrder.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () => showReplay(context, puzzle: puzzle, order: replayOrder),
+                      icon: const Icon(Icons.slow_motion_video_rounded),
+                      label: const Text('Watch replay'),
+                    ),
+                  SavePictureButton(puzzle: puzzle),
+                ],
+              ),
+              const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
