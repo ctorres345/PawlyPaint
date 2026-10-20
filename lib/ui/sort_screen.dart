@@ -35,6 +35,7 @@ class SortScreen extends StatefulWidget {
     this.tutorial = false,
     this.timeAttack,
     this.seed = 0,
+    this.dailyChallenge = false,
   });
 
   final Puzzle puzzle;
@@ -49,6 +50,10 @@ class SortScreen extends StatefulWidget {
   /// Set for a Time Attack run at this difficulty: a fresh board scrambled
   /// by [seed], against the clock, never saved.
   final Difficulty? timeAttack;
+
+  /// Today's Time Attack challenge: the same board on every try, with its
+  /// own best score.
+  final bool dailyChallenge;
   final int seed;
 
   @override
@@ -339,8 +344,12 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     final secondsLeft = game.timeLeft;
     final Future<bool> best;
     if (difficulty != null) {
-      best = widget.store
+      final overall = widget.store
           .recordTimeAttack(difficulty, won: true, score: game.score, combo: game.bestCombo, secondsLeft: secondsLeft);
+      best = widget.dailyChallenge
+          ? widget.store.recordDailyTimeAttack(DateTime.now(),
+              won: true, score: game.score, combo: game.bestCombo, secondsLeft: secondsLeft)
+          : overall;
     } else {
       widget.store.noteCombo(game.bestCombo);
       best = widget.store.recordCompletion(
@@ -388,6 +397,10 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   }
 
   /// Time Attack ran out: count the round and offer another go.
+  /// The board for another try: a fresh scramble, except today's challenge
+  /// which stays the same.
+  int get _nextSeed => widget.dailyChallenge ? widget.seed : widget.seed + 1;
+
   Future<void> _timeUp() async {
     _finished = true;
     _settings.heavy();
@@ -395,6 +408,10 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     setState(() {});
     await widget.store
         .recordTimeAttack(widget.timeAttack!, won: false, score: game.score, combo: game.bestCombo, secondsLeft: 0);
+    if (widget.dailyChallenge) {
+      await widget.store
+          .recordDailyTimeAttack(DateTime.now(), won: false, score: game.score, combo: game.bestCombo, secondsLeft: 0);
+    }
     if (!mounted) return;
     final badges = takeNewAchievements(allCourses, widget.store);
     final again = await showDialog<bool>(
@@ -421,7 +438,8 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
           puzzle: widget.puzzle,
           store: widget.store,
           timeAttack: widget.timeAttack,
-          seed: widget.seed + 1,
+          seed: _nextSeed,
+          dailyChallenge: widget.dailyChallenge,
         ),
       ));
     } else {
@@ -453,7 +471,8 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                 daily: widget.daily,
                 tutorial: widget.tutorial,
                 timeAttack: widget.timeAttack,
-                seed: widget.seed + 1,
+                seed: _nextSeed,
+                dailyChallenge: widget.dailyChallenge,
               )),
     );
   }
@@ -496,7 +515,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
         appBar: AppBar(
           backgroundColor: scheme.surface,
           title: Text(_timed
-              ? 'Time Attack · ${widget.timeAttack!.label}'
+              ? (widget.dailyChallenge ? 'Daily · ${widget.timeAttack!.label}' : '${widget.timeAttack!.label} run')
               : _finished || widget.store.isDone(widget.puzzle.id)
                   ? widget.puzzle.title
                   : 'Sort the beads'),
@@ -630,6 +649,12 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
                         _settings.medium();
                         _music?.play(Sfx.shake);
                         if (_timed) _toast('Shake: −${TimeAttack.helpCost} seconds');
+                      }
+                    },
+                    onUndo: () {
+                      if (game.undo()) {
+                        _settings.selection();
+                        _music?.play(Sfx.place);
                       }
                     },
                   ),
@@ -1090,6 +1115,7 @@ class _TrayPanel extends StatelessWidget {
     required this.frame,
     required this.onTap,
     required this.onShake,
+    required this.onUndo,
   });
 
   final GlobalKey trayKey;
@@ -1098,6 +1124,7 @@ class _TrayPanel extends StatelessWidget {
   final Listenable frame;
   final void Function(Offset local, Size size) onTap;
   final VoidCallback onShake;
+  final VoidCallback onUndo;
 
   @override
   Widget build(BuildContext context) {
@@ -1169,6 +1196,12 @@ class _TrayPanel extends StatelessWidget {
                       ),
                     ],
                     const Spacer(),
+                    IconButton.outlined(
+                      tooltip: 'Undo',
+                      onPressed: game.canUndo ? onUndo : null,
+                      icon: const Icon(Icons.undo_rounded),
+                    ),
+                    const SizedBox(width: 8),
                     OutlinedButton.icon(
                       onPressed: g.tray.isEmpty ? null : onShake,
                       icon: const Icon(Icons.vibration_rounded),

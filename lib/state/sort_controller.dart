@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 
 import '../logic/scoring.dart';
@@ -30,6 +32,9 @@ class Flight {
 }
 
 enum SortTapResult { selected, deselected, moved, sorted, wrong, trayFull, ignored, complete }
+
+/// The state before a move, so it can be undone.
+typedef _Snapshot = ({Int16List board, List<int> tray, int placed, int comboBonus, int bestCombo, int bonusSeconds});
 
 /// Live state of one picture in Sort mode (or a Time Attack run): the rules
 /// plus timing, combos, animation bookkeeping and saving.
@@ -119,8 +124,15 @@ class SortController extends ChangeNotifier {
   final int? timeLimit;
   bool get timed => timeLimit != null;
 
-  /// Seconds won back (or lost to help) during a Time Attack run.
+  /// Seconds won back by good drops during a Time Attack run.
   int bonusSeconds = 0;
+
+  /// Seconds lost to hints and shakes during a Time Attack run.
+  int penaltySeconds = 0;
+
+  /// Moves that can be undone, oldest first.
+  final List<_Snapshot> _history = [];
+  static const _maxUndo = 30;
 
   final List<Flight> flights = [];
 
@@ -165,7 +177,7 @@ class SortController extends ChangeNotifier {
   }
 
   /// Seconds left in a Time Attack run (0 in regular Sort).
-  int get timeLeft => timed ? (timeLimit! + bonusSeconds - seconds).clamp(0, 1 << 30) : 0;
+  int get timeLeft => timed ? (timeLimit! + bonusSeconds - penaltySeconds - seconds).clamp(0, 1 << 30) : 0;
   bool get timeUp => timed && !isComplete && timeLeft <= 0;
 
   /// The live combo, or 0 once its window has passed.
@@ -201,16 +213,62 @@ class SortController extends ChangeNotifier {
 
   bool get _locked => isComplete || timeUp;
 
+  bool get canUndo => _history.isNotEmpty && !_locked;
+
+  _Snapshot _snapshot() => (
+        board: Int16List.fromList(game.current),
+        tray: List<int>.of(game.tray),
+        placed: game.placed,
+        comboBonus: comboBonus,
+        bestCombo: bestCombo,
+        bonusSeconds: bonusSeconds,
+      );
+
+  /// Remembers [before] when [move] changed the board, so it can be undone.
+  SortMove _remember(_Snapshot before, SortMove move) {
+    if (move.action == SortAction.toTray || move.action == SortAction.placed) {
+      _history.add(before);
+      if (_history.length > _maxUndo) _history.removeAt(0);
+    }
+    return move;
+  }
+
   SortTapResult tapCell(int cell) {
     if (_locked) return SortTapResult.ignored;
     // A cell whose bead is still flying in looks empty, so leave it alone.
     if (arriving.containsKey(cell)) return SortTapResult.ignored;
-    return _apply(game.tapCell(cell, countMistakes: !relaxed || timed), cell);
+    final before = _snapshot();
+    return _apply(_remember(before, game.tapCell(cell, countMistakes: !relaxed || timed)), cell);
   }
 
   SortTapResult tapTray(int? slot) {
     if (_locked) return SortTapResult.ignored;
-    return _apply(game.tapTray(slot), null);
+    final before = _snapshot();
+    return _apply(_remember(before, game.tapTray(slot)), null);
+  }
+
+  /// Takes back the last move. Points and seconds it earned go back too, and
+  /// the combo ends; mistakes, shakes and help costs stay counted.
+  bool undo() {
+    if (!canUndo) return false;
+    final s = _history.removeLast();
+    game.current.setAll(0, s.board);
+    game.tray
+      ..clear()
+      ..addAll(s.tray);
+    game.placed = s.placed;
+    game.selection = null;
+    comboBonus = s.comboBonus;
+    bestCombo = s.bestCombo;
+    bonusSeconds = s.bonusSeconds;
+    combo = 0;
+    comboAt = null;
+    hintStep = null;
+    flights.clear();
+    arriving.clear();
+    boardVersion++;
+    notifyListeners();
+    return true;
   }
 
   SortTapResult _apply(SortMove move, int? cell) {
@@ -294,7 +352,9 @@ class SortController extends ChangeNotifier {
     }
     combo = 0;
     comboAt = null;
-    if (timed) bonusSeconds -= TimeAttack.helpCost;
+    // Shaken beads land anywhere, so earlier moves can't be taken back.
+    _history.clear();
+    if (timed) penaltySeconds += TimeAttack.helpCost;
     boardVersion++;
     notifyListeners();
     return true;
@@ -306,7 +366,7 @@ class SortController extends ChangeNotifier {
     game.selection = null;
     hintStep = game.bestStep();
     hintAt = _clock();
-    if (timed && hintStep != null) bonusSeconds -= TimeAttack.helpCost;
+    if (timed && hintStep != null) penaltySeconds += TimeAttack.helpCost;
     notifyListeners();
     return hintStep;
   }

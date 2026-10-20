@@ -174,6 +174,8 @@ class ProgressStore extends ChangeNotifier {
     final badges = <String>[];
     final timeAttack = <String, TimeAttackRecord>{};
     var bestCombo = 0;
+    String? dailyTADate;
+    var dailyTA = const TimeAttackRecord();
     final raw = prefs.getString(_key);
     if (raw != null) {
       Map<String, dynamic> j;
@@ -194,6 +196,12 @@ class ProgressStore extends ChangeNotifier {
       if (j['badges'] is List) badges.addAll((j['badges'] as List).whereType<String>());
       _parseEach(j['timeAttack'], (k, v) => timeAttack[k] = TimeAttackRecord.fromJson(v));
       bestCombo = j['bestCombo'] is int ? j['bestCombo'] as int : 0;
+      if (j['dailyTimeAttack'] case final Map<String, dynamic> d) {
+        try {
+          dailyTADate = d['date'] as String?;
+          dailyTA = TimeAttackRecord.fromJson(d);
+        } catch (_) {}
+      }
     }
     return ProgressStore._(prefs, records, saved, sortSaved)
       .._seenTutorial = seenTutorial
@@ -205,7 +213,9 @@ class ProgressStore extends ChangeNotifier {
       .._bestStreak = (daily?['best'] as int?) ?? 0
       .._seenBadges.addAll(badges)
       .._timeAttack.addAll(timeAttack)
-      .._bestCombo = bestCombo;
+      .._bestCombo = bestCombo
+      .._dailyTADate = dailyTADate
+      .._dailyTA = dailyTA;
   }
 
   /// In-memory store for tests.
@@ -303,6 +313,31 @@ class ProgressStore extends ChangeNotifier {
       bestLeft: won && secondsLeft > old.bestLeft ? secondsLeft : old.bestLeft,
     );
     if (combo > _bestCombo) _bestCombo = combo;
+    notifyListeners();
+    await _persist();
+    return isBest;
+  }
+
+  String? _dailyTADate;
+  TimeAttackRecord _dailyTA = const TimeAttackRecord();
+
+  /// How today's Time Attack challenge has gone so far.
+  TimeAttackRecord dailyTimeAttack(DateTime today) =>
+      _dailyTADate == dayKey(today) ? _dailyTA : const TimeAttackRecord();
+
+  /// Stores a run of today's challenge and returns true for a new best today.
+  Future<bool> recordDailyTimeAttack(DateTime today,
+      {required bool won, required int score, required int combo, required int secondsLeft}) async {
+    final old = dailyTimeAttack(today);
+    final isBest = won && score > old.bestScore;
+    _dailyTADate = dayKey(today);
+    _dailyTA = TimeAttackRecord(
+      bestScore: isBest ? score : old.bestScore,
+      wins: old.wins + (won ? 1 : 0),
+      plays: old.plays + 1,
+      bestCombo: combo > old.bestCombo ? combo : old.bestCombo,
+      bestLeft: won && secondsLeft > old.bestLeft ? secondsLeft : old.bestLeft,
+    );
     notifyListeners();
     await _persist();
     return isBest;
@@ -417,6 +452,7 @@ class ProgressStore extends ChangeNotifier {
           'sortSaved': _sortSaved,
           'timeAttack': _timeAttack.map((k, v) => MapEntry(k, v.toJson())),
           'bestCombo': _bestCombo,
+          'dailyTimeAttack': {'date': _dailyTADate, ..._dailyTA.toJson()},
         }),
       );
     } catch (e) {

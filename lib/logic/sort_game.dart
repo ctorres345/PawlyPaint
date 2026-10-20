@@ -178,10 +178,13 @@ class SortGame {
     if (sel != null && !sel.fromTray) {
       if (freeSlots <= 0) return const SortMove(SortAction.trayFull);
       final hops = <BeadHop>[];
+      // Beads join others of their color, so the tray stays grouped.
+      var at = tray.lastIndexOf(sel.color) + 1;
+      if (at == 0) at = tray.length;
       for (final c in sel.cells.take(freeSlots)) {
         current[c] = -1;
-        tray.add(sel.color);
-        hops.add((fromCell: c, fromSlot: null, toCell: null, toSlot: tray.length - 1, color: sel.color));
+        tray.insert(at, sel.color);
+        hops.add((fromCell: c, fromSlot: null, toCell: null, toSlot: at++, color: sel.color));
       }
       final left = sel.cells.skip(hops.length).toList();
       selection = left.isEmpty ? null : SortSelection.board(sel.color, left);

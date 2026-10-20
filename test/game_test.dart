@@ -8,6 +8,7 @@ import 'package:pawlypaint/data/simplify.dart';
 import 'package:pawlypaint/logic/line.dart';
 import 'package:pawlypaint/logic/scoring.dart';
 import 'package:pawlypaint/logic/sort_game.dart';
+import 'package:pawlypaint/logic/time_attack.dart';
 import 'package:pawlypaint/models/puzzle.dart';
 import 'package:pawlypaint/state/achievements.dart';
 import 'package:pawlypaint/state/game_controller.dart';
@@ -401,6 +402,74 @@ void main() {
       now = now.add(const Duration(seconds: 10));
       expect(c.timeUp, isTrue);
       expect(c.tapCell(0), SortTapResult.ignored);
+    });
+
+    test('undo takes back a move with its points and seconds, but not help costs', () {
+      final now = DateTime(2026, 10, 19, 12);
+      final c = SortController.timed(puzzle, seed: 7, clock: () => now);
+      expect(c.canUndo, isFalse);
+      final board = c.game.encodeBoard();
+      final s = c.game.bestStep()!;
+      c.tapCell(s.fromCell!);
+      expect(c.canUndo, isFalse, reason: 'picking up is not a move');
+      c.tapTray(null);
+      final afterTray = (c.game.encodeBoard(), c.game.encodeTray());
+      final t = c.game.bestStep()!;
+      t.trayColor != null ? c.tapTray(c.game.tray.indexOf(t.trayColor!)) : c.tapCell(t.fromCell!);
+      c.tapCell(t.toCell!);
+      expect(c.game.placed, greaterThan(0));
+      c.hint();
+      expect(c.undo(), isTrue);
+      expect((c.game.encodeBoard(), c.game.encodeTray()), afterTray);
+      expect(c.game.placed, 0);
+      expect(c.bonusSeconds, 0);
+      expect(c.penaltySeconds, TimeAttack.helpCost);
+      expect(c.comboNow(), 0);
+      expect(c.undo(), isTrue);
+      expect(c.game.encodeBoard(), board);
+      expect(c.game.tray, isEmpty);
+      expect(c.undo(), isFalse);
+    });
+
+    test('beads going to the tray join others of their color', () {
+      final g = SortGame(
+        width: 4,
+        target: Uint8List.fromList([0, 0, 1, 1, 2, 2, 0, 1]),
+        current: Int16List.fromList([1, 2, 0, 0, 1, 1, 2, 2]),
+        tray: const [],
+        capacity: 12,
+      );
+      g.tapCell(0); // the 1s in the wrong place
+      g.tapTray(null);
+      g.tapCell(1); // the 2s
+      g.tapTray(null);
+      expect(g.tray, [1, 1, 1, 2, 2, 2]);
+      g.tapCell(2); // a new color goes at the end
+      g.tapTray(null);
+      expect(g.tray, [1, 1, 1, 2, 2, 2, 0, 0]);
+    });
+
+    test("today's Time Attack challenge is the same all day and changes tomorrow", () {
+      final courses = buildCourses();
+      final a = TimeAttack.daily(DateTime(2026, 10, 19, 8), courses);
+      final b = TimeAttack.daily(DateTime(2026, 10, 19, 23), courses);
+      final c = TimeAttack.daily(DateTime(2026, 10, 20, 8), courses);
+      expect((a.puzzle.id, a.seed), (b.puzzle.id, b.seed));
+      expect((a.puzzle.id, a.seed), isNot((c.puzzle.id, c.seed)));
+      expect(TimeAttack.daily(DateTime(2026, 10, 24), courses).difficulty, Difficulty.hard);
+      expect(SortController.difficultyOf(a.puzzle), a.difficulty);
+    });
+
+    test("today's challenge keeps its own best score", () async {
+      final store = ProgressStore.memory();
+      final today = DateTime(2026, 10, 19);
+      expect(store.dailyTimeAttack(today).plays, 0);
+      await store.recordDailyTimeAttack(today, won: false, score: 50, combo: 2, secondsLeft: 0);
+      expect(await store.recordDailyTimeAttack(today, won: true, score: 900, combo: 4, secondsLeft: 12), isTrue);
+      expect(await store.recordDailyTimeAttack(today, won: true, score: 400, combo: 1, secondsLeft: 3), isFalse);
+      final r = store.dailyTimeAttack(today);
+      expect((r.plays, r.wins, r.bestScore, r.bestCombo), (3, 2, 900, 4));
+      expect(store.dailyTimeAttack(DateTime(2026, 10, 20)).plays, 0);
     });
   });
 

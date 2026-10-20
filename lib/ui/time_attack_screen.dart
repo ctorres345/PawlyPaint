@@ -26,14 +26,31 @@ class TimeAttackScreen extends StatelessWidget {
     ];
     if (pool.isEmpty) return;
     final puzzle = pool[_rng.nextInt(pool.length)];
-    openWithTutorial(
+    _open(context, store, () => SortScreen(puzzle: puzzle, store: store, timeAttack: d, seed: _rng.nextInt(1 << 30)));
+  }
+
+  void _playDaily(BuildContext context, ProgressStore store) {
+    final today = TimeAttack.daily(DateTime.now(), courses);
+    _open(
       context,
-      mode: PlayMode.sort,
-      store: store,
-      tutorial: () => SortScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
-      open: () => SortScreen(puzzle: puzzle, store: store, timeAttack: d, seed: _rng.nextInt(1 << 30)),
+      store,
+      () => SortScreen(
+        puzzle: today.puzzle,
+        store: store,
+        timeAttack: today.difficulty,
+        seed: today.seed,
+        dailyChallenge: true,
+      ),
     );
   }
+
+  void _open(BuildContext context, ProgressStore store, Widget Function() open) => openWithTutorial(
+        context,
+        mode: PlayMode.sort,
+        store: store,
+        tutorial: () => SortScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
+        open: open,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +67,14 @@ class TimeAttackScreen extends StatelessWidget {
             style: text.bodyMedium,
           ),
           const SizedBox(height: 16),
+          _DailyChallengeCard(
+            difficulty: TimeAttack.daily(DateTime.now(), courses).difficulty,
+            record: store.dailyTimeAttack(DateTime.now()),
+            onPlay: () => _playDaily(context, store),
+          ),
+          const SizedBox(height: 20),
+          Text('Free play', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
           for (final d in Difficulty.values) ...[
             _DifficultyCard(
               difficulty: d,
@@ -129,7 +154,7 @@ class _DifficultyCard extends StatelessWidget {
                           unlocked
                               ? record.plays == 0
                                   ? 'Not played yet'
-                                  : 'Best ${record.bestScore} · ${record.wins}/${record.plays} won'
+                                  : '${record.wins > 0 ? 'Best ${record.bestScore} · ' : ''}${record.wins}/${record.plays} won'
                                       '${record.bestCombo > 1 ? ' · combo ×${record.bestCombo}' : ''}'
                               : 'Win a ${previous!.label} round to unlock',
                           style: text.bodyMedium,
@@ -145,6 +170,65 @@ class _DifficultyCard extends StatelessWidget {
                   if (unlocked) const Icon(Icons.play_arrow_rounded, size: 32),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Today's challenge: the same surprise board all day, so every try is a
+/// shot at a better score.
+class _DailyChallengeCard extends StatelessWidget {
+  const _DailyChallengeCard({required this.difficulty, required this.record, required this.onPlay});
+
+  final Difficulty difficulty;
+  final TimeAttackRecord record;
+  final VoidCallback onPlay;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final status = record.plays == 0
+        ? 'A new board every day. Same picture on every try.'
+        : record.wins == 0
+            ? 'Not beaten yet · ${record.plays} ${record.plays == 1 ? 'try' : 'tries'}'
+            : 'Best today ${record.bestScore} · ${record.plays} ${record.plays == 1 ? 'try' : 'tries'}';
+    return Semantics(
+      button: true,
+      label: "Today's challenge, ${difficulty.label}. $status",
+      excludeSemantics: true,
+      child: Material(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPlay,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Icon(
+                  record.wins > 0 ? Icons.emoji_events_rounded : Icons.today_rounded,
+                  size: 36,
+                  color: record.wins > 0 ? const Color(0xFFFFB300) : scheme.onPrimaryContainer,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Today's challenge · ${difficulty.label}",
+                          style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text(status, style: text.bodyMedium),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.play_arrow_rounded, size: 32),
+              ],
             ),
           ),
         ),
