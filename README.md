@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon/icon.png" alt="PawlyPaint app icon: a faceted pink jewel" width="160">
+</p>
+
 # PawlyPaint
 
 A cozy jewel (diamond) painting game for iPhone and Android, built with Flutter.
@@ -31,7 +35,7 @@ Made for one very special player: it isn't on any app store.
 
 The easy way, from the phone itself:
 
-1. On the phone, open the [Releases page](https://github.com/ctorres345/PawlyPaint/releases) (signed in to GitHub, since the repository is private) and tap the newest version.
+1. On the phone, open the [Releases page](https://github.com/ctorres345/PawlyPaint/releases) and tap the newest version.
 2. Download `PawlyPaint-x.y.z.apk` and open it.
 3. If Android asks, allow your browser (or Files app) to **install unknown apps**, then tap **Install**.
 4. To update later, install the newer APK the same way. It goes on top of the old one and keeps all progress.
@@ -115,3 +119,9 @@ python3 tool/make_icon.py assets/icon && dart run flutter_launcher_icons
 - `lib/ui`: screens, the canvas painters, tray, booster bar, mini-map, replay, picture export, gallery, settings and tutorials.
 - `test`: rules, scoring, sort solvability, progress and badges.
 - `tool`: generators for music, sound effects and the icon.
+
+## License
+
+The code is released under the [MIT License](LICENSE).
+The Quicksand font is under the SIL Open Font License (`assets/fonts/OFL.txt`).
+The Blocky World and Virtual Stage pictures are non-commercial fan art of Minecraft and Hatsune Miku; those characters and names belong to Mojang/Microsoft and Crypton Future Media, and the MIT License does not cover them.
