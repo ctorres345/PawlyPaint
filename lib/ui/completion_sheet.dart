@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../logic/boosters.dart';
 import '../models/puzzle.dart';
 import '../state/achievements.dart';
 import 'badges.dart';
+import 'booster_bar.dart' show boosterIcon;
 import 'gem_style.dart';
 
 Future<void> showCompletionSheet(
@@ -15,6 +17,7 @@ Future<void> showCompletionSheet(
   required bool isBest,
   bool relaxed = false,
   List<Achievement> badges = const [],
+  Map<Booster, int> boosters = const {},
   int? bestCombo,
   int? secondsLeft,
   String title = 'Masterpiece complete!',
@@ -91,6 +94,22 @@ Future<void> showCompletionSheet(
                       _Stat(label: 'Mistakes', value: '$mistakes'),
                   ],
                 ),
+              if (boosters.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final MapEntry(key: b, value: n) in boosters.entries)
+                      Chip(
+                        avatar: Icon(boosterIcon(b), size: 18, color: scheme.primary),
+                        label: Text('+$n ${b.label}'),
+                        backgroundColor: scheme.primaryContainer,
+                      ),
+                  ],
+                ),
+              ],
               if (badges.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Wrap(

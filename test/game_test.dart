@@ -5,6 +5,7 @@ import 'dart:ui' show Color, Offset, Size;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/data/simplify.dart';
+import 'package:pawlypaint/logic/boosters.dart';
 import 'package:pawlypaint/logic/line.dart';
 import 'package:pawlypaint/logic/scoring.dart';
 import 'package:pawlypaint/logic/sort_game.dart';
@@ -578,6 +579,73 @@ void main() {
       expect(await store.recordCompletion('a', score: 80, stars: 3, seconds: 60), isFalse);
       final r = store.record('a')!;
       expect((r.bestScore, r.bestStars, r.bestSeconds), (100, 3, 60));
+    });
+  });
+
+  group('boosters', () {
+    // 4×3: colors 0 on the left two columns, 1 on the right two.
+    Puzzle board() => Puzzle(
+          id: 'b',
+          title: 'B',
+          width: 4,
+          height: 3,
+          cells: Uint8List.fromList([0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]),
+          palette: const [Color(0xFF000000), Color(0xFFFFFFFF)],
+        );
+
+    test('the blast is a round blob clipped to the board', () {
+      expect(cellsInBlast(4, 3, 0, 0, 1), unorderedEquals([0, 1, 4, 5]));
+      expect(cellsInBlast(10, 10, 5, 5, 2).length, 21);
+    });
+
+    test('a fill places every cell with its own color and moves on from finished colors', () {
+      final g = GameController(board());
+      final r = g.fill([0, 1, 2, 4, 5, 8, 9], origin: 0);
+      expect(r, PlaceResult.colorComplete);
+      expect(g.isColorDone(0), isTrue);
+      expect(g.remaining[1], 5);
+      expect(g.selected, 1);
+      expect(g.mistakes, 0);
+      expect(g.combo, 0);
+      expect(g.score, 7 * Scoring.drillPoints);
+      expect(g.fill([0, 1], origin: 0), PlaceResult.ignored);
+      expect(g.fill(List.generate(12, (i) => i), origin: 5), PlaceResult.puzzleComplete);
+    });
+
+    test('the wide brush paints the matching 3×3 and ends with its color', () {
+      final g = GameController(board())..startBrush();
+      expect(g.brushActive, isTrue);
+      // A tap on color 1 next to color 0 paints the color 0 neighbors instead of a mistake.
+      expect(g.place(6), PlaceResult.placed);
+      expect(g.mistakes, 0);
+      expect(g.remaining[0], 3);
+      g.select(1);
+      expect(g.brushActive, isFalse, reason: 'it only works on its own color');
+      expect(g.place(4), PlaceResult.wrong);
+      g.select(0);
+      expect(g.place(0), PlaceResult.placed);
+      expect(g.remaining[0], 1);
+      expect(g.place(8), PlaceResult.colorComplete);
+      expect(g.brushColor, isNull);
+    });
+
+    test('the brush survives leaving the picture', () {
+      final g = GameController(board())..startBrush();
+      final again = GameController(board(), resume: SavedGame.fromJson(g.snapshot().toJson()));
+      expect(again.brushActive, isTrue);
+    });
+
+    test('the store spends and earns boosters', () async {
+      final store = ProgressStore.memory();
+      expect(store.boosters(Booster.bomb), Booster.starter[Booster.bomb]);
+      for (var i = 0; i < Booster.starter[Booster.wand]!; i++) {
+        expect(store.useBooster(Booster.wand), isTrue);
+      }
+      expect(store.useBooster(Booster.wand), isFalse);
+      await store.addBoosters(boosterReward(width: 40, stars: 3, daily: true));
+      expect(store.boosters(Booster.wand), 2);
+      expect(store.boosters(Booster.brush), Booster.starter[Booster.brush]! + 1);
+      expect(boosterReward(width: 16, stars: 2, daily: false), {Booster.bomb: 1});
     });
   });
 }

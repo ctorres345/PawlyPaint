@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/courses.dart' show allCourses, unlockAfter;
+import '../logic/boosters.dart';
 import '../models/puzzle.dart';
 
 /// Best result for a finished picture.
@@ -58,6 +59,7 @@ class SavedGame {
     required this.mistakes,
     required this.seconds,
     this.excusedMistakes = false,
+    this.brushColor,
   });
 
   /// [Puzzle.signature] of the picture this was saved from.
@@ -73,6 +75,9 @@ class SavedGame {
   /// Whether Relaxed mode let a wrong tap go uncounted on this board.
   final bool excusedMistakes;
 
+  /// The color a wide brush was working on, so leaving doesn't waste it.
+  final int? brushColor;
+
   int get placedCount => '1'.allMatches(placed).length;
 
   Map<String, Object> toJson() => {
@@ -83,6 +88,7 @@ class SavedGame {
         'mistakes': mistakes,
         'seconds': seconds,
         'relaxed': excusedMistakes,
+        if (brushColor != null) 'brush': brushColor!,
       };
 
   static SavedGame fromJson(Map<String, dynamic> j) => SavedGame(
@@ -93,6 +99,7 @@ class SavedGame {
         mistakes: j['mistakes'] as int,
         seconds: j['seconds'] as int,
         excusedMistakes: j['relaxed'] == true,
+        brushColor: j['brush'] as int?,
       );
 }
 
@@ -176,6 +183,7 @@ class ProgressStore extends ChangeNotifier {
     var bestCombo = 0;
     String? dailyTADate;
     var dailyTA = const TimeAttackRecord();
+    Map<Booster, int>? boosters;
     final raw = prefs.getString(_key);
     if (raw != null) {
       Map<String, dynamic> j;
@@ -202,6 +210,9 @@ class ProgressStore extends ChangeNotifier {
           dailyTA = TimeAttackRecord.fromJson(d);
         } catch (_) {}
       }
+      if (j['boosters'] case final Map<String, dynamic> b) {
+        boosters = {for (final k in Booster.values) k: b[k.name] is int ? b[k.name] as int : 0};
+      }
     }
     return ProgressStore._(prefs, records, saved, sortSaved)
       .._seenTutorial = seenTutorial
@@ -215,11 +226,12 @@ class ProgressStore extends ChangeNotifier {
       .._timeAttack.addAll(timeAttack)
       .._bestCombo = bestCombo
       .._dailyTADate = dailyTADate
-      .._dailyTA = dailyTA;
+      .._dailyTA = dailyTA
+      .._boosters.addAll(boosters ?? Booster.starter);
   }
 
   /// In-memory store for tests.
-  factory ProgressStore.memory() => ProgressStore._(null, {}, {});
+  factory ProgressStore.memory() => ProgressStore._(null, {}, {}).._boosters.addAll(Booster.starter);
 
   PuzzleRecord? record(String id) => _records[id];
   SavedGame? saved(String id) => _saved[id];
@@ -274,6 +286,27 @@ class ProgressStore extends ChangeNotifier {
     _streak = nextStreak(streak: _streak, lastDone: _dailyDone, today: today);
     _dailyDone = dayKey(today);
     if (_streak > _bestStreak) _bestStreak = _streak;
+    notifyListeners();
+    return _persist();
+  }
+
+  // ---- Boosters -----------------------------------------------------------
+
+  final Map<Booster, int> _boosters = {};
+
+  int boosters(Booster b) => _boosters[b] ?? 0;
+
+  /// Spends one [b]; false when there is none left.
+  bool useBooster(Booster b) {
+    if (boosters(b) <= 0) return false;
+    _boosters[b] = boosters(b) - 1;
+    notifyListeners();
+    _persist();
+    return true;
+  }
+
+  Future<void> addBoosters(Map<Booster, int> gift) {
+    gift.forEach((b, n) => _boosters[b] = boosters(b) + n);
     notifyListeners();
     return _persist();
   }
@@ -453,6 +486,7 @@ class ProgressStore extends ChangeNotifier {
           'timeAttack': _timeAttack.map((k, v) => MapEntry(k, v.toJson())),
           'bestCombo': _bestCombo,
           'dailyTimeAttack': {'date': _dailyTADate, ..._dailyTA.toJson()},
+          'boosters': {for (final b in Booster.values) b.name: boosters(b)},
         }),
       );
     } catch (e) {

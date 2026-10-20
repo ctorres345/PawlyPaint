@@ -32,10 +32,14 @@ class BoardView extends ChangeNotifier {
   /// the system back gesture.
   static const edge = 36.0;
 
+  /// Room kept free for buttons floating over the canvas when it is fitted.
+  EdgeInsets reserve = EdgeInsets.zero;
+
   /// Scale and offset that show the whole canvas centered.
   (double, Offset) fitTransform() {
-    final s = math.min((viewport.width - 2 * edge) / (cols * kCell), (viewport.height - 2 * edge) / (rows * kCell));
-    return (s, Offset((viewport.width - cols * kCell * s) / 2, (viewport.height - rows * kCell * s) / 2));
+    final w = viewport.width - reserve.horizontal, h = viewport.height - reserve.vertical;
+    final s = math.min((w - 2 * edge) / (cols * kCell), (h - 2 * edge) / (rows * kCell));
+    return (s, Offset(reserve.left + (w - cols * kCell * s) / 2, reserve.top + (h - rows * kCell * s) / 2));
   }
 
   void fit(Size size, int cols, int rows) {
@@ -83,6 +87,16 @@ class BoardView extends ChangeNotifier {
   /// Board coordinates (in cells) of the viewport center.
   Offset get centerCell => (viewport.center(Offset.zero) - offset) / cellSize;
 
+  /// The part of the board on screen, in cells.
+  Rect get visibleCells => Rect.fromPoints(-offset / cellSize, (viewport.bottomRight(Offset.zero) - offset) / cellSize);
+
+  /// Moves the view, at the same zoom, so board point ([cx], [cy]) is centered.
+  void centerOn(double cx, double cy) {
+    offset = viewport.center(Offset.zero) - Offset(cx, cy) * cellSize;
+    _clamp();
+    notifyListeners();
+  }
+
   /// The cell under a point in the viewport, or null outside the canvas.
   (int, int)? cellAt(Offset local) {
     final p = (local - offset) / cellSize;
@@ -112,6 +126,7 @@ class Board extends StatefulWidget {
     required this.celebrate,
     this.sweepAt,
     required this.onResult,
+    this.onBomb,
   });
 
   final GameController game;
@@ -126,6 +141,10 @@ class Board extends StatefulWidget {
   /// When the finished picture's shine sweep started, if it has.
   final DateTime? sweepAt;
   final void Function(PlaceResult result, {required bool dragging}) onResult;
+
+  /// Set while a bomb is armed: the next tap drops it on that cell instead
+  /// of placing a drill.
+  final ValueChanged<int>? onBomb;
 
   @override
   State<Board> createState() => _BoardState();
@@ -152,6 +171,11 @@ class _BoardState extends State<Board> {
   void _tap(Offset local) {
     final cell = view.cellAt(local);
     if (cell == null) return;
+    final onBomb = widget.onBomb;
+    if (onBomb != null) {
+      onBomb(cell.$2 * game.puzzle.width + cell.$1);
+      return;
+    }
     if (view.cellSize < kMinTapCell) {
       view.zoomAt(local, 40 / view.cellSize);
       return;
@@ -294,6 +318,7 @@ class BoardPainter extends CustomPainter {
     ..color = const Color(0x2E000000)
     ..strokeWidth = 1;
   static final _ring = Paint()..style = PaintingStyle.stroke;
+  static final _blast = Paint()..style = PaintingStyle.stroke;
   static final _miss = Paint()
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round;
@@ -422,11 +447,43 @@ class BoardPainter extends CustomPainter {
       if (s > 0.94) drawGemSparkle(canvas, cellRect(i), (s - 0.94) / 0.06);
     }
 
-    // Drills that just landed pop above their neighbours.
+    // A finished color glints all over for a moment.
+    final doneColor = game.lastColorDone, doneAt = game.lastColorDoneAt;
+    if (doneColor != null && doneAt != null && !celebrate) {
+      final age = now.difference(doneAt).inMilliseconds;
+      if (age >= 0 && age < 1100) {
+        final fade = 1 - age / 1100;
+        for (final i in p.cellsByColor[doneColor]) {
+          final hash = (i * 2654435761) & 0xFFFF;
+          final s = 0.5 + 0.5 * math.sin(age / 90 + hash / 0xFFFF * 2 * math.pi);
+          drawGemShine(canvas, cellRect(i), fade * s);
+          if (hash % 4 == 0 && s > 0.8) drawGemSparkle(canvas, cellRect(i), fade * (s - 0.8) / 0.2);
+        }
+      }
+    }
+
+    // Drills that just landed pop above their neighbours. Booster drills land
+    // in a wave, so the ones still waiting show their empty cell.
     for (final MapEntry(key: i, value: at) in game.recentPlacements.entries) {
       final age = now.difference(at).inMilliseconds;
-      if (age < 220 && game.placed[i] == 1) {
+      if (game.placed[i] == 0) continue;
+      if (age < 0) {
+        canvas.drawRect(cellRect(i), paints[p.cells[i]].pale);
+      } else if (age < 220) {
         drawGem(canvas, cellRect(i), paints[p.cells[i]], pop: 0.3 * (1 - age / 220));
+      }
+    }
+
+    // A golden ring spreads from where a bomb or wand went off.
+    final blastCell = game.lastBlastCell, blastAt = game.lastBlastAt;
+    if (blastCell != null && blastAt != null) {
+      final age = now.difference(blastAt).inMilliseconds;
+      if (age < 700) {
+        final k = age / 700;
+        _blast
+          ..color = const Color(0xFFFFD54F).withValues(alpha: 0.9 * (1 - k))
+          ..strokeWidth = kCell * (0.5 - 0.35 * k);
+        canvas.drawCircle(cellRect(blastCell).center, kCell * (0.5 + 5 * Curves.easeOutCubic.transform(k)), _blast);
       }
     }
 

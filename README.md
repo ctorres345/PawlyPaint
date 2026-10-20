@@ -6,7 +6,7 @@ Made for one very special player: it isn't on any app store.
 ## What's in it
 
 - **Two ways to play every picture**
-  - **Paint**: fill a numbered canvas with sparkly drills. Tap or drag over the glowing spots of the selected color; pinch to zoom.
+  - **Paint**: fill a numbered canvas with sparkly drills. Tap or drag over the glowing spots of the selected color; pinch to zoom. Each tray color has a ring that fills as you paint, a mini-map shows where you are when zoomed in, and boosters (bomb, magic wand, wide brush) earned by finishing pictures fill spots for you.
   - **Sort** (inspired by Jewel Coloring): the picture starts scrambled. Tap misplaced beads to send them to the tray, and beads in the tray fly back to any spot that needs their color. Mind the tray space, shake it when full, and hold the little preview to peek at the finished picture.
 - **Courses**: Cozy Classics, Animal Friends, Garden and Sweet Treats, plus two special collections (Blocky World and Virtual Stage). Each has 5 Easy, 5 Medium and 5 Hard mystery pictures (90 in all), drawn in code.
 - **Daily picture** with a streak, a **gallery** of finished pictures, and **12 badges** to earn.

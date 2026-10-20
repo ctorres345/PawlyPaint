@@ -4,6 +4,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 
 import '../data/courses.dart' show allCourses;
+import '../logic/boosters.dart';
 import '../models/puzzle.dart';
 import '../state/achievements.dart';
 import '../state/game_controller.dart';
@@ -11,11 +12,13 @@ import '../state/music.dart';
 import '../state/progress_store.dart';
 import '../state/settings.dart';
 import 'board.dart';
+import 'booster_bar.dart';
 import 'coach.dart';
 import 'completion_sheet.dart';
 import 'desk.dart';
 import 'gem_style.dart';
 import 'idle_shimmer.dart';
+import 'mini_map.dart';
 import 'music_sheet.dart';
 import 'tray.dart';
 
@@ -51,6 +54,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   bool highlight = true;
   TraySort sort = TraySort.number;
   bool _finished = false;
+  bool _bombArmed = false;
   int _savedVersion = 0;
 
   /// The zoom-out after finishing; kept so leaving mid-way can stop it.
@@ -168,20 +172,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       case PlaceResult.colorComplete:
         _settings.light();
         _music?.play(Sfx.color);
+        _shimmer.poke();
         _save();
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFD54F)),
-                SizedBox(width: 12),
-                Expanded(child: Text('Color complete! On to the next one.')),
-              ],
-            ),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(milliseconds: 1400),
-          ));
       case PlaceResult.puzzleComplete:
         _settings.heavy();
         _music?.play(Sfx.complete);
@@ -194,6 +186,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   /// Glides back to the whole picture, lets it sparkle, then shows the results.
   Future<void> _finish() async {
     _finished = true;
+    _bombArmed = false;
+    view.reserve = EdgeInsets.zero;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     if (widget.tutorial) {
       setState(() {
@@ -217,6 +211,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final relaxed = game.relaxed || game.excusedMistakes;
     final stars = relaxed ? 0 : game.stars;
     if (widget.daily) recordDailyIfToday(widget.store, widget.puzzle);
+    // Boosters for the first finish of each picture.
+    final reward = widget.store.isDone(widget.puzzle.id, PlayMode.paint)
+        ? const <Booster, int>{}
+        : boosterReward(width: widget.puzzle.width, stars: game.stars, daily: widget.daily);
+    if (reward.isNotEmpty) widget.store.addBoosters(reward);
     final best = widget.store.recordCompletion(
       widget.puzzle.id,
       score: relaxed ? 0 : game.score,
@@ -254,26 +253,112 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       isBest: isBest,
       relaxed: relaxed,
       badges: badges,
+      boosters: reward,
     );
     if (mounted) Navigator.of(context).pop();
   }
 
-  /// Jumps to the remaining cell of the selected color closest to the view center.
-  void _findNext() {
+  // ---- Boosters -----------------------------------------------------------
+
+  bool _boosterActive(Booster b) => switch (b) {
+        Booster.bomb => _bombArmed,
+        Booster.brush => game.brushActive,
+        Booster.wand => false,
+      };
+
+  void _note(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(milliseconds: 1800),
+      ));
+  }
+
+  void _onBooster(Booster b) {
+    if (_finished) return;
+    if (b == Booster.bomb && _bombArmed) {
+      setState(() => _bombArmed = false);
+      return;
+    }
+    if (b == Booster.brush && game.brushActive) {
+      _note('The wide brush is on until color ${widget.puzzle.symbolFor(game.selected)} is done.');
+      return;
+    }
+    if (widget.store.boosters(b) == 0) {
+      _note('No ${b.label.toLowerCase()}s left. Finish new pictures to earn more!');
+      return;
+    }
+    _settings.selection();
+    switch (b) {
+      case Booster.bomb:
+        setState(() => _bombArmed = true);
+        _note('Tap the canvas where the bomb should go.');
+      case Booster.wand:
+        final open = [
+          for (final i in widget.puzzle.cellsByColor[game.selected])
+            if (game.placed[i] == 0) i
+        ];
+        if (open.isEmpty || !widget.store.useBooster(b)) return;
+        _boosterFill(open, origin: _nearestToCenter(open));
+      case Booster.brush:
+        if (!widget.store.useBooster(b)) return;
+        game.startBrush();
+        _note('Wide brush on: drag to paint 3 spots wide.');
+    }
+  }
+
+  void _dropBomb(int cell) {
     final p = widget.puzzle;
-    final center = view.centerCell;
-    int? best;
+    final blast = cellsInBlast(p.width, p.height, cell % p.width, cell ~/ p.width, bombRadius(p.width));
+    if (blast.every((i) => game.placed[i] == 1)) {
+      _note('Everything there is already painted. Try another spot.');
+      return;
+    }
+    if (!widget.store.useBooster(Booster.bomb)) return;
+    setState(() => _bombArmed = false);
+    _boosterFill(blast, origin: cell);
+  }
+
+  void _boosterFill(List<int> cells, {required int origin}) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    final result = game.fill(cells, origin: origin);
+    _shimmer.poke();
+    _settings.heavy();
+    if (result == PlaceResult.placed) {
+      _music?.play(Sfx.color);
+      _save();
+    } else {
+      _onResult(result, dragging: false);
+    }
+  }
+
+  int _nearestToCenter(List<int> cells) {
+    final w = widget.puzzle.width, center = view.centerCell;
+    var best = cells.first;
     var bestDist = double.infinity;
-    for (final i in p.cellsByColor[game.selected]) {
-      if (game.placed[i] == 1) continue;
-      final dx = i % p.width + 0.5 - center.dx, dy = i ~/ p.width + 0.5 - center.dy;
+    for (final i in cells) {
+      final dx = i % w + 0.5 - center.dx, dy = i ~/ w + 0.5 - center.dy;
       final d = dx * dx + dy * dy;
       if (d < bestDist) {
         bestDist = d;
         best = i;
       }
     }
-    if (best != null) view.focusCell(best % p.width, best ~/ p.width);
+    return best;
+  }
+
+  /// Jumps to the remaining cell of the selected color closest to the view center.
+  void _findNext() {
+    final p = widget.puzzle;
+    final open = [
+      for (final i in p.cellsByColor[game.selected])
+        if (game.placed[i] == 0) i
+    ];
+    if (open.isEmpty) return;
+    final best = _nearestToCenter(open);
+    view.focusCell(best % p.width, best ~/ p.width);
   }
 
   Future<void> _confirmRestart() async {
@@ -354,6 +439,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         body: LayoutBuilder(
           builder: (context, constraints) {
             final landscape = constraints.maxWidth > constraints.maxHeight;
+            // The booster buttons sit beside the fitted canvas, never on it.
+            view.reserve = widget.tutorial || _finished
+                ? EdgeInsets.zero
+                : (landscape ? const EdgeInsets.only(right: 48) : const EdgeInsets.only(bottom: 48));
             final canvas = ClipRect(
               child: Stack(
                 children: [
@@ -376,9 +465,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                             celebrate: _celebrate,
                             sweepAt: _sweepAt,
                             onResult: _onResult,
+                            onBomb: _bombArmed ? _dropBomb : null,
                           ))),
                     ),
                   ),
+                  if (!widget.tutorial && !_showTips)
+                    Positioned(top: 10, right: 10, child: MiniMap(game: game, view: view, paints: paints)),
+                  if (!widget.tutorial && !_finished)
+                    Positioned(
+                      right: 6,
+                      bottom: 6,
+                      child: ListenableBuilder(
+                        listenable: Listenable.merge([game, widget.store]),
+                        builder: (context, _) => BoosterBar(
+                          axis: landscape ? Axis.vertical : Axis.horizontal,
+                          count: widget.store.boosters,
+                          active: _boosterActive,
+                          onTap: _onBooster,
+                        ),
+                      ),
+                    ),
                   if (_showTips) Positioned(left: 12, right: 12, top: 12, child: _Tips(onDone: _dismissTips)),
                   if (widget.tutorial && _coach < _coachSteps.length)
                     Positioned(
@@ -474,6 +580,7 @@ class _Tips extends StatelessWidget {
             tip(Icons.touch_app_outlined, 'Tap a glowing cell, or drag across them to fill a row.'),
             tip(Icons.pinch_outlined, 'Pinch or use two fingers to zoom and move around.'),
             tip(Icons.center_focus_strong_rounded, 'Lost a cell? The target button finds the next one.'),
+            tip(Icons.auto_fix_high_rounded, 'Stuck? The bomb, magic wand and wide brush fill spots for you.'),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(onPressed: onDone, child: const Text('Got it')),
