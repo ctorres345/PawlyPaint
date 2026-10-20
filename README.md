@@ -9,6 +9,10 @@ Made for one very special player: it isn't on any app store.
 
 My girlfriend was frustrated with the different jewel painting games in the Android store due to their invasive ads. I had some free time and wanted a good excuse to practice Flutter and test some Claude skills, so we spent a day building something she loves.
 
+If you enjoy it, you can [buy me a coffee on Ko-fi](https://ko-fi.com/pandaveloper).
+
+<a href="https://ko-fi.com/pandaveloper"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi" height="36"></a>
+
 ## What's in it
 
 - **Two ways to play every picture**
