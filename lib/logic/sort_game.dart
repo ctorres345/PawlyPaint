@@ -62,10 +62,11 @@ typedef SortStep = ({int? fromCell, int? trayColor, int? toCell});
 ///
 /// The picture starts full, but some beads are swapped around so they sit in
 /// the wrong place. Everything works by taps: tap a wrong bead to pick up
-/// every misplaced bead of its color, then tap the tray to put them there, or
-/// tap an empty spot that wants their color to drop them into every spot
-/// that wants it, nearest first. Tray beads are picked up the same way. Beads are never
-/// created or lost, so holes on the board always equal beads in the tray.
+/// the clump of misplaced beads of its color it belongs to, then tap the
+/// tray to put them there, or tap an empty spot that wants their color to
+/// drop them into the spots that want it, nearest first. Tapping a tray bead
+/// picks up every tray bead of its color. Beads are never created or lost,
+/// so holes on the board always equal beads in the tray.
 class SortGame {
   SortGame({
     required this.width,
@@ -174,9 +175,27 @@ class SortGame {
       return const SortMove(SortAction.deselected);
     }
     if (!isWrong(cell)) return _wrong(countMistakes);
-    final color = current[cell];
-    selection = SortSelection.board(color, _nearest(cell, (n) => current[n] == color && isWrong(n)));
+    selection = SortSelection.board(current[cell], _patch(cell));
     return const SortMove(SortAction.selected);
+  }
+
+  /// The misplaced beads of [cell]'s color joined to it edge to edge: a lone
+  /// bead on its own, a clump as one piece. Nearest to [cell] first.
+  List<int> _patch(int cell) {
+    final color = current[cell];
+    final seen = {cell};
+    final queue = [cell];
+    for (var k = 0; k < queue.length; k++) {
+      final c = queue[k];
+      final x = c % width;
+      for (final n in [if (x > 0) c - 1, if (x < width - 1) c + 1, c - width, c + width]) {
+        if (n < 0 || n >= current.length || seen.contains(n)) continue;
+        if (current[n] != color || !isWrong(n)) continue;
+        seen.add(n);
+        queue.add(n);
+      }
+    }
+    return _nearest(cell, seen.contains);
   }
 
   /// Taps the tray: puts picked-up canvas beads into it, or picks up every

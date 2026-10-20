@@ -100,7 +100,7 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
 
   static const _coachSteps = [
     CoachStep(Icons.touch_app_rounded,
-        'Beads with a dot are in the wrong spot. Tap one to pick up every misplaced bead of its color.'),
+        'Beads with a dot are in the wrong spot. Tap one to pick it up, along with any misplaced beads of its color touching it.'),
     CoachStep(Icons.inventory_2_outlined, 'Now tap the tray to put them there. That leaves empty spots behind.'),
     CoachStep(Icons.auto_awesome_rounded,
         'Empty spots show the color they need. Pick up that color (from the tray or the canvas), then tap a glowing spot.'),
@@ -807,7 +807,8 @@ class _SortTips extends StatelessWidget {
           children: [
             Text('Sort the beads', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
-            tip(Icons.touch_app_outlined, 'Tap a misplaced bead to pick up every misplaced bead of its color.'),
+            tip(Icons.touch_app_outlined,
+                'Tap a misplaced bead to pick it up, together with the misplaced beads of its color touching it.'),
             tip(Icons.inventory_2_outlined, 'Tap the tray to put them there. That leaves empty spots behind.'),
             tip(Icons.auto_awesome_rounded, 'Pick up the color an empty spot needs, then tap the glowing spot.'),
             tip(Icons.bolt_rounded, 'Good drops in a row build a combo for bonus points.'),
@@ -1213,7 +1214,7 @@ class _TrayPanel extends StatelessWidget {
                       const SizedBox(width: 10),
                       Flexible(
                         child: Text(
-                          '${sel.cells.length} picked up',
+                          '${sel.cells.length} in hand',
                           style: text.labelMedium?.copyWith(color: scheme.primary),
                           overflow: TextOverflow.ellipsis,
                         ),

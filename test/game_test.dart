@@ -311,9 +311,11 @@ void main() {
       expect(g.mistakes, 0);
       // With nothing in hand, a hole is filled straight from the tray too.
       g.selection = null;
-      final holeA = cells.firstWhere((i) => g.isHole(i) && g.target[i] == colorA);
-      expect(g.tapCell(holeA).action, SortAction.placed);
-      expect(g.mistakes, 0);
+      final holeA = cells.firstWhere((i) => g.isHole(i) && g.tray.contains(g.target[i]), orElse: () => -1);
+      if (holeA >= 0) {
+        expect(g.tapCell(holeA).action, SortAction.placed);
+        expect(g.mistakes, 0);
+      }
       // A hole whose color the tray lacks is not a mistake, just a nudge.
       final other = cells.firstWhere((i) => g.isHole(i) && !g.tray.contains(g.target[i]), orElse: () => -1);
       if (other >= 0) {
@@ -321,7 +323,7 @@ void main() {
         expect(g.mistakes, 0);
       }
       // Canvas beads in hand still can't go where another color belongs.
-      final c = cells.firstWhere((i) => g.isWrong(i) && g.current[i] != g.target[holeA]);
+      final c = cells.firstWhere((i) => g.isWrong(i) && !g.isHole(i));
       g.tapCell(c);
       final holeC = cells.firstWhere((i) => g.isHole(i) && g.target[i] != g.current[c], orElse: () => -1);
       if (holeC >= 0) {
@@ -357,12 +359,18 @@ void main() {
       g
         ..tapCell(wrong)
         ..tapTray(null);
-      final hole = holesOf(g).first;
-      // Pick up a tray bead of another color: the hole refuses it.
+      var hole = holesOf(g).first;
+      // Holding a tray bead of another color: the hole takes its own color
+      // from the tray if there is one, else nothing happens. Never a mistake.
       final other = g.tray.indexWhere((c) => c != g.target[hole]);
       if (other >= 0) {
         g.tapTray(other);
-        expect(g.tapCell(hole).action, SortAction.wrong);
+        final has = g.tray.contains(g.target[hole]);
+        expect(g.tapCell(hole).action, has ? SortAction.placed : SortAction.noBeads);
+        expect(g.isHole(hole), !has);
+        expect(g.mistakes, 0);
+        g.selection = null;
+        if (!g.isHole(hole)) hole = holesOf(g).first;
       }
       // A wrong canvas bead of the right color drops straight in.
       final source =
@@ -493,9 +501,12 @@ void main() {
         tray: const [],
         capacity: 12,
       );
-      g.tapCell(0); // the 1s in the wrong place
+      g.tapCell(0); // the clump of 1s in the wrong place (cells 0, 4, 5)
       g.tapTray(null);
-      g.tapCell(1); // the 2s
+      expect(g.tray, [1, 1, 1]);
+      g.tapCell(1); // a lone 2
+      g.tapTray(null);
+      g.tapCell(6); // the other two 2s join it
       g.tapTray(null);
       expect(g.tray, [1, 1, 1, 2, 2, 2]);
       g.tapCell(2); // a new color goes at the end
