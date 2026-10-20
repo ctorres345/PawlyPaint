@@ -1,7 +1,7 @@
 # Graph Report - pawlypaint  (2026-10-19)
 
 ## Corpus Check
-- 69 files · ~85,552 words
+- 69 files · ~85,774 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 33 file(s) not represented in the graph (top: .xml 11, (none) 4, .plist 4)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cf625e51`
+- Built from commit: `65b1aa21`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

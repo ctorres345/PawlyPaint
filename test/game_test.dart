@@ -306,7 +306,7 @@ void main() {
       expect(g.selection?.color, colorA);
       final move = g.tapCell(holeB);
       expect(move.action, SortAction.placed);
-      expect(move.hops.single.color, colorB);
+      expect(move.hops.map((h) => h.color), everyElement(colorB));
       expect(g.current[holeB], colorB);
       expect(g.mistakes, 0);
       // With nothing in hand, a hole is filled straight from the tray too.
@@ -397,6 +397,7 @@ void main() {
           ..tapCell(List.generate(g.current.length, (i) => i).firstWhere(g.isWrong))
           ..tapTray(null);
       }
+      g.selection = null;
       final wrong = List.generate(g.current.length, (i) => i).firstWhere(g.isWrong);
       g.tapCell(wrong);
       expect(g.tapTray(null).action, SortAction.trayFull);

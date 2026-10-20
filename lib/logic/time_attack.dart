@@ -23,8 +23,9 @@ class TimeAttack {
   /// Seconds a successful drop adds back: 1, or 2 once the combo reaches 5.
   static int secondsFor(int combo) => combo >= 5 ? 2 : 1;
 
-  /// Seconds on the clock at the start: two and a half for each move the
-  /// hint player needs on this board, plus a little breathing room.
+  /// Seconds on the clock at the start: two for each move the hint player
+  /// needs on this board (a clump picked up and dropped), plus a little
+  /// breathing room.
   static int timeLimit(SortGame g) {
     final copy = SortGame(
       width: g.width,
@@ -38,7 +39,7 @@ class TimeAttack {
       copy.play(next);
       steps++;
     }
-    final raw = 20 + steps * 5 ~/ 2;
+    final raw = 20 + steps * 2;
     return (raw + 4) ~/ 5 * 5;
   }
 

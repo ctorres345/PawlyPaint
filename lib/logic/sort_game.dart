@@ -76,8 +76,10 @@ class SortGame {
     required this.capacity,
   }) : tray = List<int>.of(tray);
 
-  /// A scrambled board for a picture: [fraction] of its cells have their
-  /// beads shuffled among themselves. The same [seed] gives the same board.
+  /// A scrambled board for a picture: about [fraction] of its cells are
+  /// displaced by swapping pairs of small same-sized blocks, so misplaced
+  /// beads come in clumps that move as a piece. The same [seed] gives the
+  /// same board.
   factory SortGame.scrambled({
     required int width,
     required Uint8List target,
@@ -86,24 +88,43 @@ class SortGame {
     required int seed,
   }) {
     final rng = math.Random(seed);
-    final cells = List<int>.generate(target.length, (i) => i)..shuffle(rng);
-    final chosen = cells.take((target.length * fraction).round()).toList();
-    final colors = [for (final c in chosen) target[c]]..shuffle(rng);
-    // Nudge beads that landed back on their own color so most really move.
-    for (var i = 0; i < chosen.length; i++) {
-      if (colors[i] != target[chosen[i]]) continue;
-      for (var j = 0; j < chosen.length; j++) {
-        if (colors[j] != target[chosen[i]] && colors[i] != target[chosen[j]]) {
-          final t = colors[i];
-          colors[i] = colors[j];
-          colors[j] = t;
-          break;
+    final height = target.length ~/ width;
+    final current = Int16List.fromList(target);
+    final taken = List<bool>.filled(target.length, false);
+    final goal = (target.length * fraction).round();
+    var moved = 0;
+    // Blocks of 2 to 4 a side, so displaced beads mostly come in clumps.
+    final maxSide = math.min(4, math.min(width, height));
+    final minSide = math.min(2, maxSide);
+    for (var tries = 0; moved < goal && tries < target.length * 20; tries++) {
+      final w = minSide + rng.nextInt(maxSide - minSide + 1), h = minSide + rng.nextInt(maxSide - minSide + 1);
+      final ax = rng.nextInt(width - w + 1), ay = rng.nextInt(height - h + 1);
+      final bx = rng.nextInt(width - w + 1), by = rng.nextInt(height - h + 1);
+      if (ax == bx && ay == by) continue;
+      // Both blocks must be untouched and must not overlap each other.
+      if ((ax - bx).abs() < w && (ay - by).abs() < h) continue;
+      var free = true, differs = 0;
+      for (var y = 0; y < h && free; y++) {
+        for (var x = 0; x < w; x++) {
+          final a = (ay + y) * width + ax + x, b = (by + y) * width + bx + x;
+          if (taken[a] || taken[b]) {
+            free = false;
+            break;
+          }
+          if (target[a] != target[b]) differs++;
         }
       }
-    }
-    final current = Int16List.fromList(target);
-    for (var i = 0; i < chosen.length; i++) {
-      current[chosen[i]] = colors[i];
+      if (!free || differs == 0) continue;
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          final a = (ay + y) * width + ax + x, b = (by + y) * width + bx + x;
+          current[a] = target[b];
+          current[b] = target[a];
+          taken[a] = taken[b] = true;
+        }
+      }
+      // Only beads that end up on another color count as displaced.
+      moved += 2 * differs;
     }
     return SortGame(width: width, target: target, current: current, tray: const [], capacity: capacity);
   }
