@@ -126,6 +126,10 @@ python3 tool/make_icon.py assets/icon && dart run flutter_launcher_icons
 - `test`: rules, scoring, sort solvability, progress and badges.
 - `tool`: generators for music, sound effects and the icon.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in every version.
+
 ## License
 
 The code is released under the [MIT License](LICENSE).
