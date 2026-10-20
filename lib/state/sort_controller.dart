@@ -31,7 +31,7 @@ class Flight {
   DateTime get end => start.add(duration);
 }
 
-enum SortTapResult { selected, deselected, moved, sorted, wrong, trayFull, ignored, complete }
+enum SortTapResult { selected, deselected, moved, sorted, wrong, noBeads, trayFull, ignored, complete }
 
 /// The state before a move, so it can be undone.
 typedef _Snapshot = ({Int16List board, List<int> tray, int placed, int comboBonus, int bestCombo, int bonusSeconds});
@@ -288,6 +288,8 @@ class SortController extends ChangeNotifier {
       case SortAction.trayFull:
         notifyListeners();
         return SortTapResult.trayFull;
+      case SortAction.noBeads:
+        return SortTapResult.noBeads;
       case SortAction.wrong:
         if (relaxed && !timed) {
           if (!excusedMistakes) {

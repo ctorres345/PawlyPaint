@@ -719,7 +719,7 @@
       "file_type": "code",
       "norm_label": "capacity",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1260"
+      "source_location": "L1257"
     },
     {
       "id": "lib_ui_sort_screen_celebrate",
@@ -741,7 +741,7 @@
       "file_type": "code",
       "norm_label": "_cell",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L984"
+      "source_location": "L983"
     },
     {
       "id": "lib_ui_sort_screen_cellcenter",
@@ -818,7 +818,7 @@
       "file_type": "code",
       "norm_label": "columns",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1257"
+      "source_location": "L1254"
     },
     {
       "id": "lib_ui_sort_screen_combobar",
@@ -928,7 +928,7 @@
       "file_type": "code",
       "norm_label": "_drawslot",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1302"
+      "source_location": "L1299"
     },
     {
       "id": "lib_ui_sort_screen_drawsocket",
@@ -1005,7 +1005,7 @@
       "file_type": "code",
       "norm_label": "full",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1262"
+      "source_location": "L1259"
     },
     {
       "id": "lib_ui_sort_screen_fulltint",
@@ -1016,7 +1016,7 @@
       "file_type": "code",
       "norm_label": "_fulltint",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1294"
+      "source_location": "L1291"
     },
     {
       "id": "lib_ui_sort_screen_game",
@@ -1071,7 +1071,7 @@
       "file_type": "code",
       "norm_label": "hintcolor",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1268"
+      "source_location": "L1265"
     },
     {
       "id": "lib_ui_sort_screen_initstate",
@@ -1093,7 +1093,7 @@
       "file_type": "code",
       "norm_label": "invite",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1271"
+      "source_location": "L1268"
     },
     {
       "id": "lib_ui_sort_screen_invitetint",
@@ -1104,7 +1104,7 @@
       "file_type": "code",
       "norm_label": "_invitetint",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1295"
+      "source_location": "L1292"
     },
     {
       "id": "lib_ui_sort_screen_key",
@@ -1148,7 +1148,7 @@
       "file_type": "code",
       "norm_label": "look",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1119"
+      "source_location": "L1116"
     },
     {
       "id": "lib_ui_sort_screen_miss",
@@ -1159,7 +1159,7 @@
       "file_type": "code",
       "norm_label": "_miss",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L980"
+      "source_location": "L979"
     },
     {
       "id": "lib_ui_sort_screen_music",
@@ -1214,7 +1214,7 @@
       "file_type": "code",
       "norm_label": "onshake",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1150"
+      "source_location": "L1147"
     },
     {
       "id": "lib_ui_sort_screen_ontap",
@@ -1236,7 +1236,7 @@
       "file_type": "code",
       "norm_label": "onundo",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1151"
+      "source_location": "L1148"
     },
     {
       "id": "lib_ui_sort_screen_paint",
@@ -1247,7 +1247,7 @@
       "file_type": "code",
       "norm_label": "paint",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1023"
+      "source_location": "L1022"
     },
     {
       "id": "lib_ui_sort_screen_paints",
@@ -1357,7 +1357,7 @@
       "file_type": "code",
       "norm_label": "_record",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L989"
+      "source_location": "L988"
     },
     {
       "id": "lib_ui_sort_screen_relaxed",
@@ -1379,7 +1379,7 @@
       "file_type": "code",
       "norm_label": "_ring",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L979"
+      "source_location": "L978"
     },
     {
       "id": "lib_ui_sort_screen_save",
@@ -1434,7 +1434,7 @@
       "file_type": "code",
       "norm_label": "selectedcolor",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1265"
+      "source_location": "L1262"
     },
     {
       "id": "lib_ui_sort_screen_settings",
@@ -1489,7 +1489,7 @@
       "file_type": "code",
       "norm_label": "shouldrepaint",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1122"
+      "source_location": "L1119"
     },
     {
       "id": "lib_ui_sort_screen_showtips",
@@ -1522,7 +1522,7 @@
       "file_type": "code",
       "norm_label": "slotat",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1286"
+      "source_location": "L1283"
     },
     {
       "id": "lib_ui_sort_screen_slotline",
@@ -1533,7 +1533,7 @@
       "file_type": "code",
       "norm_label": "_slotline",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1297"
+      "source_location": "L1294"
     },
     {
       "id": "lib_ui_sort_screen_slotrect",
@@ -1589,17 +1589,6 @@
       "norm_label": "_spot",
       "source_file": "lib/ui/sort_screen.dart",
       "source_location": "L977"
-    },
-    {
-      "id": "lib_ui_sort_screen_spotring",
-      "label": "_spotRing",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "sort_screen.dart",
-      "file_type": "code",
-      "norm_label": "_spotring",
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L978"
     },
     {
       "id": "lib_ui_sort_screen_stackkey",
@@ -1731,7 +1720,7 @@
       "file_type": "code",
       "norm_label": "tray",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1259"
+      "source_location": "L1256"
     },
     {
       "id": "lib_ui_sort_screen_traykey",
@@ -1863,7 +1852,7 @@
       "file_type": "code",
       "norm_label": "base",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L277"
+      "source_location": "L280"
     },
     {
       "id": "lib_ui_board_beacon",
@@ -1874,7 +1863,7 @@
       "file_type": "code",
       "norm_label": "_beacon",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L322"
+      "source_location": "L341"
     },
     {
       "id": "lib_ui_board_blast",
@@ -1885,7 +1874,7 @@
       "file_type": "code",
       "norm_label": "_blast",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L321"
+      "source_location": "L340"
     },
     {
       "id": "lib_ui_board_boardcache",
@@ -1896,7 +1885,7 @@
       "file_type": "code",
       "norm_label": "boardcache",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L276"
+      "source_location": "L279"
     },
     {
       "id": "lib_ui_board_build",
@@ -1907,7 +1896,7 @@
       "file_type": "code",
       "norm_label": "build",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L201"
+      "source_location": "L202"
     },
     {
       "id": "lib_ui_board_cache",
@@ -1918,7 +1907,7 @@
       "file_type": "code",
       "norm_label": "_cache",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L160"
+      "source_location": "L161"
     },
     {
       "id": "lib_ui_board_celebrate",
@@ -1929,7 +1918,18 @@
       "file_type": "code",
       "norm_label": "celebrate",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L139"
+      "source_location": "L140"
+    },
+    {
+      "id": "lib_ui_board_cellrect",
+      "label": "_cellRect",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "board.dart",
+      "file_type": "code",
+      "norm_label": "_cellrect",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L348"
     },
     {
       "id": "lib_ui_board_cellsize",
@@ -1940,7 +1940,7 @@
       "file_type": "code",
       "norm_label": "cellsize",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L29"
+      "source_location": "L30"
     },
     {
       "id": "lib_ui_board_centercell",
@@ -1951,7 +1951,7 @@
       "file_type": "code",
       "norm_label": "centercell",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L88"
+      "source_location": "L89"
     },
     {
       "id": "lib_ui_board_centeron",
@@ -1962,7 +1962,18 @@
       "file_type": "code",
       "norm_label": "centeron",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L94"
+      "source_location": "L95"
+    },
+    {
+      "id": "lib_ui_board_chunk",
+      "label": "chunk",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "board.dart",
+      "file_type": "code",
+      "norm_label": "chunk",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L288"
     },
     {
       "id": "lib_ui_board_clamp",
@@ -1973,7 +1984,18 @@
       "file_type": "code",
       "norm_label": "_clamp",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L108"
+      "source_location": "L109"
+    },
+    {
+      "id": "lib_ui_board_cleargems",
+      "label": "clearGems",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "board.dart",
+      "file_type": "code",
+      "norm_label": "cleargems",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L298"
     },
     {
       "id": "lib_ui_board_cols",
@@ -1984,7 +2006,18 @@
       "file_type": "code",
       "norm_label": "cols",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L24"
+      "source_location": "L25"
+    },
+    {
+      "id": "lib_ui_board_committed",
+      "label": "committed",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "board.dart",
+      "file_type": "code",
+      "norm_label": "committed",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L286"
     },
     {
       "id": "lib_ui_board_createstate",
@@ -1995,7 +2028,7 @@
       "file_type": "code",
       "norm_label": "createstate",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L150"
+      "source_location": "L151"
     },
     {
       "id": "lib_ui_board_dispose",
@@ -2006,7 +2039,7 @@
       "file_type": "code",
       "norm_label": "dispose",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L268"
+      "source_location": "L269"
     },
     {
       "id": "lib_ui_board_downat",
@@ -2017,7 +2050,7 @@
       "file_type": "code",
       "norm_label": "_downat",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L159"
+      "source_location": "L160"
     },
     {
       "id": "lib_ui_board_dragto",
@@ -2028,7 +2061,29 @@
       "file_type": "code",
       "norm_label": "_dragto",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L188"
+      "source_location": "L189"
+    },
+    {
+      "id": "lib_ui_board_drawgems",
+      "label": "_drawGems",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "board.dart",
+      "file_type": "code",
+      "norm_label": "_drawgems",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L430"
+    },
+    {
+      "id": "lib_ui_board_drawplaced",
+      "label": "_drawPlaced",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "board.dart",
+      "file_type": "code",
+      "norm_label": "_drawplaced",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L422"
     },
     {
       "id": "lib_ui_board_edge",
@@ -2039,7 +2094,7 @@
       "file_type": "code",
       "norm_label": "edge",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L33"
+      "source_location": "L34"
     },
     {
       "id": "lib_ui_board_fit",
@@ -2050,7 +2105,7 @@
       "file_type": "code",
       "norm_label": "fit",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L45"
+      "source_location": "L46"
     },
     {
       "id": "lib_ui_board_fittedfor",
@@ -2061,7 +2116,7 @@
       "file_type": "code",
       "norm_label": "_fittedfor",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L154"
+      "source_location": "L155"
     },
     {
       "id": "lib_ui_board_fittransform",
@@ -2072,7 +2127,7 @@
       "file_type": "code",
       "norm_label": "fittransform",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L39"
+      "source_location": "L40"
     },
     {
       "id": "lib_ui_board_focuscell",
@@ -2083,7 +2138,7 @@
       "file_type": "code",
       "norm_label": "focuscell",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L79"
+      "source_location": "L80"
     },
     {
       "id": "lib_ui_board_game",
@@ -2094,7 +2149,29 @@
       "file_type": "code",
       "norm_label": "game",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L132"
+      "source_location": "L133"
+    },
+    {
+      "id": "lib_ui_board_gems",
+      "label": "gems",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "board.dart",
+      "file_type": "code",
+      "norm_label": "gems",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L285"
+    },
+    {
+      "id": "lib_ui_board_gemslook",
+      "label": "gemsLook",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "board.dart",
+      "file_type": "code",
+      "norm_label": "gemslook",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L287"
     },
     {
       "id": "lib_ui_board_gridfine",
@@ -2105,7 +2182,7 @@
       "file_type": "code",
       "norm_label": "_gridfine",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L314"
+      "source_location": "L333"
     },
     {
       "id": "lib_ui_board_gridmajor",
@@ -2116,7 +2193,7 @@
       "file_type": "code",
       "norm_label": "_gridmajor",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L317"
+      "source_location": "L336"
     },
     {
       "id": "lib_ui_board_highlight",
@@ -2127,7 +2204,7 @@
       "file_type": "code",
       "norm_label": "highlight",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L136"
+      "source_location": "L137"
     },
     {
       "id": "lib_ui_board_kcell",
@@ -2138,7 +2215,7 @@
       "file_type": "code",
       "norm_label": "kcell",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L13"
+      "source_location": "L14"
     },
     {
       "id": "lib_ui_board_key",
@@ -2149,7 +2226,7 @@
       "file_type": "code",
       "norm_label": "key",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L279"
+      "source_location": "L282"
     },
     {
       "id": "lib_ui_board_kmintapcell",
@@ -2160,7 +2237,7 @@
       "file_type": "code",
       "norm_label": "kmintapcell",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L17"
+      "source_location": "L18"
     },
     {
       "id": "lib_ui_board_labels",
@@ -2171,7 +2248,7 @@
       "file_type": "code",
       "norm_label": "labels",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L278"
+      "source_location": "L281"
     },
     {
       "id": "lib_ui_board_lastscale",
@@ -2182,7 +2259,7 @@
       "file_type": "code",
       "norm_label": "_lastscale",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L157"
+      "source_location": "L158"
     },
     {
       "id": "lib_ui_board_look",
@@ -2193,7 +2270,7 @@
       "file_type": "code",
       "norm_label": "look",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L523"
+      "source_location": "L580"
     },
     {
       "id": "lib_ui_board_maxscale",
@@ -2204,7 +2281,7 @@
       "file_type": "code",
       "norm_label": "maxscale",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L27"
+      "source_location": "L28"
     },
     {
       "id": "lib_ui_board_minscale",
@@ -2215,7 +2292,7 @@
       "file_type": "code",
       "norm_label": "minscale",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L26"
+      "source_location": "L27"
     },
     {
       "id": "lib_ui_board_miss",
@@ -2226,7 +2303,7 @@
       "file_type": "code",
       "norm_label": "_miss",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L323"
+      "source_location": "L342"
     },
     {
       "id": "lib_ui_board_offset",
@@ -2237,7 +2314,7 @@
       "file_type": "code",
       "norm_label": "offset",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L22"
+      "source_location": "L23"
     },
     {
       "id": "lib_ui_board_onbomb",
@@ -2248,7 +2325,7 @@
       "file_type": "code",
       "norm_label": "onbomb",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L147"
+      "source_location": "L148"
     },
     {
       "id": "lib_ui_board_paint",
@@ -2259,7 +2336,7 @@
       "file_type": "code",
       "norm_label": "paint",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L403"
+      "source_location": "L456"
     },
     {
       "id": "lib_ui_board_paints",
@@ -2270,7 +2347,7 @@
       "file_type": "code",
       "norm_label": "paints",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L135"
+      "source_location": "L136"
     },
     {
       "id": "lib_ui_board_panby",
@@ -2281,7 +2358,7 @@
       "file_type": "code",
       "norm_label": "panby",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L72"
+      "source_location": "L73"
     },
     {
       "id": "lib_ui_board_placeat",
@@ -2292,7 +2369,7 @@
       "file_type": "code",
       "norm_label": "_placeat",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L165"
+      "source_location": "L166"
     },
     {
       "id": "lib_ui_board_pointers",
@@ -2303,18 +2380,18 @@
       "file_type": "code",
       "norm_label": "_pointers",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L155"
+      "source_location": "L156"
     },
     {
-      "id": "lib_ui_board_rebuildcache",
-      "label": "_rebuildCache",
+      "id": "lib_ui_board_rebuildbase",
+      "label": "_rebuildBase",
       "_origin": "ast",
       "community": 1,
       "community_name": "board.dart",
       "file_type": "code",
-      "norm_label": "_rebuildcache",
+      "norm_label": "_rebuildbase",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L329"
+      "source_location": "L352"
     },
     {
       "id": "lib_ui_board_reserve",
@@ -2325,7 +2402,7 @@
       "file_type": "code",
       "norm_label": "reserve",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L36"
+      "source_location": "L37"
     },
     {
       "id": "lib_ui_board_ring",
@@ -2336,7 +2413,7 @@
       "file_type": "code",
       "norm_label": "_ring",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L320"
+      "source_location": "L339"
     },
     {
       "id": "lib_ui_board_rows",
@@ -2347,7 +2424,7 @@
       "file_type": "code",
       "norm_label": "rows",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L25"
+      "source_location": "L26"
     },
     {
       "id": "lib_ui_board_scale",
@@ -2358,7 +2435,7 @@
       "file_type": "code",
       "norm_label": "scale",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L21"
+      "source_location": "L22"
     },
     {
       "id": "lib_ui_board_settransform",
@@ -2369,7 +2446,7 @@
       "file_type": "code",
       "norm_label": "settransform",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L57"
+      "source_location": "L58"
     },
     {
       "id": "lib_ui_board_sheet",
@@ -2380,7 +2457,7 @@
       "file_type": "code",
       "norm_label": "_sheet",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L310"
+      "source_location": "L329"
     },
     {
       "id": "lib_ui_board_sheetshadow",
@@ -2391,7 +2468,7 @@
       "file_type": "code",
       "norm_label": "_sheetshadow",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L311"
+      "source_location": "L330"
     },
     {
       "id": "lib_ui_board_shimmer",
@@ -2402,7 +2479,7 @@
       "file_type": "code",
       "norm_label": "shimmer",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L134"
+      "source_location": "L135"
     },
     {
       "id": "lib_ui_board_shouldrepaint",
@@ -2413,7 +2490,7 @@
       "file_type": "code",
       "norm_label": "shouldrepaint",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L526"
+      "source_location": "L583"
     },
     {
       "id": "lib_ui_board_smart",
@@ -2424,7 +2501,7 @@
       "file_type": "code",
       "norm_label": "_smart",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L327"
+      "source_location": "L346"
     },
     {
       "id": "lib_ui_board_sweepat",
@@ -2435,7 +2512,7 @@
       "file_type": "code",
       "norm_label": "sweepat",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L142"
+      "source_location": "L143"
     },
     {
       "id": "lib_ui_board_tap",
@@ -2446,7 +2523,7 @@
       "file_type": "code",
       "norm_label": "_tap",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L171"
+      "source_location": "L172"
     },
     {
       "id": "lib_ui_board_view",
@@ -2457,7 +2534,7 @@
       "file_type": "code",
       "norm_label": "view",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L133"
+      "source_location": "L134"
     },
     {
       "id": "lib_ui_board_viewport",
@@ -2468,7 +2545,7 @@
       "file_type": "code",
       "norm_label": "viewport",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L23"
+      "source_location": "L24"
     },
     {
       "id": "lib_ui_board_visiblecells",
@@ -2479,7 +2556,7 @@
       "file_type": "code",
       "norm_label": "visiblecells",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L91"
+      "source_location": "L92"
     },
     {
       "id": "lib_ui_board_wasmulti",
@@ -2490,7 +2567,7 @@
       "file_type": "code",
       "norm_label": "_wasmulti",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L156"
+      "source_location": "L157"
     },
     {
       "id": "lib_ui_board_zoomat",
@@ -2501,7 +2578,7 @@
       "file_type": "code",
       "norm_label": "zoomat",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L63"
+      "source_location": "L64"
     },
     {
       "id": "logic_line_dart",
@@ -2963,7 +3040,7 @@
       "file_type": "code",
       "norm_label": "center",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L191"
+      "source_location": "L211"
     },
     {
       "id": "lib_ui_gem_style_color",
@@ -2985,7 +3062,7 @@
       "file_type": "code",
       "norm_label": "complete",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L211"
+      "source_location": "L231"
     },
     {
       "id": "lib_ui_gem_style_crown",
@@ -3029,7 +3106,7 @@
       "file_type": "code",
       "norm_label": "dir",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L190"
+      "source_location": "L210"
     },
     {
       "id": "lib_ui_gem_style_drawcutgem",
@@ -3051,7 +3128,7 @@
       "file_type": "code",
       "norm_label": "drawfinishsweep",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L188"
+      "source_location": "L208"
     },
     {
       "id": "lib_ui_gem_style_drawgem",
@@ -3098,6 +3175,17 @@
       "source_location": "L73"
     },
     {
+      "id": "lib_ui_gem_style_drawselectring",
+      "label": "drawSelectRing",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "_",
+      "file_type": "code",
+      "norm_label": "drawselectring",
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L182"
+    },
+    {
       "id": "lib_ui_gem_style_drawsweep",
       "label": "drawSweep",
       "_origin": "ast",
@@ -3106,7 +3194,7 @@
       "file_type": "code",
       "norm_label": "drawsweep",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L178"
+      "source_location": "L198"
     },
     {
       "id": "lib_ui_gem_style_facetpaint",
@@ -3161,7 +3249,7 @@
       "file_type": "code",
       "norm_label": "half",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L192"
+      "source_location": "L212"
     },
     {
       "id": "lib_ui_gem_style_hidden",
@@ -3172,7 +3260,7 @@
       "file_type": "code",
       "norm_label": "_hidden",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L213"
+      "source_location": "L233"
     },
     {
       "id": "lib_ui_gem_style_hiddenalt",
@@ -3183,7 +3271,7 @@
       "file_type": "code",
       "norm_label": "_hiddenalt",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L214"
+      "source_location": "L234"
     },
     {
       "id": "lib_ui_gem_style_inkon",
@@ -3227,7 +3315,7 @@
       "file_type": "code",
       "norm_label": "length",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L189"
+      "source_location": "L209"
     },
     {
       "id": "lib_ui_gem_style_light",
@@ -3271,7 +3359,7 @@
       "file_type": "code",
       "norm_label": "paint",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L217"
+      "source_location": "L237"
     },
     {
       "id": "lib_ui_gem_style_pale",
@@ -3304,7 +3392,7 @@
       "file_type": "code",
       "norm_label": "placed",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L210"
+      "source_location": "L230"
     },
     {
       "id": "lib_ui_gem_style_progress",
@@ -3315,7 +3403,7 @@
       "file_type": "code",
       "norm_label": "progress",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L180"
+      "source_location": "L200"
     },
     {
       "id": "lib_ui_gem_style_puzzle",
@@ -3326,7 +3414,7 @@
       "file_type": "code",
       "norm_label": "puzzle",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L207"
+      "source_location": "L227"
     },
     {
       "id": "lib_ui_gem_style_r",
@@ -3373,6 +3461,39 @@
       "source_location": "L144"
     },
     {
+      "id": "lib_ui_gem_style_ringcore",
+      "label": "_ringCore",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "_",
+      "file_type": "code",
+      "norm_label": "_ringcore",
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L174"
+    },
+    {
+      "id": "lib_ui_gem_style_ringink",
+      "label": "ringInk",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "_",
+      "file_type": "code",
+      "norm_label": "ringink",
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L177"
+    },
+    {
+      "id": "lib_ui_gem_style_ringoutline",
+      "label": "_ringOutline",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "_",
+      "file_type": "code",
+      "norm_label": "_ringoutline",
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L173"
+    },
+    {
       "id": "lib_ui_gem_style_rw",
       "label": "rw",
       "_origin": "ast",
@@ -3403,7 +3524,7 @@
       "file_type": "code",
       "norm_label": "shouldrepaint",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L236"
+      "source_location": "L256"
     },
     {
       "id": "lib_ui_gem_style_sparklepaint",
@@ -3425,7 +3546,7 @@
       "file_type": "code",
       "norm_label": "sweepduration",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L174"
+      "source_location": "L194"
     },
     {
       "id": "lib_ui_gem_style_sweeppaint",
@@ -3436,7 +3557,7 @@
       "file_type": "code",
       "norm_label": "_sweeppaint",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L184"
+      "source_location": "L204"
     },
     {
       "id": "lib_ui_gem_style_table",
@@ -6530,13 +6651,13 @@
       "source_location": "L203"
     },
     {
-      "id": "dart_convert",
-      "label": "dart:convert",
+      "id": "future",
+      "label": "Future",
       "_origin": "ast",
       "community": 2,
       "community_name": "progress_store.dart",
       "file_type": "code",
-      "norm_label": "dart:convert",
+      "norm_label": "future",
       "source_file": null,
       "source_location": null
     },
@@ -6783,6 +6904,17 @@
       "source_location": "L126"
     },
     {
+      "id": "lib_state_progress_store_dirty",
+      "label": "_dirty",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "progress_store.dart",
+      "file_type": "code",
+      "norm_label": "_dirty",
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L477"
+    },
+    {
       "id": "lib_state_progress_store_excusedmistakes",
       "label": "excusedMistakes",
       "_origin": "ast",
@@ -7011,7 +7143,7 @@
       "file_type": "code",
       "norm_label": "of",
       "source_file": "lib/state/progress_store.dart",
-      "source_location": "L509"
+      "source_location": "L537"
     },
     {
       "id": "lib_state_progress_store_order",
@@ -7044,7 +7176,7 @@
       "file_type": "code",
       "norm_label": "_persist",
       "source_file": "lib/state/progress_store.dart",
-      "source_location": "L476"
+      "source_location": "L482"
     },
     {
       "id": "lib_state_progress_store_placed",
@@ -7399,6 +7531,50 @@
       "source_location": "L33"
     },
     {
+      "id": "lib_state_progress_store_write",
+      "label": "_write",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "progress_store.dart",
+      "file_type": "code",
+      "norm_label": "_write",
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L491"
+    },
+    {
+      "id": "lib_state_progress_store_writeonce",
+      "label": "_writeOnce",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "progress_store.dart",
+      "file_type": "code",
+      "norm_label": "_writeonce",
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L503"
+    },
+    {
+      "id": "lib_state_progress_store_writes",
+      "label": "writes",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "progress_store.dart",
+      "file_type": "code",
+      "norm_label": "writes",
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L501"
+    },
+    {
+      "id": "lib_state_progress_store_writing",
+      "label": "_writing",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "progress_store.dart",
+      "file_type": "code",
+      "norm_label": "_writing",
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L476"
+    },
+    {
       "id": "lib_state_progress_store_yesterday",
       "label": "yesterday",
       "_origin": "ast",
@@ -7751,13 +7927,13 @@
       "source_location": "L10"
     },
     {
-      "id": "state_progress_store_dart",
-      "label": "../state/progress_store.dart",
+      "id": "voidcallback",
+      "label": "VoidCallback",
       "_origin": "ast",
       "community": 21,
       "community_name": "coach.dart",
       "file_type": "code",
-      "norm_label": "../state/progress_store.dart",
+      "norm_label": "voidcallback",
       "source_file": null,
       "source_location": null
     },
@@ -8422,15 +8598,15 @@
       "source_location": null
     },
     {
-      "id": "lib_models_puzzle_level",
-      "label": "Level",
+      "id": "game_screen_dart",
+      "label": "game_screen.dart",
       "_origin": "ast",
       "community": 24,
       "community_name": "course_screen.dart",
       "file_type": "code",
-      "norm_label": "level",
-      "source_file": "lib/models/puzzle.dart",
-      "source_location": "L85"
+      "norm_label": "game_screen.dart",
+      "source_file": null,
+      "source_location": null
     },
     {
       "id": "lib_state_progress_store_playmode",
@@ -8686,17 +8862,6 @@
       "source_location": null
     },
     {
-      "id": "game_screen_dart",
-      "label": "game_screen.dart",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "home_screen.dart",
-      "file_type": "code",
-      "norm_label": "game_screen.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "lib_models_puzzle_course",
       "label": "Course",
       "_origin": "ast",
@@ -8706,6 +8871,17 @@
       "norm_label": "course",
       "source_file": "lib/models/puzzle.dart",
       "source_location": "L93"
+    },
+    {
+      "id": "lib_models_puzzle_level",
+      "label": "Level",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "home_screen.dart",
+      "file_type": "code",
+      "norm_label": "level",
+      "source_file": "lib/models/puzzle.dart",
+      "source_location": "L85"
     },
     {
       "id": "lib_ui_gallery_screen_build",
@@ -9305,6 +9481,17 @@
       "source_location": ""
     },
     {
+      "id": "dart_typed_data",
+      "label": "dart:typed_data",
+      "_origin": "ast",
+      "community": 28,
+      "community_name": "time_attack.dart",
+      "file_type": "code",
+      "norm_label": "dart:typed_data",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "lib_logic_time_attack",
       "label": "time_attack.dart",
       "_origin": "ast",
@@ -9577,7 +9764,7 @@
       "file_type": "code",
       "norm_label": "_traypanel",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1134"
+      "source_location": "L1131"
     },
     {
       "id": "lib_ui_time_attack_screen_timeattackscreen",
@@ -10035,7 +10222,7 @@
       "label": "README.md",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "page",
       "norm_label": "readme.md",
@@ -10047,103 +10234,103 @@
       "label": "Build and install (and update)",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "build and install (and update)",
       "source_file": "README.md",
-      "source_location": "L58"
+      "source_location": "L68"
     },
     {
       "id": "readme_development",
       "label": "Development",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "development",
       "source_file": "README.md",
-      "source_location": "L83"
+      "source_location": "L93"
     },
     {
       "id": "readme_every_7_days_free_apple_id",
       "label": "Every 7 days (free Apple ID)",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "every 7 days (free apple id)",
       "source_file": "README.md",
-      "source_location": "L77"
+      "source_location": "L87"
     },
     {
       "id": "readme_first_launch",
       "label": "First launch",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "first launch",
       "source_file": "README.md",
-      "source_location": "L72"
+      "source_location": "L82"
     },
     {
       "id": "readme_installing_on_an_android_phone",
       "label": "Installing on an Android phone",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "installing on an android phone",
       "source_file": "README.md",
-      "source_location": "L20"
+      "source_location": "L30"
     },
     {
       "id": "readme_installing_on_an_iphone",
       "label": "Installing on an iPhone",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "installing on an iphone",
       "source_file": "README.md",
-      "source_location": "L39"
+      "source_location": "L49"
     },
     {
       "id": "readme_layout",
       "label": "Layout",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "layout",
       "source_file": "README.md",
-      "source_location": "L100"
+      "source_location": "L110"
     },
     {
       "id": "readme_one_time_setup",
       "label": "One-time setup",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "one-time setup",
       "source_file": "README.md",
-      "source_location": "L43"
+      "source_location": "L53"
     },
     {
       "id": "readme_pawlypaint",
       "label": "PawlyPaint",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "pawlypaint",
@@ -10151,11 +10338,23 @@
       "source_location": "L1"
     },
     {
+      "id": "readme_tech_stack",
+      "label": "Tech stack",
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "PawlyPaint",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "tech stack",
+      "source_file": "README.md",
+      "source_location": "L19"
+    },
+    {
       "id": "readme_what_s_in_it",
       "label": "What's in it",
       "_origin": "ast",
       "community": 32,
-      "community_name": "Installing on an iPhone",
+      "community_name": "PawlyPaint",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "what's in it",
@@ -11520,235 +11719,114 @@
       "source_location": "L1"
     },
     {
-      "id": "dart_typed_data",
-      "label": "dart:typed_data",
+      "id": "lib_logic_boosters",
+      "label": "boosters.dart",
       "_origin": "ast",
       "community": 41,
-      "community_name": "game_test.dart",
+      "community_name": "static const",
       "file_type": "code",
-      "norm_label": "dart:typed_data",
+      "norm_label": "boosters.dart",
+      "source_file": "lib/logic/boosters.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_logic_boosters_bombradius",
+      "label": "bombRadius",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "static const",
+      "file_type": "code",
+      "norm_label": "bombradius",
+      "source_file": "lib/logic/boosters.dart",
+      "source_location": "L29"
+    },
+    {
+      "id": "lib_logic_boosters_booster",
+      "label": "Booster",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "static const",
+      "file_type": "code",
+      "norm_label": "booster",
+      "source_file": "lib/logic/boosters.dart",
+      "source_location": "L3"
+    },
+    {
+      "id": "lib_logic_boosters_boosterreward",
+      "label": "boosterReward",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "static const",
+      "file_type": "code",
+      "norm_label": "boosterreward",
+      "source_file": "lib/logic/boosters.dart",
+      "source_location": "L20"
+    },
+    {
+      "id": "lib_logic_boosters_cellsinblast",
+      "label": "cellsInBlast",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "static const",
+      "file_type": "code",
+      "norm_label": "cellsinblast",
+      "source_file": "lib/logic/boosters.dart",
+      "source_location": "L32"
+    },
+    {
+      "id": "lib_logic_boosters_help",
+      "label": "help",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "static const",
+      "file_type": "code",
+      "norm_label": "help",
+      "source_file": "lib/logic/boosters.dart",
+      "source_location": "L11"
+    },
+    {
+      "id": "lib_logic_boosters_label",
+      "label": "label",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "static const",
+      "file_type": "code",
+      "norm_label": "label",
+      "source_file": "lib/logic/boosters.dart",
+      "source_location": "L10"
+    },
+    {
+      "id": "lib_logic_boosters_r",
+      "label": "r",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "static const",
+      "file_type": "code",
+      "norm_label": "r",
+      "source_file": "lib/logic/boosters.dart",
+      "source_location": "L21"
+    },
+    {
+      "id": "lib_logic_boosters_starter",
+      "label": "starter",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "static const",
+      "file_type": "code",
+      "norm_label": "starter",
+      "source_file": "lib/logic/boosters.dart",
+      "source_location": "L14"
+    },
+    {
+      "id": "static_const",
+      "label": "static const",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "static const",
+      "file_type": "code",
+      "norm_label": "static const",
       "source_file": null,
       "source_location": null
-    },
-    {
-      "id": "dart_ui",
-      "label": "dart:ui",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "dart:ui",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_flutter_test_flutter_test_dart",
-      "label": "package:flutter_test/flutter_test.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:flutter_test/flutter_test.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_data_courses_dart",
-      "label": "package:pawlypaint/data/courses.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/data/courses.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_data_simplify_dart",
-      "label": "package:pawlypaint/data/simplify.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/data/simplify.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_logic_boosters_dart",
-      "label": "package:pawlypaint/logic/boosters.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/logic/boosters.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_logic_line_dart",
-      "label": "package:pawlypaint/logic/line.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/logic/line.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_logic_patches_dart",
-      "label": "package:pawlypaint/logic/patches.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/logic/patches.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_logic_scoring_dart",
-      "label": "package:pawlypaint/logic/scoring.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/logic/scoring.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_logic_sort_game_dart",
-      "label": "package:pawlypaint/logic/sort_game.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/logic/sort_game.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_logic_time_attack_dart",
-      "label": "package:pawlypaint/logic/time_attack.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/logic/time_attack.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_models_puzzle_dart",
-      "label": "package:pawlypaint/models/puzzle.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/models/puzzle.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_state_achievements_dart",
-      "label": "package:pawlypaint/state/achievements.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/state/achievements.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_state_game_controller_dart",
-      "label": "package:pawlypaint/state/game_controller.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/state/game_controller.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_state_music_dart",
-      "label": "package:pawlypaint/state/music.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/state/music.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_state_progress_store_dart",
-      "label": "package:pawlypaint/state/progress_store.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/state/progress_store.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_state_sort_controller_dart",
-      "label": "package:pawlypaint/state/sort_controller.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/state/sort_controller.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_pawlypaint_ui_board_dart",
-      "label": "package:pawlypaint/ui/board.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "package:pawlypaint/ui/board.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "test_game_test",
-      "label": "game_test.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "game_test.dart",
-      "source_file": "test/game_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_game_test_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "test/game_test.dart",
-      "source_location": "L31"
-    },
-    {
-      "id": "test_game_test_tiny",
-      "label": "_tiny",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "game_test.dart",
-      "file_type": "code",
-      "norm_label": "_tiny",
-      "source_file": "test/game_test.dart",
-      "source_location": "L22"
     },
     {
       "id": "lib_data_art_extreme_minecraft",
@@ -13104,6 +13182,28 @@
       "source_location": null
     },
     {
+      "id": "dart_convert",
+      "label": "dart:convert",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "dart:convert",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "dart_ui",
+      "label": "dart:ui",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "dart:ui",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "lib_data_courses",
       "label": "courses.dart",
       "_origin": "ast",
@@ -13225,6 +13325,193 @@
       "source_location": "L21"
     },
     {
+      "id": "package_flutter_test_flutter_test_dart",
+      "label": "package:flutter_test/flutter_test.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:flutter_test/flutter_test.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_data_courses_dart",
+      "label": "package:pawlypaint/data/courses.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/data/courses.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_data_simplify_dart",
+      "label": "package:pawlypaint/data/simplify.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/data/simplify.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_logic_boosters_dart",
+      "label": "package:pawlypaint/logic/boosters.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/logic/boosters.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_logic_line_dart",
+      "label": "package:pawlypaint/logic/line.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/logic/line.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_logic_patches_dart",
+      "label": "package:pawlypaint/logic/patches.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/logic/patches.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_logic_scoring_dart",
+      "label": "package:pawlypaint/logic/scoring.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/logic/scoring.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_logic_sort_game_dart",
+      "label": "package:pawlypaint/logic/sort_game.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/logic/sort_game.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_logic_time_attack_dart",
+      "label": "package:pawlypaint/logic/time_attack.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/logic/time_attack.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_models_puzzle_dart",
+      "label": "package:pawlypaint/models/puzzle.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/models/puzzle.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_state_achievements_dart",
+      "label": "package:pawlypaint/state/achievements.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/state/achievements.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_state_game_controller_dart",
+      "label": "package:pawlypaint/state/game_controller.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/state/game_controller.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_state_music_dart",
+      "label": "package:pawlypaint/state/music.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/state/music.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_state_progress_store_dart",
+      "label": "package:pawlypaint/state/progress_store.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/state/progress_store.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_state_sort_controller_dart",
+      "label": "package:pawlypaint/state/sort_controller.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/state/sort_controller.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_pawlypaint_ui_board_dart",
+      "label": "package:pawlypaint/ui/board.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:pawlypaint/ui/board.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_shared_preferences_shared_preferences_dart",
+      "label": "package:shared_preferences/shared_preferences.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "package:shared_preferences/shared_preferences.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "simplify_dart",
       "label": "simplify.dart",
       "_origin": "ast",
@@ -13234,6 +13521,39 @@
       "norm_label": "simplify.dart",
       "source_file": null,
       "source_location": null
+    },
+    {
+      "id": "test_game_test",
+      "label": "game_test.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "game_test.dart",
+      "source_file": "test/game_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_game_test_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "test/game_test.dart",
+      "source_location": "L33"
+    },
+    {
+      "id": "test_game_test_tiny",
+      "label": "_tiny",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "courses.dart",
+      "file_type": "code",
+      "norm_label": "_tiny",
+      "source_file": "test/game_test.dart",
+      "source_location": "L24"
     },
     {
       "id": "icondata",
@@ -13409,7 +13729,7 @@
       "file_type": "code",
       "norm_label": "boardpainter",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L289"
+      "source_location": "L308"
     },
     {
       "id": "lib_ui_desk_deskpainter",
@@ -13442,7 +13762,7 @@
       "file_type": "code",
       "norm_label": "puzzlethumbpainter",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L204"
+      "source_location": "L224"
     },
     {
       "id": "lib_ui_mini_map_minimappainter",
@@ -13508,7 +13828,7 @@
       "file_type": "code",
       "norm_label": "sorttraypainter",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1245"
+      "source_location": "L1242"
     },
     {
       "id": "lib_ui_tray_burstpainter",
@@ -15458,6 +15778,28 @@
       "source_location": "L193"
     },
     {
+      "id": "lib_ui_board_board",
+      "label": "Board",
+      "_origin": "ast",
+      "community": 55,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "board",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L119"
+    },
+    {
+      "id": "lib_ui_board_boardstate",
+      "label": "_BoardState",
+      "_origin": "ast",
+      "community": 55,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_boardstate",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L154"
+    },
+    {
       "id": "lib_ui_combo_pop_combopop",
       "label": "ComboPop",
       "_origin": "ast",
@@ -15568,6 +15910,28 @@
       "source_location": "L32"
     },
     {
+      "id": "lib_ui_sort_screen_sortboard",
+      "label": "_SortBoard",
+      "_origin": "ast",
+      "community": 55,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_sortboard",
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L824"
+    },
+    {
+      "id": "lib_ui_sort_screen_sortboardstate",
+      "label": "_SortBoardState",
+      "_origin": "ast",
+      "community": 55,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_sortboardstate",
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L854"
+    },
+    {
       "id": "lib_ui_sort_screen_sortscreen",
       "label": "SortScreen",
       "_origin": "ast",
@@ -15610,6 +15974,28 @@
       "norm_label": "_colorchipstate",
       "source_file": "lib/ui/tray.dart",
       "source_location": "L179"
+    },
+    {
+      "id": "lib_ui_tray_tray",
+      "label": "Tray",
+      "_origin": "ast",
+      "community": 55,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "tray",
+      "source_file": "lib/ui/tray.dart",
+      "source_location": "L14"
+    },
+    {
+      "id": "lib_ui_tray_traystate",
+      "label": "_TrayState",
+      "_origin": "ast",
+      "community": 55,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_traystate",
+      "source_file": "lib/ui/tray.dart",
+      "source_location": "L36"
     },
     {
       "id": "singletickerproviderstatemixin",
@@ -15887,105 +16273,6 @@
       "source_location": null
     },
     {
-      "id": "lib_logic_boosters",
-      "label": "boosters.dart",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "boosters.dart",
-      "source_file": "lib/logic/boosters.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_logic_boosters_bombradius",
-      "label": "bombRadius",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "bombradius",
-      "source_file": "lib/logic/boosters.dart",
-      "source_location": "L29"
-    },
-    {
-      "id": "lib_logic_boosters_booster",
-      "label": "Booster",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "booster",
-      "source_file": "lib/logic/boosters.dart",
-      "source_location": "L3"
-    },
-    {
-      "id": "lib_logic_boosters_boosterreward",
-      "label": "boosterReward",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "boosterreward",
-      "source_file": "lib/logic/boosters.dart",
-      "source_location": "L20"
-    },
-    {
-      "id": "lib_logic_boosters_cellsinblast",
-      "label": "cellsInBlast",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "cellsinblast",
-      "source_file": "lib/logic/boosters.dart",
-      "source_location": "L32"
-    },
-    {
-      "id": "lib_logic_boosters_help",
-      "label": "help",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "help",
-      "source_file": "lib/logic/boosters.dart",
-      "source_location": "L11"
-    },
-    {
-      "id": "lib_logic_boosters_label",
-      "label": "label",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "label",
-      "source_file": "lib/logic/boosters.dart",
-      "source_location": "L10"
-    },
-    {
-      "id": "lib_logic_boosters_r",
-      "label": "r",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "r",
-      "source_file": "lib/logic/boosters.dart",
-      "source_location": "L21"
-    },
-    {
-      "id": "lib_logic_boosters_starter",
-      "label": "starter",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "starter",
-      "source_file": "lib/logic/boosters.dart",
-      "source_location": "L14"
-    },
-    {
       "id": "lib_logic_scoring",
       "label": "scoring.dart",
       "_origin": "ast",
@@ -16173,17 +16460,6 @@
       "source_location": "L17"
     },
     {
-      "id": "static_const",
-      "label": "static const",
-      "_origin": "ast",
-      "community": 57,
-      "community_name": "scoring.dart",
-      "file_type": "code",
-      "norm_label": "static const",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "axis",
       "label": "Axis",
       "_origin": "ast",
@@ -16323,17 +16599,6 @@
       "community_name": "booster_bar.dart",
       "file_type": "code",
       "norm_label": "valuechanged",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "voidcallback",
-      "label": "VoidCallback",
-      "_origin": "ast",
-      "community": 58,
-      "community_name": "booster_bar.dart",
-      "file_type": "code",
-      "norm_label": "voidcallback",
       "source_file": null,
       "source_location": null
     },
@@ -16976,17 +17241,6 @@
       "source_location": "L315"
     },
     {
-      "id": "lib_ui_tray_tray",
-      "label": "Tray",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "tray.dart",
-      "file_type": "code",
-      "norm_label": "tray",
-      "source_file": "lib/ui/tray.dart",
-      "source_location": "L14"
-    },
-    {
       "id": "lib_ui_tray_traysort",
       "label": "TraySort",
       "_origin": "ast",
@@ -16996,17 +17250,6 @@
       "norm_label": "traysort",
       "source_file": "lib/ui/tray.dart",
       "source_location": "L10"
-    },
-    {
-      "id": "lib_ui_tray_traystate",
-      "label": "_TrayState",
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "tray.dart",
-      "file_type": "code",
-      "norm_label": "_traystate",
-      "source_file": "lib/ui/tray.dart",
-      "source_location": "L36"
     },
     {
       "id": "dart_math",
@@ -17295,26 +17538,26 @@
       "source_location": "L105"
     },
     {
-      "id": "lib_ui_sort_screen_sortboard",
-      "label": "_SortBoard",
+      "id": "lib_state_progress_store_progressscope",
+      "label": "ProgressScope",
       "_origin": "ast",
-      "community": 62,
-      "community_name": "_SortBoard",
+      "community": 63,
+      "community_name": "List",
       "file_type": "code",
-      "norm_label": "_sortboard",
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L824"
+      "norm_label": "progressscope",
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L534"
     },
     {
-      "id": "lib_ui_sort_screen_sortboardstate",
-      "label": "_SortBoardState",
+      "id": "lib_state_progress_store_progressstore",
+      "label": "ProgressStore",
       "_origin": "ast",
-      "community": 62,
-      "community_name": "_SortBoard",
+      "community": 63,
+      "community_name": "List",
       "file_type": "code",
-      "norm_label": "_sortboardstate",
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L854"
+      "norm_label": "progressstore",
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L147"
     },
     {
       "id": "lib_ui_badges",
@@ -17401,6 +17644,17 @@
       "community_name": "List",
       "file_type": "code",
       "norm_label": "../state/achievements.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "state_progress_store_dart",
+      "label": "../state/progress_store.dart",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "List",
+      "file_type": "code",
+      "norm_label": "../state/progress_store.dart",
       "source_file": null,
       "source_location": null
     },
@@ -17493,17 +17747,6 @@
       "source_location": null
     },
     {
-      "id": "inheritednotifier",
-      "label": "InheritedNotifier",
-      "_origin": "ast",
-      "community": 65,
-      "community_name": "MusicController",
-      "file_type": "code",
-      "norm_label": "inheritednotifier",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "lib_state_music_musiccontroller",
       "label": "MusicController",
       "_origin": "ast",
@@ -17524,28 +17767,6 @@
       "norm_label": "musicscope",
       "source_file": "lib/state/music.dart",
       "source_location": "L274"
-    },
-    {
-      "id": "lib_state_settings_appsettings",
-      "label": "AppSettings",
-      "_origin": "ast",
-      "community": 65,
-      "community_name": "MusicController",
-      "file_type": "code",
-      "norm_label": "appsettings",
-      "source_file": "lib/state/settings.dart",
-      "source_location": "L30"
-    },
-    {
-      "id": "lib_state_settings_settingsscope",
-      "label": "SettingsScope",
-      "_origin": "ast",
-      "community": 65,
-      "community_name": "MusicController",
-      "file_type": "code",
-      "norm_label": "settingsscope",
-      "source_file": "lib/state/settings.dart",
-      "source_location": "L111"
     },
     {
       "id": "changenotifier",
@@ -17589,51 +17810,7 @@
       "file_type": "code",
       "norm_label": "boardview",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L20"
-    },
-    {
-      "id": "lib_state_progress_store_progressscope",
-      "label": "ProgressScope",
-      "_origin": "ast",
-      "community": 67,
-      "community_name": "ProgressStore",
-      "file_type": "code",
-      "norm_label": "progressscope",
-      "source_file": "lib/state/progress_store.dart",
-      "source_location": "L506"
-    },
-    {
-      "id": "lib_state_progress_store_progressstore",
-      "label": "ProgressStore",
-      "_origin": "ast",
-      "community": 67,
-      "community_name": "ProgressStore",
-      "file_type": "code",
-      "norm_label": "progressstore",
-      "source_file": "lib/state/progress_store.dart",
-      "source_location": "L147"
-    },
-    {
-      "id": "lib_ui_board_board",
-      "label": "Board",
-      "_origin": "ast",
-      "community": 68,
-      "community_name": "Board",
-      "file_type": "code",
-      "norm_label": "board",
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L118"
-    },
-    {
-      "id": "lib_ui_board_boardstate",
-      "label": "_BoardState",
-      "_origin": "ast",
-      "community": 68,
-      "community_name": "Board",
-      "file_type": "code",
-      "norm_label": "_boardstate",
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L153"
+      "source_location": "L21"
     },
     {
       "id": "gemshape_get",
@@ -17647,6 +17824,17 @@
       "source_location": null
     },
     {
+      "id": "inheritednotifier",
+      "label": "InheritedNotifier",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "settings.dart",
+      "file_type": "code",
+      "norm_label": "inheritednotifier",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "lib_state_settings",
       "label": "settings.dart",
       "_origin": "ast",
@@ -17656,6 +17844,17 @@
       "norm_label": "settings.dart",
       "source_file": "lib/state/settings.dart",
       "source_location": null
+    },
+    {
+      "id": "lib_state_settings_appsettings",
+      "label": "AppSettings",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "settings.dart",
+      "file_type": "code",
+      "norm_label": "appsettings",
+      "source_file": "lib/state/settings.dart",
+      "source_location": "L30"
     },
     {
       "id": "lib_state_settings_currentlook",
@@ -17900,6 +18099,17 @@
       "source_location": "L76"
     },
     {
+      "id": "lib_state_settings_settingsscope",
+      "label": "SettingsScope",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "settings.dart",
+      "file_type": "code",
+      "norm_label": "settingsscope",
+      "source_file": "lib/state/settings.dart",
+      "source_location": "L111"
+    },
+    {
       "id": "lib_state_settings_shape",
       "label": "_shape",
       "_origin": "ast",
@@ -17962,17 +18172,6 @@
       "community_name": "settings.dart",
       "file_type": "code",
       "norm_label": "package:flutter/services.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_shared_preferences_shared_preferences_dart",
-      "label": "package:shared_preferences/shared_preferences.dart",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "settings.dart",
-      "file_type": "code",
-      "norm_label": "package:shared_preferences/shared_preferences.dart",
       "source_file": null,
       "source_location": null
     },
@@ -18535,7 +18734,7 @@
       "file_type": "code",
       "norm_label": "animating",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L171"
+      "source_location": "L174"
     },
     {
       "id": "lib_state_sort_controller_apply",
@@ -18546,7 +18745,7 @@
       "file_type": "code",
       "norm_label": "_apply",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L274"
+      "source_location": "L277"
     },
     {
       "id": "lib_state_sort_controller_arriving",
@@ -18557,7 +18756,7 @@
       "file_type": "code",
       "norm_label": "arriving",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L140"
+      "source_location": "L143"
     },
     {
       "id": "lib_state_sort_controller_baseseconds",
@@ -18568,7 +18767,7 @@
       "file_type": "code",
       "norm_label": "_baseseconds",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L165"
+      "source_location": "L168"
     },
     {
       "id": "lib_state_sort_controller_bestcombo",
@@ -18579,7 +18778,7 @@
       "file_type": "code",
       "norm_label": "bestcombo",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L151"
+      "source_location": "L154"
     },
     {
       "id": "lib_state_sort_controller_boardversion",
@@ -18590,7 +18789,7 @@
       "file_type": "code",
       "norm_label": "boardversion",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L163"
+      "source_location": "L166"
     },
     {
       "id": "lib_state_sort_controller_bonusseconds",
@@ -18601,7 +18800,7 @@
       "file_type": "code",
       "norm_label": "bonusseconds",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L128"
+      "source_location": "L131"
     },
     {
       "id": "lib_state_sort_controller_canundo",
@@ -18612,7 +18811,7 @@
       "file_type": "code",
       "norm_label": "canundo",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L216"
+      "source_location": "L219"
     },
     {
       "id": "lib_state_sort_controller_color",
@@ -18634,7 +18833,7 @@
       "file_type": "code",
       "norm_label": "combo",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L150"
+      "source_location": "L153"
     },
     {
       "id": "lib_state_sort_controller_comboat",
@@ -18645,7 +18844,7 @@
       "file_type": "code",
       "norm_label": "comboat",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L155"
+      "source_location": "L158"
     },
     {
       "id": "lib_state_sort_controller_combobonus",
@@ -18656,7 +18855,7 @@
       "file_type": "code",
       "norm_label": "combobonus",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L152"
+      "source_location": "L155"
     },
     {
       "id": "lib_state_sort_controller_combonow",
@@ -18667,7 +18866,7 @@
       "file_type": "code",
       "norm_label": "combonow",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L184"
+      "source_location": "L187"
     },
     {
       "id": "lib_state_sort_controller_correctcount",
@@ -18678,7 +18877,7 @@
       "file_type": "code",
       "norm_label": "correctcount",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L168"
+      "source_location": "L171"
     },
     {
       "id": "lib_state_sort_controller_difficultyof",
@@ -18689,7 +18888,7 @@
       "file_type": "code",
       "norm_label": "difficultyof",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L72"
+      "source_location": "L75"
     },
     {
       "id": "lib_state_sort_controller_duration",
@@ -18722,7 +18921,7 @@
       "file_type": "code",
       "norm_label": "excusedmistakes",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L147"
+      "source_location": "L150"
     },
     {
       "id": "lib_state_sort_controller_flight",
@@ -18744,7 +18943,7 @@
       "file_type": "code",
       "norm_label": "flights",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L137"
+      "source_location": "L140"
     },
     {
       "id": "lib_state_sort_controller_fresh",
@@ -18755,7 +18954,7 @@
       "file_type": "code",
       "norm_label": "_fresh",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L79"
+      "source_location": "L82"
     },
     {
       "id": "lib_state_sort_controller_fromcell",
@@ -18788,7 +18987,7 @@
       "file_type": "code",
       "norm_label": "game",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L120"
+      "source_location": "L123"
     },
     {
       "id": "lib_state_sort_controller_hint",
@@ -18799,7 +18998,7 @@
       "file_type": "code",
       "norm_label": "hint",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L364"
+      "source_location": "L367"
     },
     {
       "id": "lib_state_sort_controller_hintat",
@@ -18810,7 +19009,7 @@
       "file_type": "code",
       "norm_label": "hintat",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L158"
+      "source_location": "L161"
     },
     {
       "id": "lib_state_sort_controller_hintstep",
@@ -18821,7 +19020,7 @@
       "file_type": "code",
       "norm_label": "hintstep",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L157"
+      "source_location": "L160"
     },
     {
       "id": "lib_state_sort_controller_history",
@@ -18832,7 +19031,7 @@
       "file_type": "code",
       "norm_label": "_history",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L134"
+      "source_location": "L137"
     },
     {
       "id": "lib_state_sort_controller_iscomplete",
@@ -18843,7 +19042,7 @@
       "file_type": "code",
       "norm_label": "iscomplete",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L170"
+      "source_location": "L173"
     },
     {
       "id": "lib_state_sort_controller_locked",
@@ -18854,7 +19053,7 @@
       "file_type": "code",
       "norm_label": "_locked",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L214"
+      "source_location": "L217"
     },
     {
       "id": "lib_state_sort_controller_maxundo",
@@ -18865,7 +19064,7 @@
       "file_type": "code",
       "norm_label": "_maxundo",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L135"
+      "source_location": "L138"
     },
     {
       "id": "lib_state_sort_controller_mistakeat",
@@ -18876,7 +19075,7 @@
       "file_type": "code",
       "norm_label": "mistakeat",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L160"
+      "source_location": "L163"
     },
     {
       "id": "lib_state_sort_controller_mistakecell",
@@ -18887,7 +19086,7 @@
       "file_type": "code",
       "norm_label": "mistakecell",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L159"
+      "source_location": "L162"
     },
     {
       "id": "lib_state_sort_controller_pause",
@@ -18898,7 +19097,7 @@
       "file_type": "code",
       "norm_label": "pause",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L207"
+      "source_location": "L210"
     },
     {
       "id": "lib_state_sort_controller_penaltyseconds",
@@ -18909,7 +19108,7 @@
       "file_type": "code",
       "norm_label": "penaltyseconds",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L131"
+      "source_location": "L134"
     },
     {
       "id": "lib_state_sort_controller_progress",
@@ -18920,7 +19119,7 @@
       "file_type": "code",
       "norm_label": "progress",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L169"
+      "source_location": "L172"
     },
     {
       "id": "lib_state_sort_controller_prune",
@@ -18931,7 +19130,7 @@
       "file_type": "code",
       "norm_label": "_prune",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L374"
+      "source_location": "L377"
     },
     {
       "id": "lib_state_sort_controller_puzzle",
@@ -18942,7 +19141,7 @@
       "file_type": "code",
       "norm_label": "puzzle",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L119"
+      "source_location": "L122"
     },
     {
       "id": "lib_state_sort_controller_relaxed",
@@ -18953,7 +19152,7 @@
       "file_type": "code",
       "norm_label": "relaxed",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L143"
+      "source_location": "L146"
     },
     {
       "id": "lib_state_sort_controller_remember",
@@ -18964,7 +19163,7 @@
       "file_type": "code",
       "norm_label": "_remember",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L228"
+      "source_location": "L231"
     },
     {
       "id": "lib_state_sort_controller_restore",
@@ -18975,7 +19174,7 @@
       "file_type": "code",
       "norm_label": "_restore",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L95"
+      "source_location": "L98"
     },
     {
       "id": "lib_state_sort_controller_resume",
@@ -18986,7 +19185,7 @@
       "file_type": "code",
       "norm_label": "resume",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L203"
+      "source_location": "L206"
     },
     {
       "id": "lib_state_sort_controller_runningsince",
@@ -18997,7 +19196,7 @@
       "file_type": "code",
       "norm_label": "_runningsince",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L166"
+      "source_location": "L169"
     },
     {
       "id": "lib_state_sort_controller_saveversion",
@@ -19008,7 +19207,7 @@
       "file_type": "code",
       "norm_label": "saveversion",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L191"
+      "source_location": "L194"
     },
     {
       "id": "lib_state_sort_controller_score",
@@ -19019,7 +19218,7 @@
       "file_type": "code",
       "norm_label": "score",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L194"
+      "source_location": "L197"
     },
     {
       "id": "lib_state_sort_controller_selection",
@@ -19030,7 +19229,7 @@
       "file_type": "code",
       "norm_label": "selection",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L172"
+      "source_location": "L175"
     },
     {
       "id": "lib_state_sort_controller_settingsfor",
@@ -19041,7 +19240,7 @@
       "file_type": "code",
       "norm_label": "settingsfor",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L64"
+      "source_location": "L67"
     },
     {
       "id": "lib_state_sort_controller_shake",
@@ -19052,7 +19251,7 @@
       "file_type": "code",
       "norm_label": "shake",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L341"
+      "source_location": "L344"
     },
     {
       "id": "lib_state_sort_controller_snapshot",
@@ -19085,7 +19284,7 @@
       "file_type": "code",
       "norm_label": "stars",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L193"
+      "source_location": "L196"
     },
     {
       "id": "lib_state_sort_controller_start",
@@ -19107,7 +19306,7 @@
       "file_type": "code",
       "norm_label": "tapcell",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L236"
+      "source_location": "L239"
     },
     {
       "id": "lib_state_sort_controller_taptray",
@@ -19118,7 +19317,7 @@
       "file_type": "code",
       "norm_label": "taptray",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L244"
+      "source_location": "L247"
     },
     {
       "id": "lib_state_sort_controller_tick",
@@ -19129,7 +19328,7 @@
       "file_type": "code",
       "norm_label": "tick",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L380"
+      "source_location": "L383"
     },
     {
       "id": "lib_state_sort_controller_timed",
@@ -19140,7 +19339,7 @@
       "file_type": "code",
       "norm_label": "timed",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L125"
+      "source_location": "L128"
     },
     {
       "id": "lib_state_sort_controller_timedboard",
@@ -19151,7 +19350,7 @@
       "file_type": "code",
       "norm_label": "_timedboard",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L90"
+      "source_location": "L93"
     },
     {
       "id": "lib_state_sort_controller_timeleft",
@@ -19162,7 +19361,7 @@
       "file_type": "code",
       "norm_label": "timeleft",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L180"
+      "source_location": "L183"
     },
     {
       "id": "lib_state_sort_controller_timelimit",
@@ -19173,7 +19372,7 @@
       "file_type": "code",
       "norm_label": "timelimit",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L124"
+      "source_location": "L127"
     },
     {
       "id": "lib_state_sort_controller_timeup",
@@ -19184,7 +19383,7 @@
       "file_type": "code",
       "norm_label": "timeup",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L181"
+      "source_location": "L184"
     },
     {
       "id": "lib_state_sort_controller_tocell",
@@ -19206,7 +19405,7 @@
       "file_type": "code",
       "norm_label": "tojson",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L386"
+      "source_location": "L389"
     },
     {
       "id": "lib_state_sort_controller_toslot",
@@ -19228,7 +19427,7 @@
       "file_type": "code",
       "norm_label": "undo",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L252"
+      "source_location": "L255"
     },
     {
       "id": "logic_sort_game_dart",
@@ -21079,6 +21278,18 @@
     },
     {
       "source": "lib_state_progress_store",
+      "target": "future",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L476",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_progress_store",
       "target": "int",
       "relation": "references",
       "_origin": "ast",
@@ -21170,7 +21381,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L119",
+      "source_location": "L122",
       "weight": 1.0
     },
     {
@@ -21182,7 +21393,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L120",
+      "source_location": "L123",
       "weight": 1.0
     },
     {
@@ -21194,7 +21405,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L135",
+      "source_location": "L138",
       "weight": 1.0
     },
     {
@@ -21206,7 +21417,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L137",
+      "source_location": "L140",
       "weight": 1.0
     },
     {
@@ -21218,7 +21429,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L140",
+      "source_location": "L143",
       "weight": 1.0
     },
     {
@@ -21230,7 +21441,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L157",
+      "source_location": "L160",
       "weight": 1.0
     },
     {
@@ -21242,7 +21453,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L159",
+      "source_location": "L162",
       "weight": 1.0
     },
     {
@@ -21254,7 +21465,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L166",
+      "source_location": "L169",
       "weight": 1.0
     },
     {
@@ -21266,7 +21477,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L169",
+      "source_location": "L172",
       "weight": 1.0
     },
     {
@@ -21278,7 +21489,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L172",
+      "source_location": "L175",
       "weight": 1.0
     },
     {
@@ -21290,7 +21501,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L194",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -21302,7 +21513,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L216",
+      "source_location": "L219",
       "weight": 1.0
     },
     {
@@ -21362,7 +21573,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L147",
+      "source_location": "L148",
       "weight": 1.0
     },
     {
@@ -21374,7 +21585,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L154",
+      "source_location": "L155",
       "weight": 1.0
     },
     {
@@ -21386,7 +21597,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L159",
+      "source_location": "L160",
       "weight": 1.0
     },
     {
@@ -21398,7 +21609,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L162",
+      "source_location": "L163",
       "weight": 1.0
     },
     {
@@ -21410,7 +21621,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L163",
+      "source_location": "L164",
       "weight": 1.0
     },
     {
@@ -21422,7 +21633,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L278",
+      "source_location": "L281",
       "weight": 1.0
     },
     {
@@ -21434,91 +21645,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L279",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "double_get",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "variable_type",
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L29",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_state_game_controller_gamecontroller",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "variable_type",
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L301",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "animation",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "variable_type",
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L303",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "list",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "variable_type",
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L304",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "datetime",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "variable_type",
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L307",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "static_final",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "variable_type",
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L323",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "bool_get",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "variable_type",
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L327",
+      "source_location": "L287",
       "weight": 1.0
     },
     {
@@ -21530,7 +21657,91 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L33",
+      "source_location": "L288",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "double_get",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_state_game_controller_gamecontroller",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L320",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "animation",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L322",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "list",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L323",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "datetime",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L326",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "static_final",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L342",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "bool_get",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L346",
       "weight": 1.0
     },
     {
@@ -21542,7 +21753,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -21554,7 +21765,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L88",
+      "source_location": "L89",
       "weight": 1.0
     },
     {
@@ -21566,7 +21777,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/board.dart",
-      "source_location": "L91",
+      "source_location": "L92",
       "weight": 1.0
     },
     {
@@ -22082,7 +22293,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L207",
+      "source_location": "L227",
       "weight": 1.0
     },
     {
@@ -22094,7 +22305,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L210",
+      "source_location": "L230",
       "weight": 1.0
     },
     {
@@ -22106,7 +22317,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L214",
+      "source_location": "L234",
       "weight": 1.0
     },
     {
@@ -22466,7 +22677,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1145",
+      "source_location": "L1142",
       "weight": 1.0
     },
     {
@@ -22478,7 +22689,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1151",
+      "source_location": "L1148",
       "weight": 1.0
     },
     {
@@ -22490,7 +22701,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1257",
+      "source_location": "L1254",
       "weight": 1.0
     },
     {
@@ -22502,7 +22713,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1268",
+      "source_location": "L1265",
       "weight": 1.0
     },
     {
@@ -22514,7 +22725,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1297",
+      "source_location": "L1294",
       "weight": 1.0
     },
     {
@@ -23094,7 +23305,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L100",
+      "source_location": "L110",
       "weight": 1.0
     },
     {
@@ -23105,7 +23316,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L43",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -23116,7 +23327,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L58",
+      "source_location": "L68",
       "weight": 1.0
     },
     {
@@ -23127,7 +23338,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L72",
+      "source_location": "L82",
       "weight": 1.0
     },
     {
@@ -23138,7 +23349,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L77",
+      "source_location": "L87",
+      "weight": 1.0
+    },
+    {
+      "source": "readme_pawlypaint",
+      "target": "readme_tech_stack",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -23149,7 +23371,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L20",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -23160,7 +23382,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L39",
+      "source_location": "L49",
       "weight": 1.0
     },
     {
@@ -23182,7 +23404,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L83",
+      "source_location": "L93",
       "weight": 1.0
     },
     {
@@ -32130,7 +32352,7 @@
     },
     {
       "source": "lib_state_progress_store",
-      "target": "lib_state_progress_store_persist",
+      "target": "lib_state_progress_store_writing",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -32141,24 +32363,57 @@
     },
     {
       "source": "lib_state_progress_store",
-      "target": "lib_state_progress_store_progressscope",
+      "target": "lib_state_progress_store_dirty",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/progress_store.dart",
-      "source_location": "L506",
+      "source_location": "L477",
       "weight": 1.0
     },
     {
       "source": "lib_state_progress_store",
-      "target": "lib_state_progress_store_of",
+      "target": "lib_state_progress_store_persist",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/progress_store.dart",
-      "source_location": "L509",
+      "source_location": "L482",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_progress_store",
+      "target": "lib_state_progress_store_write",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L491",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_progress_store",
+      "target": "lib_state_progress_store_writes",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L501",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_progress_store",
+      "target": "lib_state_progress_store_writeonce",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L503",
       "weight": 1.0
     },
     {
@@ -32170,6 +32425,28 @@
       "confidence_score": 1.0,
       "source_file": "lib/state/progress_store.dart",
       "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_progress_store",
+      "target": "lib_state_progress_store_progressscope",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L534",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_progress_store",
+      "target": "lib_state_progress_store_of",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/progress_store.dart",
+      "source_location": "L537",
       "weight": 1.0
     },
     {
@@ -32636,17 +32913,6 @@
     },
     {
       "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_puzzle",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L119",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_state_sort_controller",
       "target": "lib_state_sort_controller_flight",
       "relation": "defines",
       "_origin": "ast",
@@ -32658,13 +32924,24 @@
     },
     {
       "source": "lib_state_sort_controller",
+      "target": "lib_state_sort_controller_puzzle",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/sort_controller.dart",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_sort_controller",
       "target": "lib_state_sort_controller_game",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L120",
+      "source_location": "L123",
       "weight": 1.0
     },
     {
@@ -32675,7 +32952,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L124",
+      "source_location": "L127",
       "weight": 1.0
     },
     {
@@ -32686,7 +32963,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L125",
+      "source_location": "L128",
       "weight": 1.0
     },
     {
@@ -32697,7 +32974,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L128",
+      "source_location": "L131",
       "weight": 1.0
     },
     {
@@ -32708,7 +32985,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L131",
+      "source_location": "L134",
       "weight": 1.0
     },
     {
@@ -32719,7 +32996,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L134",
+      "source_location": "L137",
       "weight": 1.0
     },
     {
@@ -32730,7 +33007,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L135",
+      "source_location": "L138",
       "weight": 1.0
     },
     {
@@ -32741,7 +33018,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L137",
+      "source_location": "L140",
       "weight": 1.0
     },
     {
@@ -32752,7 +33029,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L140",
+      "source_location": "L143",
       "weight": 1.0
     },
     {
@@ -32763,18 +33040,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L143",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_excusedmistakes",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L147",
+      "source_location": "L146",
       "weight": 1.0
     },
     {
@@ -32790,7 +33056,7 @@
     },
     {
       "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_combo",
+      "target": "lib_state_sort_controller_excusedmistakes",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -32801,13 +33067,24 @@
     },
     {
       "source": "lib_state_sort_controller",
+      "target": "lib_state_sort_controller_combo",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/sort_controller.dart",
+      "source_location": "L153",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_sort_controller",
       "target": "lib_state_sort_controller_bestcombo",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L151",
+      "source_location": "L154",
       "weight": 1.0
     },
     {
@@ -32818,7 +33095,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L152",
+      "source_location": "L155",
       "weight": 1.0
     },
     {
@@ -32829,40 +33106,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L155",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_hintstep",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L157",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_hintat",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/state/sort_controller.dart",
       "source_location": "L158",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_mistakecell",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L159",
       "weight": 1.0
     },
     {
@@ -32878,7 +33122,7 @@
     },
     {
       "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_mistakeat",
+      "target": "lib_state_sort_controller_hintstep",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -32889,7 +33133,29 @@
     },
     {
       "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_boardversion",
+      "target": "lib_state_sort_controller_hintat",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/sort_controller.dart",
+      "source_location": "L161",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_sort_controller",
+      "target": "lib_state_sort_controller_mistakecell",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/sort_controller.dart",
+      "source_location": "L162",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_sort_controller",
+      "target": "lib_state_sort_controller_mistakeat",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -32900,18 +33166,7 @@
     },
     {
       "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_baseseconds",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L165",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_runningsince",
+      "target": "lib_state_sort_controller_boardversion",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -32922,13 +33177,24 @@
     },
     {
       "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_correctcount",
+      "target": "lib_state_sort_controller_baseseconds",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
       "source_location": "L168",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_sort_controller",
+      "target": "lib_state_sort_controller_runningsince",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/sort_controller.dart",
+      "source_location": "L169",
       "weight": 1.0
     },
     {
@@ -32944,18 +33210,7 @@
     },
     {
       "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_iscomplete",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L170",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_animating",
+      "target": "lib_state_sort_controller_correctcount",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -32966,13 +33221,35 @@
     },
     {
       "source": "lib_state_sort_controller",
+      "target": "lib_state_sort_controller_iscomplete",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/sort_controller.dart",
+      "source_location": "L173",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_sort_controller",
+      "target": "lib_state_sort_controller_animating",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/sort_controller.dart",
+      "source_location": "L174",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_sort_controller",
       "target": "lib_state_sort_controller_selection",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L172",
+      "source_location": "L175",
       "weight": 1.0
     },
     {
@@ -32994,7 +33271,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L180",
+      "source_location": "L183",
       "weight": 1.0
     },
     {
@@ -33005,7 +33282,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L181",
+      "source_location": "L184",
       "weight": 1.0
     },
     {
@@ -33016,7 +33293,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L184",
+      "source_location": "L187",
       "weight": 1.0
     },
     {
@@ -33038,7 +33315,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L191",
+      "source_location": "L194",
       "weight": 1.0
     },
     {
@@ -33049,7 +33326,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L193",
+      "source_location": "L196",
       "weight": 1.0
     },
     {
@@ -33060,7 +33337,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L194",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -33082,7 +33359,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L203",
+      "source_location": "L206",
       "weight": 1.0
     },
     {
@@ -33093,7 +33370,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L207",
+      "source_location": "L210",
       "weight": 1.0
     },
     {
@@ -33104,7 +33381,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L214",
+      "source_location": "L217",
       "weight": 1.0
     },
     {
@@ -33115,18 +33392,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L216",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_state_sort_controller",
-      "target": "lib_state_sort_controller_snapshot",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L218",
+      "source_location": "L219",
       "weight": 1.0
     },
     {
@@ -33142,13 +33408,24 @@
     },
     {
       "source": "lib_state_sort_controller",
+      "target": "lib_state_sort_controller_snapshot",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/state/sort_controller.dart",
+      "source_location": "L221",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_state_sort_controller",
       "target": "lib_state_sort_controller_remember",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L228",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -33159,7 +33436,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L236",
+      "source_location": "L239",
       "weight": 1.0
     },
     {
@@ -33170,7 +33447,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L244",
+      "source_location": "L247",
       "weight": 1.0
     },
     {
@@ -33192,7 +33469,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L252",
+      "source_location": "L255",
       "weight": 1.0
     },
     {
@@ -33203,7 +33480,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L274",
+      "source_location": "L277",
       "weight": 1.0
     },
     {
@@ -33236,7 +33513,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L341",
+      "source_location": "L344",
       "weight": 1.0
     },
     {
@@ -33247,7 +33524,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L364",
+      "source_location": "L367",
       "weight": 1.0
     },
     {
@@ -33258,7 +33535,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L374",
+      "source_location": "L377",
       "weight": 1.0
     },
     {
@@ -33269,7 +33546,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L380",
+      "source_location": "L383",
       "weight": 1.0
     },
     {
@@ -33280,7 +33557,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L386",
+      "source_location": "L389",
       "weight": 1.0
     },
     {
@@ -33302,7 +33579,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L64",
+      "source_location": "L67",
       "weight": 1.0
     },
     {
@@ -33313,7 +33590,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L72",
+      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -33324,7 +33601,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L79",
+      "source_location": "L82",
       "weight": 1.0
     },
     {
@@ -33335,7 +33612,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L90",
+      "source_location": "L93",
       "weight": 1.0
     },
     {
@@ -33346,7 +33623,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L95",
+      "source_location": "L98",
       "weight": 1.0
     },
     {
@@ -33412,7 +33689,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L108",
+      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -33423,7 +33700,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L118",
+      "source_location": "L119",
       "weight": 1.0
     },
     {
@@ -33434,7 +33711,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -33445,7 +33722,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L147",
+      "source_location": "L148",
       "weight": 1.0
     },
     {
@@ -33456,7 +33733,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L150",
+      "source_location": "L151",
       "weight": 1.0
     },
     {
@@ -33467,7 +33744,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L153",
+      "source_location": "L154",
       "weight": 1.0
     },
     {
@@ -33478,7 +33755,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L154",
+      "source_location": "L155",
       "weight": 1.0
     },
     {
@@ -33489,7 +33766,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L155",
+      "source_location": "L156",
       "weight": 1.0
     },
     {
@@ -33500,7 +33777,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L156",
+      "source_location": "L157",
       "weight": 1.0
     },
     {
@@ -33511,7 +33788,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L157",
+      "source_location": "L158",
       "weight": 1.0
     },
     {
@@ -33522,7 +33799,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L159",
+      "source_location": "L160",
       "weight": 1.0
     },
     {
@@ -33533,18 +33810,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L165",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_kmintapcell",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L17",
+      "source_location": "L166",
       "weight": 1.0
     },
     {
@@ -33555,7 +33821,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L171",
+      "source_location": "L172",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_kmintapcell",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L18",
       "weight": 1.0
     },
     {
@@ -33566,18 +33843,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L188",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_boardview",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L20",
+      "source_location": "L189",
       "weight": 1.0
     },
     {
@@ -33588,12 +33854,12 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L201",
+      "source_location": "L202",
       "weight": 1.0
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_scale",
+      "target": "lib_ui_board_boardview",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33604,7 +33870,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_offset",
+      "target": "lib_ui_board_scale",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33615,7 +33881,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_viewport",
+      "target": "lib_ui_board_offset",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33626,7 +33892,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_cols",
+      "target": "lib_ui_board_viewport",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33637,7 +33903,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_rows",
+      "target": "lib_ui_board_cols",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33648,7 +33914,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_minscale",
+      "target": "lib_ui_board_rows",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33659,7 +33925,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_maxscale",
+      "target": "lib_ui_board_minscale",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33676,7 +33942,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L276",
+      "source_location": "L279",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_maxscale",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -33687,7 +33964,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L277",
+      "source_location": "L280",
       "weight": 1.0
     },
     {
@@ -33698,7 +33975,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L278",
+      "source_location": "L281",
       "weight": 1.0
     },
     {
@@ -33709,7 +33986,51 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L279",
+      "source_location": "L282",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_gems",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L285",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_committed",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L286",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_gemslook",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L287",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_chunk",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L288",
       "weight": 1.0
     },
     {
@@ -33720,18 +34041,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L281",
+      "source_location": "L290",
       "weight": 1.0
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_boardpainter",
+      "target": "lib_ui_board_cleargems",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L289",
+      "source_location": "L298",
       "weight": 1.0
     },
     {
@@ -33742,89 +34063,12 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L29",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_game",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L301",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_view",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L302",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_shimmer",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L303",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_paints",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L304",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_highlight",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L305",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_celebrate",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L306",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_sweepat",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L307",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_cache",
+      "target": "lib_ui_board_boardpainter",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33835,51 +34079,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_sheet",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L310",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_sheetshadow",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L311",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_gridfine",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L314",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_gridmajor",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L317",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_ring",
+      "target": "lib_ui_board_game",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33890,7 +34090,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_blast",
+      "target": "lib_ui_board_view",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33901,7 +34101,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_beacon",
+      "target": "lib_ui_board_shimmer",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33912,7 +34112,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_miss",
+      "target": "lib_ui_board_paints",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33923,7 +34123,40 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_smart",
+      "target": "lib_ui_board_highlight",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L324",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_celebrate",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L325",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_sweepat",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L326",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_cache",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33934,7 +34167,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "lib_ui_board_rebuildcache",
+      "target": "lib_ui_board_sheet",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33945,13 +34178,123 @@
     },
     {
       "source": "lib_ui_board",
+      "target": "lib_ui_board_sheetshadow",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L330",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_gridfine",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L333",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_gridmajor",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L336",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_ring",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L339",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
       "target": "lib_ui_board_edge",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L33",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_blast",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L340",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_beacon",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L341",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_miss",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L342",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_smart",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L346",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_cellrect",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L348",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_rebuildbase",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L352",
       "weight": 1.0
     },
     {
@@ -33962,7 +34305,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -33973,7 +34316,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L39",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_drawplaced",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L422",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_drawgems",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L430",
       "weight": 1.0
     },
     {
@@ -33984,7 +34349,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L403",
+      "source_location": "L456",
       "weight": 1.0
     },
     {
@@ -33995,29 +34360,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L45",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_look",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L523",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_board",
-      "target": "lib_ui_board_shouldrepaint",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/board.dart",
-      "source_location": "L526",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -34028,7 +34371,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L57",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_look",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L580",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "lib_ui_board_shouldrepaint",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L583",
       "weight": 1.0
     },
     {
@@ -34039,7 +34404,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L63",
+      "source_location": "L64",
       "weight": 1.0
     },
     {
@@ -34050,7 +34415,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L72",
+      "source_location": "L73",
       "weight": 1.0
     },
     {
@@ -34061,7 +34426,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L79",
+      "source_location": "L80",
       "weight": 1.0
     },
     {
@@ -34072,7 +34437,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L88",
+      "source_location": "L89",
       "weight": 1.0
     },
     {
@@ -34083,7 +34448,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L91",
+      "source_location": "L92",
       "weight": 1.0
     },
     {
@@ -34094,7 +34459,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L94",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -35870,7 +36235,18 @@
     },
     {
       "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_sweepduration",
+      "target": "lib_ui_gem_style_ringoutline",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L173",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_ringcore",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -35881,13 +36257,46 @@
     },
     {
       "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_ringink",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L177",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_drawselectring",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L182",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_sweepduration",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L194",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
       "target": "lib_ui_gem_style_drawsweep",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L178",
+      "source_location": "L198",
       "weight": 1.0
     },
     {
@@ -35898,7 +36307,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L180",
+      "source_location": "L200",
       "weight": 1.0
     },
     {
@@ -35909,7 +36318,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L184",
+      "source_location": "L204",
       "weight": 1.0
     },
     {
@@ -35920,7 +36329,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L188",
+      "source_location": "L208",
       "weight": 1.0
     },
     {
@@ -35931,62 +36340,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L189",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_dir",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L190",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_center",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L191",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_half",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L192",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_puzzlethumbpainter",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L204",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_puzzle",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L207",
+      "source_location": "L209",
       "weight": 1.0
     },
     {
@@ -36002,7 +36356,7 @@
     },
     {
       "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_placed",
+      "target": "lib_ui_gem_style_dir",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -36013,7 +36367,7 @@
     },
     {
       "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_complete",
+      "target": "lib_ui_gem_style_center",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -36024,35 +36378,13 @@
     },
     {
       "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_hidden",
+      "target": "lib_ui_gem_style_half",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L213",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_hiddenalt",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L214",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_paint",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L217",
+      "source_location": "L212",
       "weight": 1.0
     },
     {
@@ -36068,6 +36400,28 @@
     },
     {
       "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_puzzlethumbpainter",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L224",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_puzzle",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L227",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
       "target": "lib_ui_gem_style_light",
       "relation": "defines",
       "_origin": "ast",
@@ -36079,13 +36433,57 @@
     },
     {
       "source": "lib_ui_gem_style",
-      "target": "lib_ui_gem_style_shouldrepaint",
+      "target": "lib_ui_gem_style_placed",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L236",
+      "source_location": "L230",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_complete",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L231",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_hidden",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L233",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_hiddenalt",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L234",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_paint",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L237",
       "weight": 1.0
     },
     {
@@ -36097,6 +36495,17 @@
       "confidence_score": 1.0,
       "source_file": "lib/ui/gem_style.dart",
       "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_gem_style",
+      "target": "lib_ui_gem_style_shouldrepaint",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/gem_style.dart",
+      "source_location": "L256",
       "weight": 1.0
     },
     {
@@ -37526,7 +37935,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1119",
+      "source_location": "L1116",
       "weight": 1.0
     },
     {
@@ -37548,7 +37957,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1135",
+      "source_location": "L1132",
       "weight": 1.0
     },
     {
@@ -37570,7 +37979,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1145",
+      "source_location": "L1142",
       "weight": 1.0
     },
     {
@@ -37581,7 +37990,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1150",
+      "source_location": "L1147",
       "weight": 1.0
     },
     {
@@ -37592,7 +38001,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1151",
+      "source_location": "L1148",
       "weight": 1.0
     },
     {
@@ -37614,7 +38023,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1245",
+      "source_location": "L1242",
       "weight": 1.0
     },
     {
@@ -37625,7 +38034,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1257",
+      "source_location": "L1254",
       "weight": 1.0
     },
     {
@@ -37636,7 +38045,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1259",
+      "source_location": "L1256",
       "weight": 1.0
     },
     {
@@ -37647,7 +38056,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1260",
+      "source_location": "L1257",
       "weight": 1.0
     },
     {
@@ -37658,7 +38067,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1262",
+      "source_location": "L1259",
       "weight": 1.0
     },
     {
@@ -37669,7 +38078,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1265",
+      "source_location": "L1262",
       "weight": 1.0
     },
     {
@@ -37680,7 +38089,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1268",
+      "source_location": "L1265",
       "weight": 1.0
     },
     {
@@ -37691,7 +38100,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1271",
+      "source_location": "L1268",
       "weight": 1.0
     },
     {
@@ -37702,7 +38111,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1274",
+      "source_location": "L1271",
       "weight": 1.0
     },
     {
@@ -37713,7 +38122,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1286",
+      "source_location": "L1283",
       "weight": 1.0
     },
     {
@@ -37724,7 +38133,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1294",
+      "source_location": "L1291",
       "weight": 1.0
     },
     {
@@ -37735,7 +38144,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1295",
+      "source_location": "L1292",
       "weight": 1.0
     },
     {
@@ -37746,7 +38155,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1296",
+      "source_location": "L1293",
       "weight": 1.0
     },
     {
@@ -37757,7 +38166,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1297",
+      "source_location": "L1294",
       "weight": 1.0
     },
     {
@@ -37768,7 +38177,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1302",
+      "source_location": "L1299",
       "weight": 1.0
     },
     {
@@ -38719,13 +39128,13 @@
     },
     {
       "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_spotring",
+      "target": "lib_ui_sort_screen_miss",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L978",
+      "source_location": "L979",
       "weight": 1.0
     },
     {
@@ -38741,24 +39150,13 @@
     },
     {
       "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_miss",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L980",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
       "target": "lib_ui_sort_screen_cell",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L984",
+      "source_location": "L983",
       "weight": 1.0
     },
     {
@@ -38769,7 +39167,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L989",
+      "source_location": "L988",
       "weight": 1.0
     },
     {
@@ -39385,7 +39783,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "test/game_test.dart",
-      "source_location": "L22",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -39396,7 +39794,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "test/game_test.dart",
-      "source_location": "L31",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -40611,13 +41009,24 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "gem_style_dart",
+      "target": "state_settings_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
       "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_board",
+      "target": "gem_style_dart",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/board.dart",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -40666,7 +41075,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "state_game_controller_dart",
+      "target": "models_puzzle_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -40677,7 +41086,7 @@
     },
     {
       "source": "lib_ui_board",
-      "target": "state_settings_dart",
+      "target": "state_game_controller_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42250,7 +42659,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "dart_math",
+      "target": "dart_convert",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42261,7 +42670,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_logic_patches_dart",
+      "target": "package_pawlypaint_logic_line_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42272,7 +42681,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_logic_scoring_dart",
+      "target": "package_pawlypaint_logic_patches_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42283,7 +42692,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_logic_sort_game_dart",
+      "target": "package_pawlypaint_logic_scoring_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42294,7 +42703,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_logic_time_attack_dart",
+      "target": "package_pawlypaint_logic_sort_game_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42305,7 +42714,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_models_puzzle_dart",
+      "target": "package_pawlypaint_logic_time_attack_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42316,7 +42725,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_state_achievements_dart",
+      "target": "package_pawlypaint_models_puzzle_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42327,7 +42736,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_state_game_controller_dart",
+      "target": "package_pawlypaint_state_achievements_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42338,7 +42747,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_state_music_dart",
+      "target": "package_pawlypaint_state_game_controller_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42349,7 +42758,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_state_progress_store_dart",
+      "target": "package_pawlypaint_state_music_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42360,7 +42769,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_state_sort_controller_dart",
+      "target": "package_pawlypaint_state_progress_store_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42371,7 +42780,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "dart_typed_data",
+      "target": "dart_math",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42382,7 +42791,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_ui_board_dart",
+      "target": "package_pawlypaint_state_sort_controller_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42393,7 +42802,29 @@
     },
     {
       "source": "test_game_test",
-      "target": "dart_ui",
+      "target": "package_pawlypaint_ui_board_dart",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/game_test.dart",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "test_game_test",
+      "target": "package_shared_preferences_shared_preferences_dart",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/game_test.dart",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "test_game_test",
+      "target": "dart_typed_data",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42404,18 +42835,18 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_flutter_test_flutter_test_dart",
+      "target": "dart_ui",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "test/game_test.dart",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_data_courses_dart",
+      "target": "package_flutter_test_flutter_test_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42426,7 +42857,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_data_simplify_dart",
+      "target": "package_pawlypaint_data_courses_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42437,7 +42868,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_logic_boosters_dart",
+      "target": "package_pawlypaint_data_simplify_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42448,7 +42879,7 @@
     },
     {
       "source": "test_game_test",
-      "target": "package_pawlypaint_logic_line_dart",
+      "target": "package_pawlypaint_logic_boosters_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -42553,7 +42984,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/progress_store.dart",
-      "source_location": "L506",
+      "source_location": "L534",
       "weight": 1.0
     },
     {
@@ -42619,7 +43050,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L118",
+      "source_location": "L119",
       "weight": 1.0
     },
     {
@@ -42630,7 +43061,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L289",
+      "source_location": "L308",
       "weight": 1.0
     },
     {
@@ -42641,7 +43072,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L153",
+      "source_location": "L154",
       "weight": 1.0
     },
     {
@@ -42652,7 +43083,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -42872,7 +43303,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/gem_style.dart",
-      "source_location": "L204",
+      "source_location": "L224",
       "weight": 1.0
     },
     {
@@ -43213,7 +43644,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1245",
+      "source_location": "L1242",
       "weight": 1.0
     },
     {
@@ -43224,7 +43655,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1134",
+      "source_location": "L1131",
       "weight": 1.0
     },
     {
@@ -43587,7 +44018,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/progress_store.dart",
-      "source_location": "L506",
+      "source_location": "L534",
       "weight": 1.0
     },
     {
@@ -43609,7 +44040,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/board.dart",
-      "source_location": "L153",
+      "source_location": "L154",
       "weight": 1.0
     },
     {

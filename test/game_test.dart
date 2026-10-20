@@ -280,6 +280,56 @@ void main() {
       expect(a.wrongCount, greaterThan(puzzle.cellCount * 0.15));
     });
 
+    test('tapping a spot fills it from the tray, switching colors without a mistake', () {
+      // A roomy tray, so whole colors fit while the board is set up.
+      final g = SortGame.scrambled(width: puzzle.width, target: puzzle.cells, fraction: 0.25, capacity: 400, seed: 3);
+      // Send colors to the tray until a hole wants a tray color and the tray
+      // holds a second color to be "wrongly" holding.
+      final cells = List.generate(g.current.length, (i) => i);
+      int holeB = -1;
+      while (holeB < 0) {
+        holeB = cells.firstWhere(
+          (i) => g.isHole(i) && g.tray.contains(g.target[i]) && g.tray.any((c) => c != g.target[i]),
+          orElse: () => -1,
+        );
+        if (holeB >= 0) break;
+        // Prefer a color some hole already wants, so the tray gains it.
+        final wanted = cells.where(g.isHole).map((i) => g.target[i]).toSet();
+        final pick = cells.firstWhere((i) => g.isWrong(i) && !g.isHole(i) && wanted.contains(g.current[i]),
+            orElse: () => cells.firstWhere((i) => g.isWrong(i) && !g.isHole(i)));
+        g.tapCell(pick);
+        g.tapTray(null);
+      }
+      final colorB = g.target[holeB], colorA = g.tray.firstWhere((c) => c != colorB);
+      // Holding one tray color and tapping a hole of another switches and drops.
+      g.tapTray(g.tray.indexOf(colorA));
+      expect(g.selection?.color, colorA);
+      final move = g.tapCell(holeB);
+      expect(move.action, SortAction.placed);
+      expect(move.hops.single.color, colorB);
+      expect(g.current[holeB], colorB);
+      expect(g.mistakes, 0);
+      // With nothing in hand, a hole is filled straight from the tray too.
+      g.selection = null;
+      final holeA = cells.firstWhere((i) => g.isHole(i) && g.target[i] == colorA);
+      expect(g.tapCell(holeA).action, SortAction.placed);
+      expect(g.mistakes, 0);
+      // A hole whose color the tray lacks is not a mistake, just a nudge.
+      final other = cells.firstWhere((i) => g.isHole(i) && !g.tray.contains(g.target[i]), orElse: () => -1);
+      if (other >= 0) {
+        expect(g.tapCell(other).action, SortAction.noBeads);
+        expect(g.mistakes, 0);
+      }
+      // Canvas beads in hand still can't go where another color belongs.
+      final c = cells.firstWhere((i) => g.isWrong(i) && g.current[i] != g.target[holeA]);
+      g.tapCell(c);
+      final holeC = cells.firstWhere((i) => g.isHole(i) && g.target[i] != g.current[c], orElse: () => -1);
+      if (holeC >= 0) {
+        expect(g.tapCell(holeC).action, SortAction.wrong);
+        expect(g.mistakes, 1);
+      }
+    });
+
     test('tapping picks beads up, and nothing moves until a destination is tapped', () {
       final g = fresh();
       final right = List.generate(g.current.length, (i) => i).firstWhere((i) => !g.isWrong(i));

@@ -19,9 +19,12 @@ enum SortAction {
   /// Beads landed in empty spots that wanted their color.
   placed,
 
-  /// A tap on a bead that was already right, or on a spot that wants another
-  /// color.
+  /// A tap on a bead that was already right, or a drop of picked-up canvas
+  /// beads on a spot that wants another color.
   wrong,
+
+  /// An empty spot was tapped, but the tray has no beads of its color.
+  noBeads,
 
   /// The tray has no room for the picked-up beads.
   trayFull,
@@ -151,15 +154,20 @@ class SortGame {
     return out.length > limit ? out.sublist(0, limit) : out;
   }
 
-  /// Taps a canvas cell: picks up the misplaced beads of a color, drops the
-  /// picked-up beads into an empty spot that wants them, or counts a mistake
+  /// Taps a canvas cell: picks up the misplaced beads of a color, fills an
+  /// empty spot from the beads in hand or from the tray, or counts a mistake
   /// when [countMistakes] is set.
   SortMove tapCell(int cell, {bool countMistakes = true}) {
     final sel = selection;
     if (isHole(cell)) {
-      if (sel == null) return SortMove.ignored;
-      if (target[cell] != sel.color) return _wrong(countMistakes);
-      return _place(cell, sel);
+      final want = target[cell];
+      if (sel != null && sel.color == want) return _place(cell, sel);
+      // Canvas beads in hand can only go where their color belongs.
+      if (sel != null && !sel.fromTray) return _wrong(countMistakes);
+      // Tapping a spot means "fill it": pick its color up from the tray, if
+      // the tray has it, whatever was held before.
+      if (!tray.contains(want)) return const SortMove(SortAction.noBeads);
+      return _place(cell, SortSelection.tray(want));
     }
     if (isSelected(cell)) {
       selection = null;

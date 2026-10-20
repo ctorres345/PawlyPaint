@@ -675,7 +675,7 @@
       "file_type": "code",
       "norm_label": "bar",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1399"
+      "source_location": "L1422"
     },
     {
       "id": "lib_ui_sort_screen_boardkey",
@@ -697,7 +697,7 @@
       "file_type": "code",
       "norm_label": "build",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L511"
+      "source_location": "L514"
     },
     {
       "id": "lib_ui_sort_screen_cache",
@@ -708,7 +708,7 @@
       "file_type": "code",
       "norm_label": "_cache",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L858"
+      "source_location": "L861"
     },
     {
       "id": "lib_ui_sort_screen_capacity",
@@ -719,7 +719,7 @@
       "file_type": "code",
       "norm_label": "capacity",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1257"
+      "source_location": "L1280"
     },
     {
       "id": "lib_ui_sort_screen_celebrate",
@@ -741,7 +741,7 @@
       "file_type": "code",
       "norm_label": "_cell",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L983"
+      "source_location": "L986"
     },
     {
       "id": "lib_ui_sort_screen_cellcenter",
@@ -752,7 +752,7 @@
       "file_type": "code",
       "norm_label": "_cellcenter",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L489"
+      "source_location": "L492"
     },
     {
       "id": "lib_ui_sort_screen_clock",
@@ -818,7 +818,7 @@
       "file_type": "code",
       "norm_label": "columns",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1254"
+      "source_location": "L1277"
     },
     {
       "id": "lib_ui_sort_screen_combobar",
@@ -840,7 +840,7 @@
       "file_type": "code",
       "norm_label": "_confirmrestart",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L458"
+      "source_location": "L461"
     },
     {
       "id": "lib_ui_sort_screen_countdown",
@@ -851,7 +851,7 @@
       "file_type": "code",
       "norm_label": "countdown",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L722"
+      "source_location": "L725"
     },
     {
       "id": "lib_ui_sort_screen_createstate",
@@ -928,7 +928,7 @@
       "file_type": "code",
       "norm_label": "_drawslot",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1299"
+      "source_location": "L1322"
     },
     {
       "id": "lib_ui_sort_screen_drawsocket",
@@ -939,7 +939,7 @@
       "file_type": "code",
       "norm_label": "drawsocket",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L937"
+      "source_location": "L940"
     },
     {
       "id": "lib_ui_sort_screen_endtutorial",
@@ -961,7 +961,7 @@
       "file_type": "code",
       "norm_label": "_finish",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L327"
+      "source_location": "L330"
     },
     {
       "id": "lib_ui_sort_screen_finished",
@@ -983,7 +983,7 @@
       "file_type": "code",
       "norm_label": "_fittedfor",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L855"
+      "source_location": "L858"
     },
     {
       "id": "lib_ui_sort_screen_frame",
@@ -1005,7 +1005,7 @@
       "file_type": "code",
       "norm_label": "full",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1259"
+      "source_location": "L1282"
     },
     {
       "id": "lib_ui_sort_screen_fulltint",
@@ -1016,7 +1016,7 @@
       "file_type": "code",
       "norm_label": "_fulltint",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1291"
+      "source_location": "L1314"
     },
     {
       "id": "lib_ui_sort_screen_game",
@@ -1049,7 +1049,7 @@
       "file_type": "code",
       "norm_label": "_glow",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L974"
+      "source_location": "L977"
     },
     {
       "id": "lib_ui_sort_screen_hint",
@@ -1060,7 +1060,7 @@
       "file_type": "code",
       "norm_label": "_hint",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L306"
+      "source_location": "L309"
     },
     {
       "id": "lib_ui_sort_screen_hintcolor",
@@ -1071,7 +1071,7 @@
       "file_type": "code",
       "norm_label": "hintcolor",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1265"
+      "source_location": "L1288"
     },
     {
       "id": "lib_ui_sort_screen_initstate",
@@ -1093,7 +1093,7 @@
       "file_type": "code",
       "norm_label": "invite",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1268"
+      "source_location": "L1291"
     },
     {
       "id": "lib_ui_sort_screen_invitetint",
@@ -1104,7 +1104,7 @@
       "file_type": "code",
       "norm_label": "_invitetint",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1292"
+      "source_location": "L1315"
     },
     {
       "id": "lib_ui_sort_screen_key",
@@ -1115,7 +1115,7 @@
       "file_type": "code",
       "norm_label": "key",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L922"
+      "source_location": "L925"
     },
     {
       "id": "lib_ui_sort_screen_lastscale",
@@ -1126,7 +1126,7 @@
       "file_type": "code",
       "norm_label": "_lastscale",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L856"
+      "source_location": "L859"
     },
     {
       "id": "lib_ui_sort_screen_left",
@@ -1137,7 +1137,7 @@
       "file_type": "code",
       "norm_label": "left",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L726"
+      "source_location": "L729"
     },
     {
       "id": "lib_ui_sort_screen_look",
@@ -1148,7 +1148,7 @@
       "file_type": "code",
       "norm_label": "look",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1116"
+      "source_location": "L1119"
     },
     {
       "id": "lib_ui_sort_screen_miss",
@@ -1159,7 +1159,7 @@
       "file_type": "code",
       "norm_label": "_miss",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L979"
+      "source_location": "L982"
     },
     {
       "id": "lib_ui_sort_screen_music",
@@ -1181,7 +1181,7 @@
       "file_type": "code",
       "norm_label": "_nextseed",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L410"
+      "source_location": "L413"
     },
     {
       "id": "lib_ui_sort_screen_ondone",
@@ -1192,7 +1192,7 @@
       "file_type": "code",
       "norm_label": "ondone",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L782"
+      "source_location": "L785"
     },
     {
       "id": "lib_ui_sort_screen_onpeek",
@@ -1203,7 +1203,7 @@
       "file_type": "code",
       "norm_label": "onpeek",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1467"
+      "source_location": "L1490"
     },
     {
       "id": "lib_ui_sort_screen_onshake",
@@ -1214,7 +1214,7 @@
       "file_type": "code",
       "norm_label": "onshake",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1147"
+      "source_location": "L1150"
     },
     {
       "id": "lib_ui_sort_screen_ontap",
@@ -1225,7 +1225,7 @@
       "file_type": "code",
       "norm_label": "ontap",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L848"
+      "source_location": "L851"
     },
     {
       "id": "lib_ui_sort_screen_onundo",
@@ -1236,7 +1236,7 @@
       "file_type": "code",
       "norm_label": "onundo",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1148"
+      "source_location": "L1151"
     },
     {
       "id": "lib_ui_sort_screen_paint",
@@ -1247,7 +1247,7 @@
       "file_type": "code",
       "norm_label": "paint",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1022"
+      "source_location": "L1025"
     },
     {
       "id": "lib_ui_sort_screen_paints",
@@ -1269,7 +1269,7 @@
       "file_type": "code",
       "norm_label": "peek",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L845"
+      "source_location": "L848"
     },
     {
       "id": "lib_ui_sort_screen_peeking",
@@ -1291,7 +1291,7 @@
       "file_type": "code",
       "norm_label": "picture",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L921"
+      "source_location": "L924"
     },
     {
       "id": "lib_ui_sort_screen_pointers",
@@ -1302,7 +1302,7 @@
       "file_type": "code",
       "norm_label": "_pointers",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L857"
+      "source_location": "L860"
     },
     {
       "id": "lib_ui_sort_screen_progress",
@@ -1313,7 +1313,7 @@
       "file_type": "code",
       "norm_label": "progress",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L724"
+      "source_location": "L727"
     },
     {
       "id": "lib_ui_sort_screen_puzzle",
@@ -1335,7 +1335,7 @@
       "file_type": "code",
       "norm_label": "r",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L938"
+      "source_location": "L941"
     },
     {
       "id": "lib_ui_sort_screen_react",
@@ -1357,7 +1357,7 @@
       "file_type": "code",
       "norm_label": "_record",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L988"
+      "source_location": "L991"
     },
     {
       "id": "lib_ui_sort_screen_relaxed",
@@ -1368,7 +1368,7 @@
       "file_type": "code",
       "norm_label": "relaxed",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L719"
+      "source_location": "L722"
     },
     {
       "id": "lib_ui_sort_screen_ring",
@@ -1379,7 +1379,7 @@
       "file_type": "code",
       "norm_label": "_ring",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L978"
+      "source_location": "L981"
     },
     {
       "id": "lib_ui_sort_screen_save",
@@ -1412,7 +1412,7 @@
       "file_type": "code",
       "norm_label": "seconds",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L725"
+      "source_location": "L728"
     },
     {
       "id": "lib_ui_sort_screen_seed",
@@ -1434,7 +1434,7 @@
       "file_type": "code",
       "norm_label": "selectedcolor",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1262"
+      "source_location": "L1285"
     },
     {
       "id": "lib_ui_sort_screen_settings",
@@ -1456,7 +1456,7 @@
       "file_type": "code",
       "norm_label": "_sheet",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L969"
+      "source_location": "L972"
     },
     {
       "id": "lib_ui_sort_screen_sheetshadow",
@@ -1467,7 +1467,7 @@
       "file_type": "code",
       "norm_label": "_sheetshadow",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L970"
+      "source_location": "L973"
     },
     {
       "id": "lib_ui_sort_screen_shimmer",
@@ -1489,7 +1489,7 @@
       "file_type": "code",
       "norm_label": "shouldrepaint",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1119"
+      "source_location": "L1122"
     },
     {
       "id": "lib_ui_sort_screen_showtips",
@@ -1522,7 +1522,7 @@
       "file_type": "code",
       "norm_label": "slotat",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1283"
+      "source_location": "L1306"
     },
     {
       "id": "lib_ui_sort_screen_slotline",
@@ -1533,7 +1533,7 @@
       "file_type": "code",
       "norm_label": "_slotline",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1294"
+      "source_location": "L1317"
     },
     {
       "id": "lib_ui_sort_screen_slotrect",
@@ -1544,7 +1544,7 @@
       "file_type": "code",
       "norm_label": "_slotrect",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L498"
+      "source_location": "L501"
     },
     {
       "id": "lib_ui_sort_screen_socket",
@@ -1555,7 +1555,7 @@
       "file_type": "code",
       "norm_label": "_socket",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L931"
+      "source_location": "L934"
     },
     {
       "id": "lib_ui_sort_screen_socketrim",
@@ -1566,7 +1566,7 @@
       "file_type": "code",
       "norm_label": "_socketrim",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L932"
+      "source_location": "L935"
     },
     {
       "id": "lib_ui_sort_screen_sortcache",
@@ -1577,7 +1577,7 @@
       "file_type": "code",
       "norm_label": "_sortcache",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L920"
+      "source_location": "L923"
     },
     {
       "id": "lib_ui_sort_screen_spot",
@@ -1588,7 +1588,7 @@
       "file_type": "code",
       "norm_label": "_spot",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L977"
+      "source_location": "L980"
     },
     {
       "id": "lib_ui_sort_screen_stackkey",
@@ -1610,7 +1610,7 @@
       "file_type": "code",
       "norm_label": "_startsweep",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L321"
+      "source_location": "L324"
     },
     {
       "id": "lib_ui_sort_screen_store",
@@ -1698,7 +1698,7 @@
       "file_type": "code",
       "norm_label": "_timeup",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L412"
+      "source_location": "L415"
     },
     {
       "id": "lib_ui_sort_screen_toast",
@@ -1709,7 +1709,7 @@
       "file_type": "code",
       "norm_label": "_toast",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L296"
+      "source_location": "L299"
     },
     {
       "id": "lib_ui_sort_screen_tray",
@@ -1720,7 +1720,7 @@
       "file_type": "code",
       "norm_label": "tray",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1256"
+      "source_location": "L1279"
     },
     {
       "id": "lib_ui_sort_screen_traykey",
@@ -1786,7 +1786,7 @@
       "file_type": "code",
       "norm_label": "_wrongdot",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L973"
+      "source_location": "L976"
     },
     {
       "id": "package_flutter_scheduler_dart",
@@ -6208,7 +6208,7 @@
       "file_type": "code",
       "norm_label": "action",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L36"
+      "source_location": "L39"
     },
     {
       "id": "lib_logic_sort_game_beadhop",
@@ -6230,7 +6230,7 @@
       "file_type": "code",
       "norm_label": "beststep",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L240"
+      "source_location": "L248"
     },
     {
       "id": "lib_logic_sort_game_board",
@@ -6241,7 +6241,7 @@
       "file_type": "code",
       "norm_label": "board",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L45"
+      "source_location": "L48"
     },
     {
       "id": "lib_logic_sort_game_capacity",
@@ -6252,7 +6252,7 @@
       "file_type": "code",
       "norm_label": "capacity",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L113"
+      "source_location": "L116"
     },
     {
       "id": "lib_logic_sort_game_cells",
@@ -6263,7 +6263,7 @@
       "file_type": "code",
       "norm_label": "cells",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L49"
+      "source_location": "L52"
     },
     {
       "id": "lib_logic_sort_game_color",
@@ -6274,7 +6274,7 @@
       "file_type": "code",
       "norm_label": "color",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L48"
+      "source_location": "L51"
     },
     {
       "id": "lib_logic_sort_game_current",
@@ -6285,7 +6285,7 @@
       "file_type": "code",
       "norm_label": "current",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L111"
+      "source_location": "L114"
     },
     {
       "id": "lib_logic_sort_game_decodeboard",
@@ -6296,7 +6296,7 @@
       "file_type": "code",
       "norm_label": "decodeboard",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L297"
+      "source_location": "L305"
     },
     {
       "id": "lib_logic_sort_game_decodetray",
@@ -6307,7 +6307,7 @@
       "file_type": "code",
       "norm_label": "decodetray",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L299"
+      "source_location": "L307"
     },
     {
       "id": "lib_logic_sort_game_encodeboard",
@@ -6318,7 +6318,7 @@
       "file_type": "code",
       "norm_label": "encodeboard",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L294"
+      "source_location": "L302"
     },
     {
       "id": "lib_logic_sort_game_encodetray",
@@ -6329,7 +6329,7 @@
       "file_type": "code",
       "norm_label": "encodetray",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L295"
+      "source_location": "L303"
     },
     {
       "id": "lib_logic_sort_game_freeslots",
@@ -6340,7 +6340,7 @@
       "file_type": "code",
       "norm_label": "freeslots",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L123"
+      "source_location": "L126"
     },
     {
       "id": "lib_logic_sort_game_fromtray",
@@ -6351,7 +6351,7 @@
       "file_type": "code",
       "norm_label": "fromtray",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L51"
+      "source_location": "L54"
     },
     {
       "id": "lib_logic_sort_game_height",
@@ -6362,7 +6362,7 @@
       "file_type": "code",
       "norm_label": "height",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L122"
+      "source_location": "L125"
     },
     {
       "id": "lib_logic_sort_game_hops",
@@ -6373,7 +6373,7 @@
       "file_type": "code",
       "norm_label": "hops",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L37"
+      "source_location": "L40"
     },
     {
       "id": "lib_logic_sort_game_ignored",
@@ -6384,7 +6384,7 @@
       "file_type": "code",
       "norm_label": "ignored",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L39"
+      "source_location": "L42"
     },
     {
       "id": "lib_logic_sort_game_iscomplete",
@@ -6395,7 +6395,7 @@
       "file_type": "code",
       "norm_label": "iscomplete",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L134"
+      "source_location": "L137"
     },
     {
       "id": "lib_logic_sort_game_ishole",
@@ -6406,7 +6406,7 @@
       "file_type": "code",
       "norm_label": "ishole",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L125"
+      "source_location": "L128"
     },
     {
       "id": "lib_logic_sort_game_isselected",
@@ -6417,7 +6417,7 @@
       "file_type": "code",
       "norm_label": "isselected",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L136"
+      "source_location": "L139"
     },
     {
       "id": "lib_logic_sort_game_iswrong",
@@ -6428,7 +6428,7 @@
       "file_type": "code",
       "norm_label": "iswrong",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L124"
+      "source_location": "L127"
     },
     {
       "id": "lib_logic_sort_game_mistakes",
@@ -6439,7 +6439,7 @@
       "file_type": "code",
       "norm_label": "mistakes",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L119"
+      "source_location": "L122"
     },
     {
       "id": "lib_logic_sort_game_nearest",
@@ -6450,7 +6450,7 @@
       "file_type": "code",
       "norm_label": "_nearest",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L140"
+      "source_location": "L143"
     },
     {
       "id": "lib_logic_sort_game_place",
@@ -6461,7 +6461,7 @@
       "file_type": "code",
       "norm_label": "_place",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L210"
+      "source_location": "L218"
     },
     {
       "id": "lib_logic_sort_game_placed",
@@ -6472,7 +6472,7 @@
       "file_type": "code",
       "norm_label": "placed",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L120"
+      "source_location": "L123"
     },
     {
       "id": "lib_logic_sort_game_play",
@@ -6483,7 +6483,7 @@
       "file_type": "code",
       "norm_label": "play",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L267"
+      "source_location": "L275"
     },
     {
       "id": "lib_logic_sort_game_scrambled",
@@ -6494,7 +6494,7 @@
       "file_type": "code",
       "norm_label": "scrambled",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L77"
+      "source_location": "L80"
     },
     {
       "id": "lib_logic_sort_game_selection",
@@ -6505,7 +6505,7 @@
       "file_type": "code",
       "norm_label": "selection",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L116"
+      "source_location": "L119"
     },
     {
       "id": "lib_logic_sort_game_shake",
@@ -6516,7 +6516,7 @@
       "file_type": "code",
       "norm_label": "shake",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L280"
+      "source_location": "L288"
     },
     {
       "id": "lib_logic_sort_game_shakes",
@@ -6527,7 +6527,7 @@
       "file_type": "code",
       "norm_label": "shakes",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L118"
+      "source_location": "L121"
     },
     {
       "id": "lib_logic_sort_game_sortaction",
@@ -6549,7 +6549,7 @@
       "file_type": "code",
       "norm_label": "sortgame",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L66"
+      "source_location": "L69"
     },
     {
       "id": "lib_logic_sort_game_sortmove",
@@ -6560,7 +6560,7 @@
       "file_type": "code",
       "norm_label": "sortmove",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L33"
+      "source_location": "L36"
     },
     {
       "id": "lib_logic_sort_game_sortselection",
@@ -6571,7 +6571,7 @@
       "file_type": "code",
       "norm_label": "sortselection",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L44"
+      "source_location": "L47"
     },
     {
       "id": "lib_logic_sort_game_sortstep",
@@ -6582,7 +6582,7 @@
       "file_type": "code",
       "norm_label": "sortstep",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L56"
+      "source_location": "L59"
     },
     {
       "id": "lib_logic_sort_game_tapcell",
@@ -6593,7 +6593,7 @@
       "file_type": "code",
       "norm_label": "tapcell",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L157"
+      "source_location": "L160"
     },
     {
       "id": "lib_logic_sort_game_taptray",
@@ -6604,7 +6604,7 @@
       "file_type": "code",
       "norm_label": "taptray",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L176"
+      "source_location": "L184"
     },
     {
       "id": "lib_logic_sort_game_target",
@@ -6615,7 +6615,7 @@
       "file_type": "code",
       "norm_label": "target",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L108"
+      "source_location": "L111"
     },
     {
       "id": "lib_logic_sort_game_tray",
@@ -6626,7 +6626,7 @@
       "file_type": "code",
       "norm_label": "tray",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L112"
+      "source_location": "L115"
     },
     {
       "id": "lib_logic_sort_game_width",
@@ -6637,7 +6637,7 @@
       "file_type": "code",
       "norm_label": "width",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L107"
+      "source_location": "L110"
     },
     {
       "id": "lib_logic_sort_game_wrong",
@@ -6648,7 +6648,7 @@
       "file_type": "code",
       "norm_label": "_wrong",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L203"
+      "source_location": "L211"
     },
     {
       "id": "future",
@@ -9720,7 +9720,7 @@
       "file_type": "code",
       "norm_label": "_combometer",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1395"
+      "source_location": "L1418"
     },
     {
       "id": "lib_ui_sort_screen_peekthumb",
@@ -9731,7 +9731,7 @@
       "file_type": "code",
       "norm_label": "_peekthumb",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1463"
+      "source_location": "L1486"
     },
     {
       "id": "lib_ui_sort_screen_sortstats",
@@ -9742,7 +9742,7 @@
       "file_type": "code",
       "norm_label": "_sortstats",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L710"
+      "source_location": "L713"
     },
     {
       "id": "lib_ui_sort_screen_sorttips",
@@ -9753,7 +9753,7 @@
       "file_type": "code",
       "norm_label": "_sorttips",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L779"
+      "source_location": "L782"
     },
     {
       "id": "lib_ui_sort_screen_traypanel",
@@ -9764,7 +9764,7 @@
       "file_type": "code",
       "norm_label": "_traypanel",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1131"
+      "source_location": "L1134"
     },
     {
       "id": "lib_ui_time_attack_screen_timeattackscreen",
@@ -13806,7 +13806,7 @@
       "file_type": "code",
       "norm_label": "_flightpainter",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1345"
+      "source_location": "L1368"
     },
     {
       "id": "lib_ui_sort_screen_sortboardpainter",
@@ -13817,7 +13817,7 @@
       "file_type": "code",
       "norm_label": "_sortboardpainter",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L944"
+      "source_location": "L947"
     },
     {
       "id": "lib_ui_sort_screen_sorttraypainter",
@@ -13828,7 +13828,7 @@
       "file_type": "code",
       "norm_label": "sorttraypainter",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1242"
+      "source_location": "L1265"
     },
     {
       "id": "lib_ui_tray_burstpainter",
@@ -15918,7 +15918,7 @@
       "file_type": "code",
       "norm_label": "_sortboard",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L824"
+      "source_location": "L827"
     },
     {
       "id": "lib_ui_sort_screen_sortboardstate",
@@ -15929,7 +15929,7 @@
       "file_type": "code",
       "norm_label": "_sortboardstate",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L854"
+      "source_location": "L857"
     },
     {
       "id": "lib_ui_sort_screen_sortscreen",
@@ -18998,7 +18998,7 @@
       "file_type": "code",
       "norm_label": "hint",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L367"
+      "source_location": "L369"
     },
     {
       "id": "lib_state_sort_controller_hintat",
@@ -19130,7 +19130,7 @@
       "file_type": "code",
       "norm_label": "_prune",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L377"
+      "source_location": "L379"
     },
     {
       "id": "lib_state_sort_controller_puzzle",
@@ -19251,7 +19251,7 @@
       "file_type": "code",
       "norm_label": "shake",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L344"
+      "source_location": "L346"
     },
     {
       "id": "lib_state_sort_controller_snapshot",
@@ -19328,7 +19328,7 @@
       "file_type": "code",
       "norm_label": "tick",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L383"
+      "source_location": "L385"
     },
     {
       "id": "lib_state_sort_controller_timed",
@@ -19405,7 +19405,7 @@
       "file_type": "code",
       "norm_label": "tojson",
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L389"
+      "source_location": "L391"
     },
     {
       "id": "lib_state_sort_controller_toslot",
@@ -20841,7 +20841,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L108",
+      "source_location": "L111",
       "weight": 1.0
     },
     {
@@ -20853,7 +20853,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L111",
+      "source_location": "L114",
       "weight": 1.0
     },
     {
@@ -20865,7 +20865,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L112",
+      "source_location": "L115",
       "weight": 1.0
     },
     {
@@ -20877,7 +20877,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L123",
+      "source_location": "L126",
       "weight": 1.0
     },
     {
@@ -20889,7 +20889,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L134",
+      "source_location": "L137",
       "weight": 1.0
     },
     {
@@ -20901,7 +20901,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L39",
+      "source_location": "L42",
       "weight": 1.0
     },
     {
@@ -20913,7 +20913,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L56",
+      "source_location": "L59",
       "weight": 1.0
     },
     {
@@ -22677,7 +22677,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1142",
+      "source_location": "L1145",
       "weight": 1.0
     },
     {
@@ -22689,7 +22689,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1148",
+      "source_location": "L1151",
       "weight": 1.0
     },
     {
@@ -22701,7 +22701,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1254",
+      "source_location": "L1277",
       "weight": 1.0
     },
     {
@@ -22713,7 +22713,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1265",
+      "source_location": "L1288",
       "weight": 1.0
     },
     {
@@ -22725,7 +22725,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1294",
+      "source_location": "L1317",
       "weight": 1.0
     },
     {
@@ -22737,7 +22737,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1356",
+      "source_location": "L1379",
       "weight": 1.0
     },
     {
@@ -22749,7 +22749,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1357",
+      "source_location": "L1380",
       "weight": 1.0
     },
     {
@@ -22761,7 +22761,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1358",
+      "source_location": "L1381",
       "weight": 1.0
     },
     {
@@ -22773,7 +22773,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1398",
+      "source_location": "L1421",
       "weight": 1.0
     },
     {
@@ -22785,7 +22785,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1399",
+      "source_location": "L1422",
       "weight": 1.0
     },
     {
@@ -22797,7 +22797,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1466",
+      "source_location": "L1489",
       "weight": 1.0
     },
     {
@@ -22809,7 +22809,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1467",
+      "source_location": "L1490",
       "weight": 1.0
     },
     {
@@ -22821,7 +22821,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L410",
+      "source_location": "L413",
       "weight": 1.0
     },
     {
@@ -22917,7 +22917,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L855",
+      "source_location": "L858",
       "weight": 1.0
     },
     {
@@ -22929,7 +22929,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L921",
+      "source_location": "L924",
       "weight": 1.0
     },
     {
@@ -22941,7 +22941,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L922",
+      "source_location": "L925",
       "weight": 1.0
     },
     {
@@ -22965,7 +22965,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L960",
+      "source_location": "L963",
       "weight": 1.0
     },
     {
@@ -22977,7 +22977,7 @@
       "confidence_score": 1.0,
       "context": "variable_type",
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L966",
+      "source_location": "L969",
       "weight": 1.0
     },
     {
@@ -29366,7 +29366,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L107",
+      "source_location": "L110",
       "weight": 1.0
     },
     {
@@ -29377,7 +29377,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L108",
+      "source_location": "L111",
       "weight": 1.0
     },
     {
@@ -29388,7 +29388,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L111",
+      "source_location": "L114",
       "weight": 1.0
     },
     {
@@ -29399,7 +29399,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L113",
+      "source_location": "L116",
       "weight": 1.0
     },
     {
@@ -29410,7 +29410,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L116",
+      "source_location": "L119",
       "weight": 1.0
     },
     {
@@ -29421,7 +29421,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L118",
+      "source_location": "L121",
       "weight": 1.0
     },
     {
@@ -29432,7 +29432,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L119",
+      "source_location": "L122",
       "weight": 1.0
     },
     {
@@ -29443,7 +29443,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L120",
+      "source_location": "L123",
       "weight": 1.0
     },
     {
@@ -29454,7 +29454,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L122",
+      "source_location": "L125",
       "weight": 1.0
     },
     {
@@ -29465,7 +29465,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L123",
+      "source_location": "L126",
       "weight": 1.0
     },
     {
@@ -29476,7 +29476,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L124",
+      "source_location": "L127",
       "weight": 1.0
     },
     {
@@ -29487,7 +29487,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L125",
+      "source_location": "L128",
       "weight": 1.0
     },
     {
@@ -29498,7 +29498,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L134",
+      "source_location": "L137",
       "weight": 1.0
     },
     {
@@ -29509,7 +29509,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L136",
+      "source_location": "L139",
       "weight": 1.0
     },
     {
@@ -29520,7 +29520,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L140",
+      "source_location": "L143",
       "weight": 1.0
     },
     {
@@ -29531,7 +29531,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L157",
+      "source_location": "L160",
       "weight": 1.0
     },
     {
@@ -29542,7 +29542,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L176",
+      "source_location": "L184",
       "weight": 1.0
     },
     {
@@ -29553,7 +29553,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L203",
+      "source_location": "L211",
       "weight": 1.0
     },
     {
@@ -29564,7 +29564,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L210",
+      "source_location": "L218",
       "weight": 1.0
     },
     {
@@ -29575,7 +29575,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L240",
+      "source_location": "L248",
       "weight": 1.0
     },
     {
@@ -29586,7 +29586,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L267",
+      "source_location": "L275",
       "weight": 1.0
     },
     {
@@ -29597,7 +29597,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L280",
+      "source_location": "L288",
       "weight": 1.0
     },
     {
@@ -29608,7 +29608,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L294",
+      "source_location": "L302",
       "weight": 1.0
     },
     {
@@ -29619,7 +29619,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L295",
+      "source_location": "L303",
       "weight": 1.0
     },
     {
@@ -29630,7 +29630,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L297",
+      "source_location": "L305",
       "weight": 1.0
     },
     {
@@ -29641,7 +29641,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L299",
+      "source_location": "L307",
       "weight": 1.0
     },
     {
@@ -29652,7 +29652,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L33",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -29663,7 +29663,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L36",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -29674,7 +29674,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L37",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -29685,7 +29685,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L39",
+      "source_location": "L42",
       "weight": 1.0
     },
     {
@@ -29696,7 +29696,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L44",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -29707,7 +29707,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L45",
+      "source_location": "L48",
       "weight": 1.0
     },
     {
@@ -29718,7 +29718,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L46",
+      "source_location": "L49",
       "weight": 1.0
     },
     {
@@ -29729,7 +29729,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L48",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -29740,7 +29740,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L49",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -29751,7 +29751,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L51",
+      "source_location": "L54",
       "weight": 1.0
     },
     {
@@ -29762,7 +29762,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L56",
+      "source_location": "L59",
       "weight": 1.0
     },
     {
@@ -29784,7 +29784,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L66",
+      "source_location": "L69",
       "weight": 1.0
     },
     {
@@ -29795,7 +29795,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/logic/sort_game.dart",
-      "source_location": "L77",
+      "source_location": "L80",
       "weight": 1.0
     },
     {
@@ -33513,7 +33513,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L344",
+      "source_location": "L346",
       "weight": 1.0
     },
     {
@@ -33524,7 +33524,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L367",
+      "source_location": "L369",
       "weight": 1.0
     },
     {
@@ -33535,7 +33535,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L377",
+      "source_location": "L379",
       "weight": 1.0
     },
     {
@@ -33546,7 +33546,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L383",
+      "source_location": "L385",
       "weight": 1.0
     },
     {
@@ -33557,7 +33557,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/state/sort_controller.dart",
-      "source_location": "L389",
+      "source_location": "L391",
       "weight": 1.0
     },
     {
@@ -37935,7 +37935,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1116",
+      "source_location": "L1119",
       "weight": 1.0
     },
     {
@@ -37957,7 +37957,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1132",
+      "source_location": "L1135",
       "weight": 1.0
     },
     {
@@ -37979,7 +37979,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1142",
+      "source_location": "L1145",
       "weight": 1.0
     },
     {
@@ -37990,7 +37990,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1147",
+      "source_location": "L1150",
       "weight": 1.0
     },
     {
@@ -38001,7 +38001,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1148",
+      "source_location": "L1151",
       "weight": 1.0
     },
     {
@@ -38023,7 +38023,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1242",
+      "source_location": "L1265",
       "weight": 1.0
     },
     {
@@ -38034,7 +38034,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1254",
+      "source_location": "L1277",
       "weight": 1.0
     },
     {
@@ -38045,7 +38045,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1256",
+      "source_location": "L1279",
       "weight": 1.0
     },
     {
@@ -38056,7 +38056,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1257",
+      "source_location": "L1280",
       "weight": 1.0
     },
     {
@@ -38067,7 +38067,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1259",
+      "source_location": "L1282",
       "weight": 1.0
     },
     {
@@ -38078,7 +38078,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1262",
+      "source_location": "L1285",
       "weight": 1.0
     },
     {
@@ -38089,7 +38089,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1265",
+      "source_location": "L1288",
       "weight": 1.0
     },
     {
@@ -38100,7 +38100,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1268",
+      "source_location": "L1291",
       "weight": 1.0
     },
     {
@@ -38111,7 +38111,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1271",
+      "source_location": "L1294",
       "weight": 1.0
     },
     {
@@ -38122,62 +38122,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1283",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_fulltint",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1291",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_invitetint",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1292",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_ring",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1293",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_slotline",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1294",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_drawslot",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1299",
+      "source_location": "L1306",
       "weight": 1.0
     },
     {
@@ -38193,13 +38138,68 @@
     },
     {
       "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_fulltint",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L1314",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_invitetint",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L1315",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_ring",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L1316",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_slotline",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L1317",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_drawslot",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L1322",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
       "target": "lib_ui_sort_screen_flightpainter",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1345",
+      "source_location": "L1368",
       "weight": 1.0
     },
     {
@@ -38210,7 +38210,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1356",
+      "source_location": "L1379",
       "weight": 1.0
     },
     {
@@ -38221,7 +38221,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1357",
+      "source_location": "L1380",
       "weight": 1.0
     },
     {
@@ -38232,7 +38232,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1358",
+      "source_location": "L1381",
       "weight": 1.0
     },
     {
@@ -38243,7 +38243,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1373",
+      "source_location": "L1396",
       "weight": 1.0
     },
     {
@@ -38254,7 +38254,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1390",
+      "source_location": "L1413",
       "weight": 1.0
     },
     {
@@ -38265,7 +38265,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1396",
+      "source_location": "L1419",
       "weight": 1.0
     },
     {
@@ -38276,7 +38276,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1398",
+      "source_location": "L1421",
       "weight": 1.0
     },
     {
@@ -38287,7 +38287,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1399",
+      "source_location": "L1422",
       "weight": 1.0
     },
     {
@@ -38298,7 +38298,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1464",
+      "source_location": "L1487",
       "weight": 1.0
     },
     {
@@ -38309,7 +38309,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1466",
+      "source_location": "L1489",
       "weight": 1.0
     },
     {
@@ -38320,7 +38320,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1467",
+      "source_location": "L1490",
       "weight": 1.0
     },
     {
@@ -38331,7 +38331,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1470",
+      "source_location": "L1493",
       "weight": 1.0
     },
     {
@@ -38419,7 +38419,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L296",
+      "source_location": "L299",
       "weight": 1.0
     },
     {
@@ -38441,7 +38441,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L306",
+      "source_location": "L309",
       "weight": 1.0
     },
     {
@@ -38452,7 +38452,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L321",
+      "source_location": "L324",
       "weight": 1.0
     },
     {
@@ -38463,7 +38463,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L327",
+      "source_location": "L330",
       "weight": 1.0
     },
     {
@@ -38474,7 +38474,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L410",
+      "source_location": "L413",
       "weight": 1.0
     },
     {
@@ -38485,7 +38485,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L412",
+      "source_location": "L415",
       "weight": 1.0
     },
     {
@@ -38501,17 +38501,6 @@
     },
     {
       "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_confirmrestart",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L458",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
       "target": "lib_ui_sort_screen_daily",
       "relation": "defines",
       "_origin": "ast",
@@ -38523,13 +38512,13 @@
     },
     {
       "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_cellcenter",
+      "target": "lib_ui_sort_screen_confirmrestart",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L489",
+      "source_location": "L461",
       "weight": 1.0
     },
     {
@@ -38541,6 +38530,17 @@
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
       "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_cellcenter",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L492",
       "weight": 1.0
     },
     {
@@ -38617,7 +38617,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L711",
+      "source_location": "L714",
       "weight": 1.0
     },
     {
@@ -38628,7 +38628,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L719",
+      "source_location": "L722",
       "weight": 1.0
     },
     {
@@ -38639,7 +38639,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L722",
+      "source_location": "L725",
       "weight": 1.0
     },
     {
@@ -38650,7 +38650,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L724",
+      "source_location": "L727",
       "weight": 1.0
     },
     {
@@ -38661,7 +38661,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L725",
+      "source_location": "L728",
       "weight": 1.0
     },
     {
@@ -38672,7 +38672,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L726",
+      "source_location": "L729",
       "weight": 1.0
     },
     {
@@ -38716,7 +38716,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L780",
+      "source_location": "L783",
       "weight": 1.0
     },
     {
@@ -38727,7 +38727,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L782",
+      "source_location": "L785",
       "weight": 1.0
     },
     {
@@ -38760,18 +38760,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L825",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_ontap",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L848",
+      "source_location": "L828",
       "weight": 1.0
     },
     {
@@ -38787,7 +38776,7 @@
     },
     {
       "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_createstate",
+      "target": "lib_ui_sort_screen_ontap",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -38798,7 +38787,7 @@
     },
     {
       "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_sortboardstate",
+      "target": "lib_ui_sort_screen_createstate",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -38809,13 +38798,24 @@
     },
     {
       "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_sortboardstate",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L857",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
       "target": "lib_ui_sort_screen_fittedfor",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L855",
+      "source_location": "L858",
       "weight": 1.0
     },
     {
@@ -38826,18 +38826,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L856",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_pointers",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L857",
+      "source_location": "L859",
       "weight": 1.0
     },
     {
@@ -38849,6 +38838,17 @@
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
       "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_pointers",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L860",
       "weight": 1.0
     },
     {
@@ -38881,7 +38881,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L920",
+      "source_location": "L923",
       "weight": 1.0
     },
     {
@@ -38892,7 +38892,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L921",
+      "source_location": "L924",
       "weight": 1.0
     },
     {
@@ -38903,7 +38903,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L922",
+      "source_location": "L925",
       "weight": 1.0
     },
     {
@@ -38914,7 +38914,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L924",
+      "source_location": "L927",
       "weight": 1.0
     },
     {
@@ -38936,7 +38936,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L931",
+      "source_location": "L934",
       "weight": 1.0
     },
     {
@@ -38947,29 +38947,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L932",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_drawsocket",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L937",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_r",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L938",
+      "source_location": "L935",
       "weight": 1.0
     },
     {
@@ -38985,13 +38963,35 @@
     },
     {
       "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_drawsocket",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L940",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_r",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L941",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
       "target": "lib_ui_sort_screen_sortboardpainter",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L944",
+      "source_location": "L947",
       "weight": 1.0
     },
     {
@@ -39013,7 +39013,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L960",
+      "source_location": "L963",
       "weight": 1.0
     },
     {
@@ -39024,7 +39024,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L963",
+      "source_location": "L966",
       "weight": 1.0
     },
     {
@@ -39035,7 +39035,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L964",
+      "source_location": "L967",
       "weight": 1.0
     },
     {
@@ -39046,7 +39046,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L965",
+      "source_location": "L968",
       "weight": 1.0
     },
     {
@@ -39057,7 +39057,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L966",
+      "source_location": "L969",
       "weight": 1.0
     },
     {
@@ -39068,7 +39068,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L967",
+      "source_location": "L970",
       "weight": 1.0
     },
     {
@@ -39079,7 +39079,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L969",
+      "source_location": "L972",
       "weight": 1.0
     },
     {
@@ -39090,7 +39090,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L970",
+      "source_location": "L973",
       "weight": 1.0
     },
     {
@@ -39101,7 +39101,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L973",
+      "source_location": "L976",
       "weight": 1.0
     },
     {
@@ -39112,29 +39112,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L974",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_spot",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
       "source_location": "L977",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_miss",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L979",
       "weight": 1.0
     },
     {
@@ -39150,24 +39128,35 @@
     },
     {
       "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_spot",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L980",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_miss",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L982",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
       "target": "lib_ui_sort_screen_cell",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L983",
-      "weight": 1.0
-    },
-    {
-      "source": "lib_ui_sort_screen",
-      "target": "lib_ui_sort_screen_record",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L988",
+      "source_location": "L986",
       "weight": 1.0
     },
     {
@@ -39179,6 +39168,17 @@
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
       "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "lib_ui_sort_screen",
+      "target": "lib_ui_sort_screen_record",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/ui/sort_screen.dart",
+      "source_location": "L991",
       "weight": 1.0
     },
     {
@@ -43534,7 +43534,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1395",
+      "source_location": "L1418",
       "weight": 1.0
     },
     {
@@ -43545,7 +43545,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1345",
+      "source_location": "L1368",
       "weight": 1.0
     },
     {
@@ -43556,7 +43556,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1463",
+      "source_location": "L1486",
       "weight": 1.0
     },
     {
@@ -43567,7 +43567,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L824",
+      "source_location": "L827",
       "weight": 1.0
     },
     {
@@ -43578,7 +43578,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L944",
+      "source_location": "L947",
       "weight": 1.0
     },
     {
@@ -43589,7 +43589,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L854",
+      "source_location": "L857",
       "weight": 1.0
     },
     {
@@ -43622,7 +43622,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L710",
+      "source_location": "L713",
       "weight": 1.0
     },
     {
@@ -43633,7 +43633,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L779",
+      "source_location": "L782",
       "weight": 1.0
     },
     {
@@ -43644,7 +43644,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1242",
+      "source_location": "L1265",
       "weight": 1.0
     },
     {
@@ -43655,7 +43655,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L1131",
+      "source_location": "L1134",
       "weight": 1.0
     },
     {
@@ -44128,7 +44128,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "lib/ui/sort_screen.dart",
-      "source_location": "L854",
+      "source_location": "L857",
       "weight": 1.0
     },
     {
@@ -44586,5 +44586,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "acd83aac48208bcd17fd2fe6dbf1b736f8776f76"
+  "built_at_commit": "9ab2cd21cad334369f52fed93dc3157093badb09"
 }

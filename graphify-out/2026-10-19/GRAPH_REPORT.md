@@ -1,12 +1,12 @@
 # Graph Report - pawlypaint  (2026-10-19)
 
 ## Corpus Check
-- 69 files · ~83,981 words
+- 69 files · ~84,904 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 33 file(s) not represented in the graph (top: .xml 11, (none) 4, .plist 4)
 
 ## Summary
-- 1749 nodes · 2225 edges · 69 communities (58 shown, 11 thin omitted)
+- 1767 nodes · 2246 edges · 66 communities (58 shown, 8 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 35 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
@@ -48,7 +48,7 @@
 - StatelessWidget
 - idle_shimmer.dart
 - completion_sheet.dart
-- Installing on an iPhone
+- PawlyPaint
 - manifest.json
 - ../models/puzzle.dart
 - line.dart
@@ -56,7 +56,7 @@
 - MainActivity.kt
 - CLAUDE.md
 - LaunchImage.imageset/README.md
-- game_test.dart
+- static const
 - extreme_minecraft.dart
 - simplify.dart
 - courses.dart
@@ -74,16 +74,13 @@
 - picture_export.dart
 - dart:math
 - replay.dart
-- _SortBoard
 - List
 - package:flutter/material.dart
 - MusicController
 - ChangeNotifier
-- ProgressStore
-- Board
 
 ## God Nodes (most connected - your core abstractions)
-1. `_` - 64 edges
+1. `_` - 68 edges
 2. `Puzzle` - 10 edges
 3. `Track` - 10 edges
 4. `at()` - 10 edges
@@ -101,19 +98,19 @@
 ## Import Cycles
 - None detected.
 
-## Communities (69 total, 11 thin omitted)
+## Communities (66 total, 8 thin omitted)
 
 ### Community 0 - "sort_screen.dart"
 Cohesion: 0.02
-Nodes (104): _animate, bar, _boardKey, build, _cache, capacity, _celebrate, _cell (+96 more)
+Nodes (103): _animate, bar, _boardKey, build, _cache, capacity, _celebrate, _cell (+95 more)
 
 ### Community 1 - "board.dart"
 Cohesion: 0.03
-Nodes (59): base, _beacon, _blast, BoardCache, build, _cache, celebrate, cellSize (+51 more)
+Nodes (67): base, _beacon, _blast, BoardCache, build, _cache, celebrate, _cellRect (+59 more)
 
 ### Community 2 - "progress_store.dart"
-Cohesion: 0.03
-Nodes (78): addBoosters, _backupKey, bestCombo, bestLeft, bestScore, bestSeconds, bestStars, _bestStreak (+70 more)
+Cohesion: 0.02
+Nodes (83): addBoosters, _backupKey, bestCombo, bestLeft, bestScore, bestSeconds, bestStars, _bestStreak (+75 more)
 
 ### Community 3 - "compose_music.py"
 Cohesion: 0.09
@@ -129,11 +126,11 @@ Nodes (50): _appActive, asset, blurb, choice, _choiceKey, current, didChangeAppL
 
 ### Community 6 - "tray.dart"
 Cohesion: 0.05
-Nodes (37): GemPaints, axis, build, _burst, _chipExtent, color, createState, _currentOrder (+29 more)
+Nodes (35): GemPaints, axis, build, _burst, _chipExtent, color, createState, _currentOrder (+27 more)
 
 ### Community 7 - "settings.dart"
 Cohesion: 0.06
-Nodes (27): currentLook, desk, haptics, _hapticsKey, heavy, label, light, load (+19 more)
+Nodes (29): AppSettings, currentLook, desk, haptics, _hapticsKey, heavy, label, light (+21 more)
 
 ### Community 8 - "artworks.dart"
 Cohesion: 0.04
@@ -149,7 +146,7 @@ Nodes (30): bg, _body, bowShade, c, collar, concert, dark, glowPink (+22 more)
 
 ### Community 11 - "_"
 Cohesion: 0.04
-Nodes (50): _, base, body, c, center, color, complete, crown (+42 more)
+Nodes (54): _, base, body, c, center, color, complete, crown (+46 more)
 
 ### Community 12 - "animals.dart"
 Cohesion: 0.05
@@ -201,11 +198,11 @@ Nodes (28): best, largestPatch, open, Achievement, achievements, bestCombo, best
 
 ### Community 24 - "course_screen.dart"
 Cohesion: 0.09
-Nodes (20): Level, PlayMode, PuzzleRecord, SavedGame, build, completed, course, createState (+12 more)
+Nodes (19): PlayMode, PuzzleRecord, SavedGame, build, completed, course, createState, index (+11 more)
 
 ### Community 25 - "home_screen.dart"
 Cohesion: 0.09
-Nodes (17): Course, build, build, course, courses, done, icon, label (+9 more)
+Nodes (18): Course, Level, build, build, course, courses, done, icon (+10 more)
 
 ### Community 26 - "gallery_screen.dart"
 Cohesion: 0.10
@@ -216,7 +213,7 @@ Cohesion: 0.11
 Nodes (6): Flutter, AppDelegate, SceneDelegate, RunnerTests, UIKit, XCTest
 
 ### Community 28 - "time_attack.dart"
-Cohesion: 0.20
+Cohesion: 0.18
 Nodes (7): daily, helpCost, score, secondsFor, settingsFor, TimeAttack, timeLimit
 
 ### Community 29 - "StatelessWidget"
@@ -231,9 +228,9 @@ Nodes (7): _allowed, controller, dispose, _idle, idleAfter, IdleShimmer, poke
 Cohesion: 0.11
 Nodes (10): badges, boosters, build, done, label, relaxed, showCompletionSheet, _Stat (+2 more)
 
-### Community 32 - "Installing on an iPhone"
-Cohesion: 0.18
-Nodes (10): Build and install (and update), Development, Every 7 days (free Apple ID), First launch, Installing on an Android phone, Installing on an iPhone, Layout, One-time setup (+2 more)
+### Community 32 - "PawlyPaint"
+Cohesion: 0.17
+Nodes (11): Build and install (and update), Development, Every 7 days (free Apple ID), First launch, Installing on an Android phone, Installing on an iPhone, Layout, One-time setup (+3 more)
 
 ### Community 33 - "manifest.json"
 Cohesion: 0.18
@@ -251,6 +248,10 @@ Nodes (7): dx, err, sx, x0, x1, y0, y1
 Cohesion: 0.08
 Nodes (19): board, build, _cache, createState, dispose, _frame, height, _jump (+11 more)
 
+### Community 41 - "static const"
+Cohesion: 0.20
+Nodes (8): bombRadius, Booster, boosterReward, cellsInBlast, help, label, r, starter
+
 ### Community 42 - "extreme_minecraft.dart"
 Cohesion: 0.06
 Nodes (31): c, ceil, cliff, cliffAt, d, dragon, dx, floor (+23 more)
@@ -260,8 +261,8 @@ Cohesion: 0.03
 Nodes (75): a1, a2, alive, ap1, b1, b2, best, bg (+67 more)
 
 ### Community 47 - "courses.dart"
-Cohesion: 0.08
-Nodes (10): allCourses, buildCourses, _course, _forDifficulty, _minColorGap, _minDistance, separateColors, simple (+2 more)
+Cohesion: 0.04
+Nodes (12): allCourses, buildCourses, _course, _forDifficulty, _minColorGap, _minDistance, separateColors, simple (+4 more)
 
 ### Community 48 - "music_sheet.dart"
 Cohesion: 0.14
@@ -292,19 +293,19 @@ Cohesion: 0.10
 Nodes (20): body, bread, c, custard, frost, inWin, mini, mug (+12 more)
 
 ### Community 55 - "State"
-Cohesion: 0.17
-Nodes (14): ComboPop, _ComboPopState, CourseScreen, _CourseScreenState, PictureViewer, _PictureViewerState, GameScreen, _GameScreenState (+6 more)
+Cohesion: 0.13
+Nodes (20): Board, _BoardState, ComboPop, _ComboPopState, CourseScreen, _CourseScreenState, PictureViewer, _PictureViewerState (+12 more)
 
 ### Community 56 - "time_attack_screen.dart"
 Cohesion: 0.10
 Nodes (15): Difficulty, TimeAttackRecord, build, _colors, courses, _DailyChallengeCard, difficulty, _DifficultyCard (+7 more)
 
 ### Community 57 - "scoring.dart"
-Cohesion: 0.07
-Nodes (24): bombRadius, Booster, boosterReward, cellsInBlast, help, label, r, starter (+16 more)
+Cohesion: 0.12
+Nodes (16): afterMistake, comboBonus, comboWindow, drillPoints, maxCombo, maxComboBonus, mistakePenalty, paintComboMilestone (+8 more)
 
 ### Community 58 - "booster_bar.dart"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (9): active, axis, booster, BoosterBar, _BoosterButton, boosterIcon, build, count (+1 more)
 
 ### Community 59 - "picture_export.dart"
@@ -320,40 +321,36 @@ Cohesion: 0.10
 Nodes (18): build, _c, _cache, cell, _ChunkCache, createState, didChangeDependencies, dispose (+10 more)
 
 ### Community 63 - "List"
-Cohesion: 0.25
-Nodes (5): BadgeGrid, badgeIcon, build, courses, store
+Cohesion: 0.18
+Nodes (7): ProgressScope, ProgressStore, BadgeGrid, badgeIcon, build, courses, store
 
 ### Community 64 - "package:flutter/material.dart"
 Cohesion: 0.25
 Nodes (6): build, _c, combo, createState, dispose, initState
-
-### Community 65 - "MusicController"
-Cohesion: 0.40
-Nodes (4): MusicController, MusicScope, AppSettings, SettingsScope
 
 ### Community 66 - "ChangeNotifier"
 Cohesion: 0.50
 Nodes (3): GameController, SortController, BoardView
 
 ## Knowledge Gaps
-- **1368 isolated node(s):** `XCTest`, `sea`, `c`, `bg`, `sky` (+1363 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1459 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1385 isolated node(s):** `XCTest`, `sea`, `c`, `bg`, `sky` (+1380 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1476 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `_` connect `_` to `package:flutter/material.dart`, `../models/puzzle.dart`, `tray.dart`, `game_test.dart`, `settings_screen.dart`, `CustomPainter`, `puzzle.dart`, `scoring.dart`, `picture_export.dart`, `dart:math`?**
-  _High betweenness centrality (0.084) - this node is a cross-community bridge._
+- **Why does `_` connect `_` to `package:flutter/material.dart`, `../models/puzzle.dart`, `tray.dart`, `static const`, `time_attack.dart`, `settings_screen.dart`, `courses.dart`, `CustomPainter`, `puzzle.dart`, `picture_export.dart`, `dart:math`?**
+  _High betweenness centrality (0.074) - this node is a cross-community bridge._
 - **What connects `XCTest`, `sea`, `c` to the rest of the system?**
-  _1368 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1385 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `sort_screen.dart` be split into smaller, more focused modules?**
-  _Cohesion score 0.01834862385321101 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.018518518518518517 - nodes in this community are weakly interconnected._
 - **Why does `Puzzle` connect `picture_export.dart` to `sort_screen.dart`, `game_screen.dart`, `sort_controller.dart`, `_`, `game_controller.dart`, `puzzle.dart`, `course_screen.dart`, `gallery_screen.dart`, `replay.dart`?**
-  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **Should `board.dart` be split into smaller, more focused modules?**
-  _Cohesion score 0.029850746268656716 - nodes in this community are weakly interconnected._
-- **Why does `IdleShimmer` connect `idle_shimmer.dart` to `sort_screen.dart`, `gallery_screen.dart`, `game_screen.dart`?**
+  _Cohesion score 0.02666666666666667 - nodes in this community are weakly interconnected._
+- **Why does `ProgressStore` connect `List` to `sort_screen.dart`, `progress_store.dart`, `ChangeNotifier`, `game_screen.dart`, `main.dart`, `home_screen.dart`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **Should `progress_store.dart` be split into smaller, more focused modules?**
-  _Cohesion score 0.025 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.023529411764705882 - nodes in this community are weakly interconnected._

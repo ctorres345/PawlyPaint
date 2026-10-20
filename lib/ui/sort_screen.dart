@@ -280,6 +280,9 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
         _settings.medium();
         _music?.play(Sfx.wrong);
         _comboBar.value = 1;
+      case SortTapResult.noBeads:
+        _settings.light();
+        _toast('No beads of that color in the tray yet. Pick up a misplaced one first.');
       case SortTapResult.trayFull:
         _settings.heavy();
         _music?.play(Sfx.wrong);
@@ -1211,6 +1214,26 @@ class _TrayPanel extends StatelessWidget {
                       Flexible(
                         child: Text(
                           '${sel.cells.length} picked up',
+                          style: text.labelMedium?.copyWith(color: scheme.primary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ] else if (sel != null) ...[
+                      // What's in hand, since the matching spots may be off-screen.
+                      const SizedBox(width: 10),
+                      Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: paints[sel.color].color,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: ringInk, width: 1.5),
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          '${g.tray.where((c) => c == sel.color).length} held',
                           style: text.labelMedium?.copyWith(color: scheme.primary),
                           overflow: TextOverflow.ellipsis,
                         ),
