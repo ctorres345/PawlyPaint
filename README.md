@@ -6,14 +6,24 @@ Made for one very special player: it isn't on any app store.
 ## What's in it
 
 - **Two ways to play every picture**
-  - **Paint**: fill a numbered canvas with sparkly drills. Tap or drag over the glowing spots of the selected color; pinch to zoom. Each tray color has a ring that fills as you paint, a mini-map shows where you are when zoomed in, and boosters (bomb, magic wand, wide brush) earned by finishing pictures fill spots for you. Long streaks sound brighter and pop a combo badge, the find button jumps to the biggest patch left (the last few spots pulse), and a finished picture can be replayed drill by drill.
-  - **Sort** (inspired by Jewel Coloring): the picture starts scrambled. Tap misplaced beads to send them to the tray, and beads in the tray fly back to any spot that needs their color. Mind the tray space, shake it when full, and hold the little preview to peek at the finished picture. Combos sound brighter as they grow, and a mini-map helps when zoomed in.
-- **Courses**: Cozy Classics, Animal Friends, Garden and Sweet Treats, plus two special collections (Blocky World and Virtual Stage). Each has 5 Easy, 5 Medium and 5 Hard mystery pictures (90 in all), drawn in code.
-- **Daily picture** with a streak, a **gallery** of finished pictures (save any of them to Photos), and **12 badges** to earn.
+  - **Paint**: fill a numbered canvas with sparkly drills. Tap or drag over the glowing spots of the selected color; pinch to zoom, with a mini-map to move around when zoomed in. Each tray color has a ring that fills as you paint and bursts when done. Boosters earned by finishing pictures do some of the work for you: a bomb clears a patch, a magic wand finishes the selected color, a wide brush paints 3×3 at a time. Long streaks sound brighter, buzz harder and pop a combo badge; the find button jumps to the biggest patch left and the last few spots pulse so nothing hides. A finished picture can be replayed drill by drill and saved to Photos as a big PNG.
+  - **Sort** (inspired by Jewel Coloring): the picture starts scrambled. Tap a misplaced bead to pick up every bead of that color, tap the tray to park them, and tap a bead in the tray to drop it into every spot that needs it. Mind the tray space, shake it when full, undo up to 30 moves, and hold the little preview to peek at the finished picture. Quick drops chain into combos that sound brighter as they grow, and a mini-map helps when zoomed in.
+  - **Time Attack**: a random scrambled picture against the clock. Every drop earns seconds, hints and shakes cost them, and what's left on the clock turns into score. Hard and Extreme unlock by winning the level before. The **daily challenge** gives everyone the same board for the day, with its own record.
+- **Courses**: Cozy Classics, Animal Friends, Garden and Sweet Treats, plus two special collections (Blocky World and Virtual Stage). Each has 5 Easy (16 px), 5 Medium (24 px), 5 Hard (32 px) and 5 Extreme (40 px) mystery pictures, 120 in all, every one drawn in code. Paint and Sort progress are tracked separately, picross style: a picture stays a silhouette until you finish it.
+- **Daily picture** with a streak, a **gallery** of finished pictures (save any of them to Photos), and **15 badges** to earn.
 - **Guided tutorials** for both modes the first time you play them (replay from "How to play").
-- **Music and sounds**: a menu song and three painting themes (Chill, Fever, Hip), random or chosen, plus sound effects. All composed for the app (`tool/compose_music.py`, `tool/compose_sfx.py`), with volume sliders and on/off switches.
-- **Settings**: relaxed mode (no timer, score or counted mistakes), vibration, canvas background (linen, wooden desk, night sky) and square or round drills.
-- Stars, best scores and half-finished pictures are saved on the phone.
+- **Music and sounds**: a menu song and three painting themes (Chill, Fever, Hip), random or chosen, plus sound effects that rise in pitch with your streak. All composed for the app (`tool/compose_music.py`, `tool/compose_sfx.py`), with volume sliders and on/off switches.
+- **Settings**: relaxed mode (no timer, score or counted mistakes), vibration, canvas background (linen, wooden desk, night sky), square or round drills, and whether misplaced beads are marked in Sort.
+- Stars, best scores, boosters, badges and half-finished pictures are saved on the phone.
+
+## Tech stack
+
+- **Flutter 3.47 / Dart 3** (`sdk: >=3.4.0`), one codebase for iPhone and Android. No state-management or UI packages: screens are plain widgets, game state lives in `ChangeNotifier` controllers, and every canvas is a `CustomPainter`.
+- **Rendering**: the board, tray, mini-map, gallery and replay are painted directly on a `Canvas`. Static layers (sheet, numbers, placed drills) are recorded once as `ui.Picture`s and replayed each frame, so even the 40×40 Extreme canvas stays smooth while shimmer, sparkles and combo effects animate on top. Drill paints are pre-built per palette color so a frame allocates nothing.
+- **Packages**: `shared_preferences` (all progress in one JSON document), `audioplayers` (music loops and sound effects), `gal` (save finished pictures to Photos), `flutter_launcher_icons` (app icon). Lints from `flutter_lints`.
+- **Content pipeline**: pictures are vector shapes rasterized at build time into palettes and cells (`lib/data`), so the app ships no image assets. Music, sound effects and the icon are generated by Python scripts in `tool/`.
+- **Testing**: `flutter_test` covers the rules (scoring, Sort moves and solvability, Time Attack clock, boosters, badges, saved progress), with no device needed.
+- **Distribution**: Android APK on GitHub pre-releases; iPhone through a local Xcode build and `devicectl` (see below).
 
 ---
 
@@ -100,6 +110,8 @@ python3 tool/make_icon.py assets/icon && dart run flutter_launcher_icons
 ### Layout
 
 - `lib/data`: courses and the pictures, drawn from shapes (`art_canvas.dart`, `artworks.dart`, `art/*.dart`), plus the tutorial heart.
-- `lib/logic`: pure rules (scoring, Sort mode, drag lines).
+- `lib/logic`: pure rules (scoring and streaks, Sort mode, Time Attack, boosters, patches for find-next, drag lines).
 - `lib/state`: game and sort controllers, saved progress, music and sounds, settings, achievements.
-- `lib/ui`: screens, the canvas painters, tray, gallery, settings and tutorials.
+- `lib/ui`: screens, the canvas painters, tray, booster bar, mini-map, replay, picture export, gallery, settings and tutorials.
+- `test`: rules, scoring, sort solvability, progress and badges.
+- `tool`: generators for music, sound effects and the icon.

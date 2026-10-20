@@ -473,9 +473,37 @@ class ProgressStore extends ChangeNotifier {
     return _persist();
   }
 
-  Future<void> _persist() async {
+  Future<void>? _writing;
+  bool _dirty = false;
+
+  /// Writes the whole store. Finishing a picture saves several things at
+  /// once, so a save requested while one is in flight waits for it and
+  /// then writes the newest state in a single pass.
+  Future<void> _persist() {
+    final pending = _writing;
+    if (pending != null) {
+      _dirty = true;
+      return pending;
+    }
+    return _writing = _write();
+  }
+
+  Future<void> _write() async {
+    do {
+      _dirty = false;
+      await _writeOnce();
+    } while (_dirty);
+    _writing = null;
+  }
+
+  /// How many times the store has been written, for tests.
+  @visibleForTesting
+  int writes = 0;
+
+  Future<void> _writeOnce() async {
     final prefs = _prefs;
     if (prefs == null) return;
+    writes++;
     try {
       await prefs.setString(
         _key,

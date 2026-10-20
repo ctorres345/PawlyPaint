@@ -170,6 +170,26 @@ void drawCutGem(Canvas canvas, Rect cell, GemPaints g) {
   }
 }
 
+final _ringOutline = Paint()..style = PaintingStyle.stroke;
+final _ringCore = Paint()..style = PaintingStyle.stroke;
+
+/// Ink for the dark half of a selection ring.
+const ringInk = Color(0xFF2E2233);
+
+/// A selection ring that reads on every bead color: a dark outline around a
+/// bright core, so it stands out on white beads as well as on dark ones.
+/// [width] is the core's stroke width and [alpha] fades the whole ring.
+void drawSelectRing(Canvas canvas, Rect r, double width, {double alpha = 1, Color core = Colors.white}) {
+  _ringOutline
+    ..color = ringInk.withValues(alpha: 0.85 * alpha)
+    ..strokeWidth = width * 2.2;
+  _ringCore
+    ..color = core.withValues(alpha: alpha)
+    ..strokeWidth = width;
+  canvas.drawOval(r, _ringOutline);
+  canvas.drawOval(r, _ringCore);
+}
+
 /// How long the finish sweep takes to cross the picture.
 const sweepDuration = Duration(milliseconds: 1300);
 

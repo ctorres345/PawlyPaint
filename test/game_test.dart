@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show Color, Offset, Size;
@@ -18,6 +19,7 @@ import 'package:pawlypaint/state/music.dart';
 import 'package:pawlypaint/state/progress_store.dart';
 import 'package:pawlypaint/state/sort_controller.dart';
 import 'package:pawlypaint/ui/board.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Puzzle _tiny() => Puzzle(
       id: 't',
@@ -540,6 +542,22 @@ void main() {
   });
 
   group('progress', () {
+    test('saves requested while one is writing collapse into a single write', () async {
+      SharedPreferences.setMockInitialValues({});
+      final store = await ProgressStore.load();
+      final first = store.addBoosters({Booster.bomb: 1});
+      final more = [
+        store.noteCombo(7),
+        store.markTutorialSeen(),
+        store.recordDaily(DateTime(2026, 10, 19)),
+      ];
+      await Future.wait([first, ...more]);
+      expect(store.writes, 2);
+      final saved = jsonDecode((await SharedPreferences.getInstance()).getString('progress_v1')!) as Map;
+      expect(saved['bestCombo'], 7);
+      expect(saved['seenTutorial'], isTrue);
+    });
+
     test('levels and pictures unlock in order', () async {
       final course = buildCourses().first;
       final store = ProgressStore.memory();

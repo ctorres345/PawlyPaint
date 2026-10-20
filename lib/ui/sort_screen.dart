@@ -975,7 +975,6 @@ class _SortBoardPainter extends CustomPainter {
     ..color = const Color(0x66FFFFFF)
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, kCell * 0.25);
   static final _spot = Paint();
-  static final _spotRing = Paint()..style = PaintingStyle.stroke;
   static final _ring = Paint()..style = PaintingStyle.stroke;
   static final _miss = Paint()
     ..style = PaintingStyle.stroke
@@ -1067,25 +1066,23 @@ class _SortBoardPainter extends CustomPainter {
     final sel = peek ? null : game.selection;
     if (sel != null) {
       // Picked-up beads glow, and every empty spot that wants them breathes.
-      _ring
-        ..color = Colors.white.withValues(alpha: 0.75 + 0.25 * pulse)
-        ..strokeWidth = math.max(kCell * 0.1, 1.5 / view.scale);
+      // Picked-up beads get a dark-and-white ring that reads on any bead
+      // color, white included; every empty spot that wants them breathes.
+      final ringWidth = math.max(kCell * 0.09, 1.5 / view.scale);
       for (final c in sel.cells) {
         final r = _cell(c);
         canvas.drawCircle(r.center, kCell * 0.5, _glow);
         drawGem(canvas, r.deflate(kCell * 0.02), paints[sel.color], pop: 0.25);
-        canvas.drawCircle(r.center, kCell * 0.52, _ring);
+        drawSelectRing(canvas, Rect.fromCircle(center: r.center, radius: kCell * 0.5), ringWidth,
+            alpha: 0.8 + 0.2 * pulse);
       }
       _spot.color = paints[sel.color].color.withValues(alpha: 0.35 + 0.45 * pulse);
-      _spotRing
-        ..color = Colors.white.withValues(alpha: 0.5 + 0.5 * pulse)
-        ..strokeWidth = math.max(kCell * 0.08, 1.2 / view.scale);
       final cur = game.game.current, target = game.game.target;
       for (var i = 0; i < cur.length; i++) {
         if (cur[i] >= 0 || target[i] != sel.color || game.arriving.containsKey(i)) continue;
         final r = _cell(i).deflate(kCell * (0.2 - 0.06 * pulse));
         canvas.drawOval(r, _spot);
-        canvas.drawOval(r, _spotRing);
+        drawSelectRing(canvas, r, math.max(kCell * 0.07, 1.2 / view.scale), alpha: 0.6 + 0.4 * pulse);
       }
     }
 
@@ -1328,11 +1325,14 @@ class SortTrayPainter extends CustomPainter {
       final color = tray[i];
       final lifted = color == selectedColor;
       drawCutGem(canvas, lifted ? r.shift(Offset(0, -r.height * 0.12)) : r, paints[color]);
-      if (lifted || color == hintColor) {
+      if (lifted) {
+        final c = r.center.translate(0, -r.height * 0.12);
+        drawSelectRing(canvas, Rect.fromCircle(center: c, radius: r.width * 0.5), math.max(1.5, r.width * 0.09));
+      } else if (color == hintColor) {
         _ring
-          ..color = lifted ? Colors.white : const Color(0xFFFFC107).withValues(alpha: 0.5 + 0.5 * pulse)
+          ..color = const Color(0xFFFFC107).withValues(alpha: 0.5 + 0.5 * pulse)
           ..strokeWidth = math.max(1.5, r.width * 0.1);
-        canvas.drawCircle(lifted ? r.center.translate(0, -r.height * 0.12) : r.center, r.width * 0.5, _ring);
+        canvas.drawCircle(r.center, r.width * 0.5, _ring);
       }
     }
   }

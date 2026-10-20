@@ -39,11 +39,14 @@ typedef _Snapshot = ({Int16List board, List<int> tray, int placed, int comboBonu
 /// Live state of one picture in Sort mode (or a Time Attack run): the rules
 /// plus timing, combos, animation bookkeeping and saving.
 class SortController extends ChangeNotifier {
-  SortController(this.puzzle, {Map<String, dynamic>? resume, DateTime Function()? clock})
+  SortController(Puzzle puzzle, {Map<String, dynamic>? resume, DateTime Function()? clock})
+      : this._resumed(puzzle, _restore(puzzle, resume), resume, clock);
+
+  SortController._resumed(this.puzzle, SortGame? saved, Map<String, dynamic>? resume, DateTime Function()? clock)
       : _clock = clock ?? DateTime.now,
         timeLimit = null,
-        game = _restore(puzzle, resume) ?? _fresh(puzzle) {
-    if (_restore(puzzle, resume) != null) {
+        game = saved ?? _fresh(puzzle) {
+    if (saved != null) {
       _baseSeconds = resume!['seconds'] as int? ?? 0;
       excusedMistakes = resume['relaxed'] == true;
       bestCombo = resume['bestCombo'] as int? ?? 0;

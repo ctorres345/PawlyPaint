@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../logic/line.dart';
+import '../models/puzzle.dart';
 import '../state/game_controller.dart';
 import '../state/settings.dart';
 import 'gem_style.dart';
@@ -271,18 +272,36 @@ class _BoardState extends State<Board> {
   }
 }
 
-/// The parts of the canvas that only change when a drill is placed or the
-/// selection changes, recorded once in board units and replayed every frame.
+/// The canvas, recorded in layers so a frame mostly replays pictures:
+/// the sheet with every spot and the grid, the numbers, and the placed
+/// drills in chunks that only grow. Placing a drill re-records nothing big,
+/// which keeps fast drags smooth on the largest canvases.
 class BoardCache {
   ui.Picture? base;
   ui.Picture? labels;
   Object? key;
+
+  /// Placed drills in the order they went down, [chunk] cells a picture.
+  final List<ui.Picture> gems = [];
+  int committed = 0;
+  Object? gemsLook;
+  static const chunk = 64;
 
   void dispose() {
     base?.dispose();
     labels?.dispose();
     base = labels = null;
     key = null;
+    clearGems();
+  }
+
+  void clearGems() {
+    for (final g in gems) {
+      g.dispose();
+    }
+    gems.clear();
+    committed = 0;
+    gemsLook = null;
   }
 }
 
@@ -326,31 +345,33 @@ class BoardPainter extends CustomPainter {
 
   bool get _smart => highlight && !game.isColorDone(game.selected) && !game.isComplete;
 
-  void _rebuildCache() {
-    final key = (game.boardVersion, highlight, game.isComplete, currentLook());
+  static Rect _cellRect(Puzzle p, int i) => Rect.fromLTWH((i % p.width) * kCell, (i ~/ p.width) * kCell, kCell, kCell);
+
+  /// The sheet with every spot tinted, the grid, and the numbers. Placed
+  /// drills cover their spot later, so this only changes with the selection.
+  void _rebuildBase() {
+    final smart = _smart;
+    final sel = game.selected;
+    final key = (smart, sel, game.isComplete, currentLook());
     _sheet.color = canvasTheme.sheet;
     if (cache.key == key && cache.base != null) return;
-    cache.dispose();
+    cache.base?.dispose();
+    cache.labels?.dispose();
     cache.key = key;
     final p = game.puzzle;
-    final sel = game.selected;
-    final smart = _smart;
 
-    // Sheet, tinted cells, grid and placed drills.
     var rec = ui.PictureRecorder();
     var c = Canvas(rec);
     final board = Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell);
     final sheet = RRect.fromRectAndRadius(board.inflate(kCell * 0.6), const Radius.circular(kCell * 0.4));
     c.drawRRect(sheet.shift(const Offset(0, 4)), _sheetShadow);
     c.drawRRect(sheet, _sheet);
-    for (var i = 0; i < p.cellCount; i++) {
-      if (game.placed[i] == 1) continue;
-      final color = p.cells[i];
-      final rect = Rect.fromLTWH((i % p.width) * kCell, (i ~/ p.width) * kCell, kCell, kCell);
-      final g = paints[color];
-      c.drawRect(rect, !smart ? g.pale : (color == sel ? g.paleSelected : g.dim));
-    }
     if (!game.isComplete) {
+      for (var i = 0; i < p.cellCount; i++) {
+        final color = p.cells[i];
+        final g = paints[color];
+        c.drawRect(_cellRect(p, i), !smart ? g.pale : (color == sel ? g.paleSelected : g.dim));
+      }
       for (var x = 0; x <= p.width; x++) {
         c.drawLine(Offset(x * kCell, 0), Offset(x * kCell, board.bottom), x % 10 == 0 ? _gridMajor : _gridFine);
       }
@@ -358,66 +379,102 @@ class BoardPainter extends CustomPainter {
         c.drawLine(Offset(0, y * kCell), Offset(board.right, y * kCell), y % 10 == 0 ? _gridMajor : _gridFine);
       }
     }
-    for (var i = 0; i < p.cellCount; i++) {
-      if (game.placed[i] == 0) continue;
-      drawGem(c, Rect.fromLTWH((i % p.width) * kCell, (i ~/ p.width) * kCell, kCell, kCell), paints[p.cells[i]]);
-    }
     cache.base = rec.endRecording();
 
-    // Numbers on the empty cells, drawn only when zoomed in enough to read.
+    // Numbers on the spots, drawn only when zoomed in enough to read.
     rec = ui.PictureRecorder();
     c = Canvas(rec);
-    final labels = <(int, bool, bool), TextPainter>{};
-    for (var i = 0; i < p.cellCount; i++) {
-      if (game.placed[i] == 1) continue;
-      final color = p.cells[i];
-      final isSel = smart && color == sel;
-      final dimmed = smart && !isSel;
-      final label = labels.putIfAbsent((color, isSel, dimmed), () {
-        final g = paints[color];
-        final ink = GemPaints.inkOn(isSel ? g.paleSelected : (dimmed ? g.dim : g.pale));
-        return TextPainter(
-          text: TextSpan(
-            text: p.symbolFor(color),
-            style: TextStyle(
-              fontFamily: 'Quicksand',
-              fontSize: kCell * 0.42,
-              // Dimmed numbers stay readable but quieter.
-              color: dimmed ? ink.withValues(alpha: 0.55) : ink,
-              fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+    if (!game.isComplete) {
+      final labels = <(int, bool, bool), TextPainter>{};
+      for (var i = 0; i < p.cellCount; i++) {
+        final color = p.cells[i];
+        final isSel = smart && color == sel;
+        final dimmed = smart && !isSel;
+        final label = labels.putIfAbsent((color, isSel, dimmed), () {
+          final g = paints[color];
+          final ink = GemPaints.inkOn(isSel ? g.paleSelected : (dimmed ? g.dim : g.pale));
+          return TextPainter(
+            text: TextSpan(
+              text: p.symbolFor(color),
+              style: TextStyle(
+                fontFamily: 'Quicksand',
+                fontSize: kCell * 0.42,
+                // Dimmed numbers stay readable but quieter.
+                color: dimmed ? ink.withValues(alpha: 0.55) : ink,
+                fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+              ),
             ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-      });
-      final center = Offset((i % p.width + 0.5) * kCell, (i ~/ p.width + 0.5) * kCell);
-      label.paint(c, center - Offset(label.width / 2, label.height / 2));
-    }
-    for (final l in labels.values) {
-      l.dispose();
+            textDirection: TextDirection.ltr,
+          )..layout();
+        });
+        final center = Offset((i % p.width + 0.5) * kCell, (i ~/ p.width + 0.5) * kCell);
+        label.paint(c, center - Offset(label.width / 2, label.height / 2));
+      }
+      for (final l in labels.values) {
+        l.dispose();
+      }
     }
     cache.labels = rec.endRecording();
   }
 
+  /// One placed drill: clears its spot back to the sheet (inside the grid
+  /// lines) and draws the drill.
+  void _drawPlaced(Canvas c, Puzzle p, int i) {
+    final rect = _cellRect(p, i);
+    c.drawRect(rect.deflate(0.5), _sheet);
+    drawGem(c, rect, paints[p.cells[i]]);
+  }
+
+  /// Draws every placed drill: the recorded chunks, then the newest few by
+  /// hand. A chunk is recorded once enough new drills have gone down.
+  void _drawGems(Canvas canvas) {
+    final p = game.puzzle;
+    final order = game.order;
+    final look = currentLook();
+    if (cache.gemsLook != look || order.length < cache.committed) {
+      cache.clearGems();
+      cache.gemsLook = look;
+    }
+    while (order.length - cache.committed >= BoardCache.chunk) {
+      final rec = ui.PictureRecorder();
+      final c = Canvas(rec);
+      for (var k = cache.committed; k < cache.committed + BoardCache.chunk; k++) {
+        _drawPlaced(c, p, order[k]);
+      }
+      cache.gems.add(rec.endRecording());
+      cache.committed += BoardCache.chunk;
+    }
+    for (final g in cache.gems) {
+      canvas.drawPicture(g);
+    }
+    for (var k = cache.committed; k < order.length; k++) {
+      _drawPlaced(canvas, p, order[k]);
+    }
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    _rebuildCache();
+    _rebuildBase();
     final p = game.puzzle;
     canvas.save();
     canvas.translate(view.offset.dx, view.offset.dy);
     canvas.scale(view.scale);
     canvas.drawPicture(cache.base!);
     if (view.cellSize >= 13) canvas.drawPicture(cache.labels!);
+    _drawGems(canvas);
 
     final t = shimmer.value;
     final now = DateTime.now();
-    Rect cellRect(int i) => Rect.fromLTWH((i % p.width) * kCell, (i ~/ p.width) * kCell, kCell, kCell);
+    Rect cellRect(int i) => _cellRect(p, i);
 
     // Pulsing outline on the cells still waiting for the selected color.
     if (_smart) {
       final pulse = 0.5 + 0.5 * math.sin(t * math.pi * 8);
+      // Light colors (white, cream) would vanish against their pale spot, so
+      // they get the dark ring ink instead.
+      final selColor = paints[game.selected].color;
       _ring
-        ..color = paints[game.selected].color.withValues(alpha: 0.35 + 0.45 * pulse)
+        ..color = (selColor.computeLuminance() > 0.55 ? ringInk : selColor).withValues(alpha: 0.35 + 0.45 * pulse)
         ..strokeWidth = math.max(kCell * 0.08, 1.5 / view.scale);
       for (final i in p.cellsByColor[game.selected]) {
         if (game.placed[i] == 0) canvas.drawRect(cellRect(i).deflate(kCell * 0.08), _ring);
