@@ -43,15 +43,24 @@ class BoardView extends ChangeNotifier {
     return (s, Offset(reserve.left + (w - cols * kCell * s) / 2, reserve.top + (h - rows * kCell * s) / 2));
   }
 
-  void fit(Size size, int cols, int rows) {
+  /// Shows the whole canvas, or, when that would make cells smaller than
+  /// [minCell] on screen, its middle at that size.
+  void fit(Size size, int cols, int rows, {double minCell = 0}) {
     viewport = size;
     this.cols = cols;
     this.rows = rows;
     final (s, o) = fitTransform();
     minScale = s * 0.8;
     maxScale = math.max(s * 1.2, 72 / kCell);
-    scale = s;
-    offset = o;
+    if (kCell * s >= minCell) {
+      scale = s;
+      offset = o;
+    } else {
+      scale = math.min(minCell / kCell, maxScale);
+      final area = reserve.deflateRect(Offset.zero & size);
+      offset = area.center - Offset(cols.toDouble(), rows.toDouble()) * cellSize / 2;
+      _clamp();
+    }
     notifyListeners();
   }
 
@@ -104,6 +113,24 @@ class BoardView extends ChangeNotifier {
     final x = p.dx.floor(), y = p.dy.floor();
     if (x < 0 || y < 0 || x >= cols || y >= rows) return null;
     return (x, y);
+  }
+
+  /// Cells whose middle is within [radius] of a point in the viewport, the
+  /// one under the point first and the rest nearest first.
+  List<(int, int)> cellsNear(Offset local, double radius) {
+    final under = cellAt(local);
+    final p = (local - offset) / cellSize;
+    final r = radius / cellSize;
+    final near = <((int, int), double)>[];
+    for (var y = math.max(0, (p.dy - r).floor()); y <= math.min(rows - 1, (p.dy + r).floor()); y++) {
+      for (var x = math.max(0, (p.dx - r).floor()); x <= math.min(cols - 1, (p.dx + r).floor()); x++) {
+        if ((x, y) == under) continue;
+        final d = (Offset(x + 0.5, y + 0.5) - p).distance;
+        if (d <= r) near.add(((x, y), d));
+      }
+    }
+    near.sort((a, b) => a.$2.compareTo(b.$2));
+    return [if (under != null) under, for (final n in near) n.$1];
   }
 
   void _clamp() {

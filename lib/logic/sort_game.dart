@@ -200,6 +200,33 @@ class SortGame {
     return const SortMove(SortAction.selected);
   }
 
+  /// Whether tapping the hole at [cell] would drop beads into it.
+  bool _wouldPlace(int cell) {
+    if (!isHole(cell)) return false;
+    final sel = selection, want = target[cell];
+    if (sel != null) return sel.color == want || (sel.fromTray && tray.contains(want));
+    return tray.contains(want);
+  }
+
+  /// Picks the cell a finger meant among [nearby], the cells under it sorted
+  /// by distance from the touch, the one right under it first. A near miss
+  /// should not cost a mistake or swap the beads in hand: with beads held, a
+  /// spot they fit wins; otherwise the closest cell where the tap does
+  /// something. Falls back to the cell right under the finger.
+  int aim(List<int> nearby) {
+    final exact = nearby.first;
+    if (selection != null) {
+      if (isSelected(exact)) return exact;
+      for (final c in nearby) {
+        if (_wouldPlace(c)) return c;
+      }
+    }
+    for (final c in nearby) {
+      if (_wouldPlace(c) || isWrong(c)) return c;
+    }
+    return exact;
+  }
+
   /// The misplaced beads of [cell]'s color joined to it edge to edge: a lone
   /// bead on its own, a clump as one piece. Nearest to [cell] first.
   List<int> _patch(int cell) {

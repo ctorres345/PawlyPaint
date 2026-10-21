@@ -2,8 +2,11 @@
 
 Every PawlyPaint version, newest first. Android APKs are on the [Releases page](https://github.com/ctorres345/PawlyPaint/releases); installing a newer APK over an older one keeps all progress.
 
-## Unreleased
+## 0.8.4 (2026-10-21)
 
+- Sort: bigger canvases open zoomed in so beads are large enough to tap; pinch out or use Fit to see the whole picture, and a tap while zoomed far out zooms in first.
+- Sort: taps aim for what you meant. A tap that lands between beads picks the misplaced bead or the matching empty spot under your fingertip instead of a correct neighbor, so near misses no longer count as mistakes or break combos.
+- Sort: a tap counts where your finger touched down, not where it lifted.
 - MIT license, app logo and a Ko-fi link in the README.
 
 ## 0.8.3 (2026-10-19)

@@ -233,16 +233,25 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     if (!_ticker.isActive) _ticker.start();
   }
 
+  /// On-screen bead size a canvas opens at, and that a hint zooms to.
+  static const _comfyCell = 22.0;
+
+  /// Below this bead size a tap zooms in instead of picking a bead.
+  static const _minTapCell = 14.0;
+
+  /// How far from the touch a bead still counts as under the fingertip.
+  static const _fingerRadius = 18.0;
+
   void _tap(Offset local) {
     _wakeTicker();
-    final cell = view.cellAt(local);
-    if (cell == null) return;
-    if (view.cellSize < 10) {
-      view.zoomAt(local, 30 / view.cellSize);
+    if (view.cellAt(local) == null) return;
+    if (view.cellSize < _minTapCell) {
+      view.zoomAt(local, _comfyCell / view.cellSize);
       return;
     }
-    final (x, y) = cell;
-    _react(game.tapCell(y * widget.puzzle.width + x));
+    // A fingertip covers more than one bead, so aim among those under it.
+    final w = widget.puzzle.width;
+    _react(game.tapNear([for (final (x, y) in view.cellsNear(local, _fingerRadius)) y * w + x]));
   }
 
   void _tapTray(Offset local, Size size) {
@@ -313,10 +322,10 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
     if (_timed) _toast('Hint: −${TimeAttack.helpCost} seconds');
     // On big canvases, zoom in a little so the hinted spot is easy to tap.
     final cell = step.fromCell ?? step.toCell;
-    if (cell != null && view.cellSize < 14) {
+    if (cell != null && view.cellSize < _comfyCell) {
       final w = widget.puzzle.width;
       final center = view.offset + Offset((cell % w + 0.5) * view.cellSize, (cell ~/ w + 0.5) * view.cellSize);
-      view.zoomAt(center, 22 / view.cellSize);
+      view.zoomAt(center, _comfyCell / view.cellSize);
     }
   }
 
@@ -859,6 +868,7 @@ class _SortBoardState extends State<_SortBoard> {
   Size? _fittedFor;
   double _lastScale = 1;
   int _pointers = 0;
+  Offset? _downAt;
   final _cache = _SortCache();
 
   @override
@@ -876,7 +886,7 @@ class _SortBoardState extends State<_SortBoard> {
       if (_fittedFor != size) {
         _fittedFor = size;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) view.fit(size, p.width, p.height);
+          if (mounted) view.fit(size, p.width, p.height, minCell: _SortScreenState._comfyCell);
         });
       }
       return Listener(
@@ -885,7 +895,10 @@ class _SortBoardState extends State<_SortBoard> {
         },
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapUp: (d) => widget.onTap(d.localPosition),
+          // Where the finger lands is what it aimed at; it can roll a few
+          // pixels before lifting.
+          onTapDown: (d) => _downAt = d.localPosition,
+          onTapUp: (d) => widget.onTap(_downAt ?? d.localPosition),
           onScaleStart: (d) {
             _lastScale = 1;
             _pointers = d.pointerCount;

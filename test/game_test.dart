@@ -779,4 +779,41 @@ void main() {
       expect(again.order.last, 3);
     });
   });
+
+  group('Sort tap aiming', () {
+    // Row 0: right, wrong(1), hole wanting 0, right.
+    SortGame board() => SortGame(width: 4, target: Uint8List.fromList([0, 0, 0, 1]), current: Int16List.fromList([0, 1, -1, 1]), tray: [], capacity: 4);
+
+    test('a near miss on a right bead picks the misplaced one next to it', () {
+      expect(board().aim([0, 1, 2]), 1);
+    });
+
+    test('with beads in hand, a spot they fit beats grabbing another bead', () {
+      final g = SortGame(width: 4, target: Uint8List.fromList([0, 0, 0, 1]), current: Int16List.fromList([0, 1, -1, 0]), tray: [], capacity: 4);
+      g.tapCell(3);
+      expect(g.selection!.color, 0);
+      expect(g.aim([1, 2]), 2);
+    });
+
+    test('tapping a held bead still puts it down', () {
+      final g = board()..tapCell(1);
+      expect(g.aim([1, 2]), 1);
+    });
+
+    test('nothing useful nearby keeps the bead under the finger', () {
+      expect(board().aim([0, 3]), 0);
+    });
+
+    test('cellsNear lists the cell under the finger first, then by distance', () {
+      final view = BoardView()
+        ..cols = 4
+        ..rows = 4
+        ..scale = 1;
+      // Near the right edge of cell (1, 1).
+      final near = view.cellsNear(const Offset(kCell * 1.9, kCell * 1.5), kCell * 0.75);
+      expect(near.first, (1, 1));
+      expect(near[1], (2, 1));
+      expect(near, isNot(contains((3, 3))));
+    });
+  });
 }

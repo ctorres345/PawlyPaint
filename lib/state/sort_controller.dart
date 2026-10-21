@@ -244,6 +244,13 @@ class SortController extends ChangeNotifier {
     return _apply(_remember(before, game.tapCell(cell, countMistakes: !relaxed || timed)), cell);
   }
 
+  /// Taps the cell a finger meant among [nearby] (closest to the touch
+  /// first); see [SortGame.aim]. Beads still flying in are skipped.
+  SortTapResult tapNear(List<int> nearby) {
+    final open = [for (final c in nearby) if (!arriving.containsKey(c)) c];
+    return open.isEmpty ? SortTapResult.ignored : tapCell(game.aim(open));
+  }
+
   SortTapResult tapTray(int? slot) {
     if (_locked) return SortTapResult.ignored;
     final before = _snapshot();
