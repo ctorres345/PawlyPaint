@@ -3,6 +3,7 @@ import 'dart:ui' show Color;
 import '../models/puzzle.dart';
 import 'art/animals.dart';
 import 'art/catcafe.dart';
+import 'art/kpop.dart';
 import 'art/garden.dart';
 import 'art/minecraft.dart';
 import 'art/sweets.dart';
@@ -250,6 +251,43 @@ List<Course> buildCourses() => [
             'meiko-stage': xVocMeikoStage,
             'road-roller': xVocRoadRoller,
             'moonlit': xVocMoonlit,
+          },
+        },
+        special: true,
+      ),
+      _course(
+        'kpop',
+        'K-Pop Stage',
+        'Lightsticks, photocards and comeback stages',
+        const Color(0xFFB388FF),
+        {
+          Difficulty.easy: {
+            'lightstick': lightstick,
+            'finger-heart': fingerHeart,
+            'photocard': photocard,
+            'album': album,
+            'fan-banner': sloganBanner,
+          },
+          Difficulty.medium: {
+            'main-vocal': mainVocal,
+            'main-rapper': rapper,
+            'photocard-binder': photocardBinder,
+            'concert-ticket': concertTicket,
+            'fan-letter': fanLetter,
+          },
+          Difficulty.hard: {
+            'dance-practice': dancePractice,
+            'lightstick-ocean': lightOcean,
+            'comeback-stage': comebackStage,
+            'photo-booth': photoBooth,
+            'the-group': idolGroup,
+          },
+          Difficulty.extreme: {
+            'stadium-night': xStadiumNight,
+            'music-show': xMusicShow,
+            'fan-cafe': xFanCafe,
+            'award-night': xAwardNight,
+            'encore-fireworks': xEncoreFireworks,
           },
         },
         special: true,

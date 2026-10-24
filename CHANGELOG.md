@@ -2,6 +2,10 @@
 
 Every PawlyPaint version, newest first. Android APKs are on the [Releases page](https://github.com/ctorres345/PawlyPaint/releases); installing a newer APK over an older one keeps all progress.
 
+## Unreleased
+
+- New special course, K-Pop Stage: 20 fandom pictures with generic cartoon idols, from a lightstick and a finger heart on Easy to a stadium night and encore fireworks on Extreme.
+
 ## 0.9.1 (2026-10-24)
 
 - Home screen: the paw of jewels from the app icon sits next to the title, so Mochi only appears once, in the greeting below.
