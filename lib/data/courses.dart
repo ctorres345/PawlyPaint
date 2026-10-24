@@ -2,6 +2,7 @@ import 'dart:ui' show Color;
 
 import '../models/puzzle.dart';
 import 'art/animals.dart';
+import 'art/catcafe.dart';
 import 'art/garden.dart';
 import 'art/minecraft.dart';
 import 'art/sweets.dart';
@@ -152,6 +153,42 @@ List<Course> buildCourses() => [
             'hot-cocoa': xHotCocoa,
             'candy-house': xCandyHouse,
             'bakery': xBakery,
+          },
+        },
+      ),
+      _course(
+        'catcafe',
+        'Cat Café',
+        'Cats, kittens and cozy café corners',
+        const Color(0xFFD7B899),
+        {
+          Difficulty.easy: {
+            'cafe-cat': cafeCat,
+            'yarn-ball': yarnBall,
+            'milk': milkSaucer,
+            'paw-latte': pawLatte,
+            'fish-treat': fishTreat,
+          },
+          Difficulty.medium: {
+            'cat-nap': catNap,
+            'tabby': tabby,
+            'kitty-cupcake': kittyCupcake,
+            'window-seat': windowSeat,
+            'tuxedo': tuxedo,
+          },
+          Difficulty.hard: {
+            'cat-loaf': catLoaf,
+            'box-cat': boxCat,
+            'calico': calico,
+            'barista': barista,
+            'cuddle-puddle': cuddlePuddle,
+          },
+          Difficulty.extreme: {
+            'cafe-counter': xCafeCounter,
+            'rainy-day': xRainyDay,
+            'cat-tower': xCatTower,
+            'tea-party': xTeaParty,
+            'night-cafe': xNightCafe,
           },
         },
       ),
