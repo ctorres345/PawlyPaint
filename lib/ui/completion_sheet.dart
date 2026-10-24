@@ -4,6 +4,7 @@ import '../logic/boosters.dart';
 import '../models/puzzle.dart';
 import '../state/achievements.dart';
 import 'badges.dart';
+import 'cat_mascot.dart';
 import 'booster_bar.dart' show boosterIcon;
 import 'gem_style.dart';
 import 'picture_export.dart';
@@ -40,7 +41,12 @@ Future<void> showCompletionSheet(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(title, style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+              const CatMascot(size: 72, mood: MascotMood.cheer),
+              const SizedBox(height: 6),
+              Text(
+                title == 'Masterpiece complete!' ? completionPun(puzzle.id) : title,
+                style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
               const SizedBox(height: 4),
               Text(puzzle.title, style: text.titleMedium?.copyWith(color: scheme.primary)),
               const SizedBox(height: 16),

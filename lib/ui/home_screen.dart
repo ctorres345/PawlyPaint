@@ -4,6 +4,7 @@ import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import '../data/tutorial.dart';
 import 'coach.dart';
+import 'cat_mascot.dart';
 import 'course_screen.dart';
 import 'gallery_screen.dart';
 import 'game_screen.dart';
@@ -26,95 +27,123 @@ class HomeScreen extends StatelessWidget {
     final totalStars = courses.fold(0, (s, c) => s + store.starsIn(c.puzzles));
     final maxStars = courses.fold(0, (s, c) => s + ProgressStore.maxStarsIn(c.puzzles));
     return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-          children: [
-            Row(
+      body: Stack(
+        children: [
+          const Positioned.fill(child: PawPattern()),
+          SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
               children: [
-                Icon(Icons.diamond_rounded, color: scheme.primary, size: 36),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text('PawlyPaint', style: text.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
-                  ),
-                ),
-                const MusicButton(),
-                IconButton(
-                  tooltip: 'Settings',
-                  icon: const Icon(Icons.settings_rounded),
-                  onPressed: () =>
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-                ),
-                const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
-                const SizedBox(width: 4),
-                Text('$totalStars / $maxStars', style: text.titleMedium),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text('Pick a course and fill each mystery picture with sparkly drills.', style: text.bodyMedium),
-            const SizedBox(height: 20),
-            _DailyCard(courses: courses, store: store),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => GalleryScreen(courses: courses)),
-                    ),
-                    icon: const Icon(Icons.collections_rounded),
-                    label: const Text('Gallery'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    onPressed: () => _showHowToPlay(context, store),
-                    icon: const Icon(Icons.school_rounded),
-                    label: const Text('How to play'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => TimeAttackScreen(courses: courses)),
-              ),
-              icon: const Icon(Icons.timer_rounded),
-              label: const Text('Time Attack'),
-            ),
-            const SizedBox(height: 24),
-            for (final course in courses.where((c) => !c.special)) ...[
-              _CourseCard(course: course, store: store),
-              const SizedBox(height: 16),
-            ],
-            if (courses.any((c) => c.special)) ...[
-              const SizedBox(height: 8),
-              Semantics(
-                header: true,
-                child: Row(
+                Row(
                   children: [
-                    Icon(Icons.auto_awesome_rounded, color: scheme.primary),
+                    const CatMascot(size: 44),
                     const SizedBox(width: 8),
-                    Text('Special collections', style: text.titleLarge),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text('PawlyPaint', style: text.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                    const MusicButton(),
+                    IconButton(
+                      tooltip: 'Settings',
+                      icon: const Icon(Icons.settings_rounded),
+                      onPressed: () =>
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                    ),
+                    const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
+                    const SizedBox(width: 4),
+                    Text('$totalStars / $maxStars', style: text.titleMedium),
                   ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              for (final course in courses.where((c) => c.special)) ...[
-                _CourseCard(course: course, store: store),
+                const SizedBox(height: 12),
+                MascotBubble(text: _greeting(store, courses)),
                 const SizedBox(height: 16),
+                _DailyCard(courses: courses, store: store),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => GalleryScreen(courses: courses)),
+                        ),
+                        icon: const Icon(Icons.collections_rounded),
+                        label: const Text('Gallery'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: () => _showHowToPlay(context, store),
+                        icon: const Icon(Icons.school_rounded),
+                        label: const Text('How to play'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => TimeAttackScreen(courses: courses)),
+                  ),
+                  icon: const Icon(Icons.timer_rounded),
+                  label: const Text('Time Attack'),
+                ),
+                const SizedBox(height: 24),
+                for (final course in courses.where((c) => !c.special)) ...[
+                  _CourseCard(course: course, store: store),
+                  const SizedBox(height: 16),
+                ],
+                if (courses.any((c) => c.special)) ...[
+                  const SizedBox(height: 8),
+                  Semantics(
+                    header: true,
+                    child: Row(
+                      children: [
+                        Icon(Icons.auto_awesome_rounded, color: scheme.primary),
+                        const SizedBox(width: 8),
+                        Text('Special collections', style: text.titleLarge),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final course in courses.where((c) => c.special)) ...[
+                    _CourseCard(course: course, store: store),
+                    const SizedBox(height: 16),
+                  ],
+                ],
               ],
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+/// What the mascot says on the home screen: the next thing worth doing.
+String _greeting(ProgressStore store, List<Course> courses) {
+  final today = DateTime.now();
+  final streak = store.streak(today);
+  if (!store.dailyDoneToday(today) && streak > 0) {
+    return "Welcome back! Today's picture keeps your $streak day streak going.";
+  }
+  final totalDone = courses.fold(0, (s, c) => s + store.completedIn(c.puzzles));
+  if (totalDone == 0) return "Hi, I'm $mascotName! Pick a course and let's fill a picture with sparkles.";
+  for (final course in courses) {
+    final left = course.puzzles.length - store.completedIn(course.puzzles);
+    if (left > 0 && store.completedIn(course.puzzles) > 0) {
+      return 'Welcome back! ${course.title} has $left ${left == 1 ? 'picture' : 'pictures'} left'
+          '${store.dailyDoneToday(today) ? '.' : ", and today's surprise is waiting."}';
+    }
+  }
+  final allDone = courses.every((c) => store.completedIn(c.puzzles) == c.puzzles.length);
+  if (allDone) return 'Every picture is finished. You are purr-fection itself.';
+  return store.dailyDoneToday(today)
+      ? 'Welcome back! A new course is waiting for you.'
+      : "Welcome back! Today's surprise picture is waiting.";
 }
 
 class _CourseCard extends StatelessWidget {
@@ -134,54 +163,57 @@ class _CourseCard extends StatelessWidget {
       button: true,
       label: '${course.title}, $painted of $total painted, $sorted of $total sorted, $stars stars',
       excludeSemantics: true,
-      child: Material(
-        borderRadius: BorderRadius.circular(24),
-        clipBehavior: Clip.antiAlias,
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [course.accent, Color.lerp(course.accent, Colors.white, 0.55)!],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+      child: EarsCard(
+        color: course.accent,
+        child: Material(
+          borderRadius: BorderRadius.circular(24),
+          clipBehavior: Clip.antiAlias,
+          child: Ink(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [course.accent, Color.lerp(course.accent, Colors.white, 0.55)!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-          ),
-          child: InkWell(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CourseScreen(course: course))),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(course.title, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                      ),
-                      const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
-                      Text(' $stars / ${ProgressStore.maxStarsIn(course.puzzles)}', style: text.titleSmall),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(course.subtitle, style: text.bodyMedium),
-                  const SizedBox(height: 14),
-                  _ModeProgress(icon: Icons.brush_rounded, label: 'Paint', done: painted, total: total),
-                  const SizedBox(height: 6),
-                  _ModeProgress(icon: Icons.swap_horiz_rounded, label: 'Sort', done: sorted, total: total),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (var i = 0; i < course.levels.length; i++)
-                        _LevelPill(
-                          level: course.levels[i],
-                          painted: store.completedIn(course.levels[i].puzzles, PlayMode.paint),
-                          sorted: store.completedIn(course.levels[i].puzzles, PlayMode.sort),
-                          unlocked: store.isLevelUnlocked(course, i),
+            child: InkWell(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CourseScreen(course: course))),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(course.title, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
                         ),
-                    ],
-                  ),
-                ],
+                        const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
+                        Text(' $stars / ${ProgressStore.maxStarsIn(course.puzzles)}', style: text.titleSmall),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(course.subtitle, style: text.bodyMedium),
+                    const SizedBox(height: 14),
+                    _ModeProgress(icon: Icons.brush_rounded, label: 'Paint', done: painted, total: total),
+                    const SizedBox(height: 6),
+                    _ModeProgress(icon: Icons.swap_horiz_rounded, label: 'Sort', done: sorted, total: total),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (var i = 0; i < course.levels.length; i++)
+                          _LevelPill(
+                            level: course.levels[i],
+                            painted: store.completedIn(course.levels[i].puzzles, PlayMode.paint),
+                            sorted: store.completedIn(course.levels[i].puzzles, PlayMode.sort),
+                            unlocked: store.isLevelUnlocked(course, i),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -270,66 +302,69 @@ class _DailyCard extends StatelessWidget {
       button: true,
       label: done ? "Today's picture is done. Streak: $streak days" : "Today's surprise picture. Streak: $streak days",
       excludeSemantics: true,
-      child: Material(
+      child: EarsCard(
         color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(24),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => _pickDailyMode(context, store, puzzle),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox.square(
-                    dimension: 72,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CustomPaint(
-                          painter: PuzzleThumbPainter(
-                            puzzle,
-                            complete: done,
-                            placed: store.savedFor(puzzle)?.placed,
+        child: Material(
+          color: scheme.primaryContainer,
+          borderRadius: BorderRadius.circular(24),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => _pickDailyMode(context, store, puzzle),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox.square(
+                      dimension: 72,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CustomPaint(
+                            painter: PuzzleThumbPainter(
+                              puzzle,
+                              complete: done,
+                              placed: store.savedFor(puzzle)?.placed,
+                            ),
                           ),
+                          if (!done) Center(child: Icon(Icons.card_giftcard_rounded, color: scheme.primary, size: 32)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Today's picture", style: text.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          done ? 'Done! Come back tomorrow for a new one.' : 'A surprise picture, just for today.',
+                          style: text.bodySmall,
                         ),
-                        if (!done) Center(child: Icon(Icons.card_giftcard_rounded, color: scheme.primary, size: 32)),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.local_fire_department_rounded,
+                              size: 20,
+                              color: streak > 0 ? const Color(0xFFFF7043) : scheme.outline,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              streak == 1 ? '1 day streak' : '$streak day streak',
+                              style: text.labelLarge,
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Today's picture", style: text.titleMedium),
-                      const SizedBox(height: 2),
-                      Text(
-                        done ? 'Done! Come back tomorrow for a new one.' : 'A surprise picture, just for today.',
-                        style: text.bodySmall,
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.local_fire_department_rounded,
-                            size: 20,
-                            color: streak > 0 ? const Color(0xFFFF7043) : scheme.outline,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            streak == 1 ? '1 day streak' : '$streak day streak',
-                            style: text.labelLarge,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right_rounded),
-              ],
+                  const Icon(Icons.chevron_right_rounded),
+                ],
+              ),
             ),
           ),
         ),

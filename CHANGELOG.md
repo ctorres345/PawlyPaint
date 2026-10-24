@@ -4,6 +4,7 @@ Every PawlyPaint version, newest first. Android APKs are on the [Releases page](
 
 ## Unreleased
 
+- Cat café look: Mochi the cat mascot greets you on the home screen with what to do next and cheers on every finished picture with a cat pun; cards wear little ears and a faint paw pattern sits behind the home screen.
 - New course, Cat Café: 20 pictures of cats, kittens and café corners, from a mascot-style cat face on Easy to a night-time café front on Extreme.
 - Music: all four songs recomposed. Warmer layered instruments (plucked strings, electric piano, vibes, a breathy flute) in stereo with a room reverb, soft brushes instead of sharp hats, and melodies built from repeated motifs on a bright pentatonic scale so nothing wanders into eerie notes.
 - Cooler phone: the app no longer asks ProMotion iPhones for 120 frames per second, drops the per-frame blur passes behind the canvas and around picked-up beads, redraws the placed drills from a cached bitmap instead of thousands of shapes every frame, and repaints the shimmer and the Sort board at most 30 times a second while nothing is moving.
