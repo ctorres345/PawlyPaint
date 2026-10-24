@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Launch screen: the app's blush background with the jewel in the middle. -->
+<!-- Launch screen: the app's blush background with the paw of jewels in the middle. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <color android:color="#FCE4EC" />

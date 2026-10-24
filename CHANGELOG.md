@@ -2,8 +2,9 @@
 
 Every PawlyPaint version, newest first. Android APKs are on the [Releases page](https://github.com/ctorres345/PawlyPaint/releases); installing a newer APK over an older one keeps all progress.
 
-## Unreleased
+## 0.9.0 (2026-10-24)
 
+- New app icon: a paw made of jewels, four round gem toes over the pink jewel, so the paw in the name is on the home screen too. The launch screen shows the same paw.
 - Cat café look: Mochi the cat mascot greets you on the home screen with what to do next and cheers on every finished picture with a cat pun; cards wear little ears and a faint paw pattern sits behind the home screen.
 - New course, Cat Café: 20 pictures of cats, kittens and café corners, from a mascot-style cat face on Easy to a night-time café front on Extreme.
 - Music: all four songs recomposed. Warmer layered instruments (plucked strings, electric piano, vibes, a breathy flute) in stereo with a room reverb, soft brushes instead of sharp hats, and melodies built from repeated motifs on a bright pentatonic scale so nothing wanders into eerie notes.

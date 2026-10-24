@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon/icon.png" alt="PawlyPaint app icon: a faceted pink jewel" width="160">
+  <img src="assets/icon/icon.png" alt="PawlyPaint app icon: a paw made of jewels" width="160">
 </p>
 
 # PawlyPaint
@@ -121,7 +121,7 @@ Regenerating assets (all made from scratch, no third-party art or audio):
 ```bash
 python3 tool/compose_music.py <out-dir>   # WAV loops, then convert to .m4a into assets/music/
 python3 tool/compose_sfx.py assets/sfx
-python3 tool/make_icon.py assets/icon && dart run flutter_launcher_icons
+python3 tool/make_icon.py assets/icon ios/Runner/Assets.xcassets/LaunchImage.imageset && dart run flutter_launcher_icons
 ```
 
 ### Layout

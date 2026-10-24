@@ -1,19 +1,22 @@
-"""Draws PawlyPaint's app icon: a faceted pink jewel on a soft blush tile.
+"""Draws PawlyPaint's app icon: a paw made of jewels (four round gem toes
+over a faceted pink jewel pad) on a soft blush tile.
 
-Pure Python (no image libraries). Writes a 1024x1024 PNG plus a version
-without the background tile for Android's adaptive icon foreground.
-Run: python3 tool/make_icon.py assets/icon
+Pure Python (no image libraries). Writes into the first directory:
+  icon.png             1024x1024, tile + paw (launcher icon)
+  icon_foreground.png  1024x1024, paw only, shrunk into Android's adaptive safe zone
+and, when a second directory is given, the iOS launch images (paw only,
+200/400/600 px) as LaunchImage.png, LaunchImage@2x.png, LaunchImage@3x.png.
+
+Run: python3 tool/make_icon.py assets/icon ios/Runner/Assets.xcassets/LaunchImage.imageset
 """
-import math
 import struct
 import sys
 import zlib
 
-N = 1024
 SS = 2  # supersampling per axis
 
 
-def write_png(path, pixels, n=N):
+def write_png(path, pixels, n):
     raw = b''.join(b'\x00' + bytes(v for px in pixels[y * n:(y + 1) * n] for v in px) for y in range(n))
 
     def chunk(t, b):
@@ -22,6 +25,10 @@ def write_png(path, pixels, n=N):
     png = (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', n, n, 8, 6, 0, 0, 0))
            + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b''))
     open(path, 'wb').write(png)
+
+
+def hexc(h):
+    return ((h >> 16) & 255, (h >> 8) & 255, h & 255)
 
 
 def inside(poly, x, y):
@@ -36,67 +43,95 @@ def inside(poly, x, y):
     return c
 
 
-def hexc(h):
-    return ((h >> 16) & 255, (h >> 8) & 255, h & 255)
+# Geometry in 0..1 units of the 1024 px artwork.
+def P(*pts):
+    return [(x / 1024, y / 1024) for x, y in pts]
 
 
-# Jewel geometry in 0..1 units: a brilliant cut seen from the front.
-TOP, GIRDLE, BOTTOM = 0.27, 0.43, 0.82
-L, R = 0.16, 0.84
-TL, TR = 0.30, 0.70
-MID = 0.5
-facets = [
-    # (polygon, colour)
-    ([(TL, TOP), (TR, TOP), (0.62, GIRDLE), (0.38, GIRDLE)], 0xFFB3C6),  # table
-    ([(L, GIRDLE), (TL, TOP), (0.38, GIRDLE)], 0xFF8FAB),  # left crown
-    ([(TR, TOP), (R, GIRDLE), (0.62, GIRDLE)], 0xE85A86),  # right crown
-    ([(L, GIRDLE), (0.38, GIRDLE), (MID, BOTTOM)], 0xF2709A),  # left pavilion
-    ([(0.38, GIRDLE), (0.62, GIRDLE), (MID, BOTTOM)], 0xE04A7A),  # centre pavilion
-    ([(0.62, GIRDLE), (R, GIRDLE), (MID, BOTTOM)], 0xB8285A),  # right pavilion
+TOP, BOTTOM = 492.8 / 1024, 844.8 / 1024
+JEWEL = P((255.2, 595.2), (361, 492.8), (663, 492.8), (768.8, 595.2), (512, 844.8))
+FACETS = [
+    (P((361, 492.8), (663, 492.8), (602.6, 595.2), (421.4, 595.2)), 0xFFB3C6),  # table
+    (P((255.2, 595.2), (361, 492.8), (421.4, 595.2)), 0xFF8FAB),  # left crown
+    (P((663, 492.8), (768.8, 595.2), (602.6, 595.2)), 0xE85A86),  # right crown
+    (P((255.2, 595.2), (421.4, 595.2), (512, 844.8)), 0xF2709A),  # left pavilion
+    (P((421.4, 595.2), (602.6, 595.2), (512, 844.8)), 0xE04A7A),  # centre pavilion
+    (P((602.6, 595.2), (768.8, 595.2), (512, 844.8)), 0xB8285A),  # right pavilion
 ]
-outline = [(L, GIRDLE), (TL, TOP), (TR, TOP), (R, GIRDLE), (MID, BOTTOM)]
+# Round gem toes: centre, radius, (rim, body, light) colours.
+GEMS = [
+    ((262, 452), 92, (0x7E57C2, 0xD1C4E9, 0xB39DDB)),
+    ((418, 356), 98, (0x26A69A, 0xB2DFDB, 0x80CBC4)),
+    ((606, 356), 98, (0xFB8C00, 0xFFE0B2, 0xFFCC80)),
+    ((762, 452), 92, (0xD81B60, 0xF8BBD0, 0xF48FB1)),
+]
+SPARKLES = [((430, 560), 42, 5.5), ((690, 540), 30, 4.5)]  # centre, arm length, arm half-width
 
 
-def jewel_pixel(u, v):
-    """Colour of the jewel at (u, v), or None outside it."""
-    if not inside(outline, u, v):
+def over(dst, col, a):
+    return tuple(int(d * (1 - a) + c * a) for d, c in zip(dst, col))
+
+
+def gem_pixel(u, v, cx, cy, r, cols):
+    cx, cy, r = cx / 1024, cy / 1024, r / 1024
+    dx, dy = u - cx, v - cy
+    if dx * dx + dy * dy > r * r:
         return None
-    for poly, col in facets:
-        if inside(poly, u, v):
-            r, g, b = hexc(col)
-            # Soft vertical light falloff.
-            k = 1.08 - 0.25 * (v - TOP) / (BOTTOM - TOP)
-            return (min(255, int(r * k)), min(255, int(g * k)), min(255, int(b * k)))
-    return hexc(0xE04A7A)
+    rim, body, light = (hexc(c) for c in cols)
+    col = rim
+    bx, by, br = cx - 0.04 * r, cy - 0.04 * r, 0.92 * r
+    if (u - bx) ** 2 + (v - by) ** 2 <= br * br:
+        col = body
+    lx, ly, lr = cx + 0.03 * r, cy + 0.03 * r, 0.78 * r
+    if (u - lx) ** 2 + (v - ly) ** 2 <= lr * lr:
+        col = light
+    hx, hy = cx - 0.3 * r, cy - 0.35 * r
+    if ((u - hx) / (0.28 * r)) ** 2 + ((v - hy) / (0.16 * r)) ** 2 <= 1:
+        col = over(col, (255, 255, 255), 0.7)
+    return col
 
 
-def sparkle(u, v, cx, cy, size):
-    dx, dy = abs(u - cx), abs(v - cy)
-    if dx < 0.006 and dy < size or dy < 0.006 and dx < size:
-        return 1 - max(dx, dy) / size
-    return 0
+def paw_pixel(u, v):
+    """Colour of the paw at (u, v), or None outside it."""
+    col = None
+    if inside(JEWEL, u, v):
+        col = hexc(0xE04A7A)
+        for poly, c in FACETS:
+            if inside(poly, u, v):
+                col = hexc(c)
+                break
+        k = 1.08 - 0.25 * (v - TOP) / (BOTTOM - TOP)  # soft vertical light falloff
+        col = tuple(min(255, int(c * k)) for c in col)
+        if abs(v - 595.2 / 1024) < 2.5 / 1024:
+            col = over(col, (255, 255, 255), 0.35)
+    for (cx, cy), r, cols in GEMS:
+        g = gem_pixel(u, v, cx, cy, r, cols)
+        if g:
+            col = g
+    for (cx, cy), arm, hw in SPARKLES:
+        dx, dy = abs(u - cx / 1024), abs(v - cy / 1024)
+        if (dx < hw / 1024 and dy < arm / 1024) or (dy < hw / 1024 and dx < arm / 1024):
+            col = (255, 255, 255)
+    return col
 
 
-def render(with_tile):
+def render(n, with_tile, scale=1.0):
     out = []
-    for y in range(N):
-        for x in range(N):
+    for y in range(n):
+        for x in range(n):
             acc = [0.0, 0.0, 0.0, 0.0]
             for sy in range(SS):
                 for sx in range(SS):
-                    u = (x + (sx + 0.5) / SS) / N
-                    v = (y + (sy + 0.5) / SS) / N
+                    u = (x + (sx + 0.5) / SS) / n
+                    v = (y + (sy + 0.5) / SS) / n
                     if with_tile:
                         t = (u + v) / 2
-                        bg = (int(255 - 6 * t), int(236 - 40 * t), int(242 - 26 * t), 255)
+                        col = (int(255 - 6 * t), int(236 - 40 * t), int(242 - 26 * t), 255)
                     else:
-                        bg = (0, 0, 0, 0)
-                    px = jewel_pixel(u, v)
-                    col = (*px, 255) if px else bg
-                    s = max(sparkle(u, v, 0.37, 0.31, 0.07), sparkle(u, v, 0.74, 0.2, 0.05))
-                    if s > 0:
-                        a = min(1.0, s * 1.4)
-                        col = tuple(int(c * (1 - a) + 255 * a) for c in col[:3]) + (max(col[3], int(255 * a)),)
+                        col = (0, 0, 0, 0)
+                    px = paw_pixel((u - 0.5) / scale + 0.5, (v - 0.5) / scale + 0.5)
+                    if px:
+                        col = (*px, 255)
                     for i in range(4):
                         acc[i] += col[i]
             out.append(tuple(int(a / (SS * SS)) for a in acc))
@@ -105,6 +140,10 @@ def render(with_tile):
 
 if __name__ == '__main__':
     out = sys.argv[1]
-    write_png(f'{out}/icon.png', render(True))
-    write_png(f'{out}/icon_foreground.png', render(False))
+    write_png(f'{out}/icon.png', render(1024, True), 1024)
+    write_png(f'{out}/icon_foreground.png', render(1024, False, 0.8), 1024)
+    if len(sys.argv) > 2:
+        launch = sys.argv[2]
+        for suffix, n in (('', 200), ('@2x', 400), ('@3x', 600)):
+            write_png(f'{launch}/LaunchImage{suffix}.png', render(n, False), n)
     print('done')
