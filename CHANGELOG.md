@@ -2,6 +2,10 @@
 
 Every PawlyPaint version, newest first. Android APKs are on the [Releases page](https://github.com/ctorres345/PawlyPaint/releases); installing a newer APK over an older one keeps all progress.
 
+## Unreleased
+
+- Cooler phone: the app no longer asks ProMotion iPhones for 120 frames per second, drops the per-frame blur passes behind the canvas and around picked-up beads, redraws the placed drills from a cached bitmap instead of thousands of shapes every frame, and repaints the shimmer and the Sort board at most 30 times a second while nothing is moving.
+
 ## 0.8.4 (2026-10-21)
 
 - Sort: bigger canvases open zoomed in so beads are large enough to tap; pinch out or use Fit to see the whole picture, and a tap while zoomed far out zooms in first.

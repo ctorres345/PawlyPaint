@@ -170,6 +170,23 @@ void drawCutGem(Canvas canvas, Rect cell, GemPaints g) {
   }
 }
 
+final _sheetShade = Paint();
+
+/// The canvas sheet with a soft shadow under it. The shadow is a few nested
+/// translucent shapes rather than a blur filter, which would cost the GPU an
+/// offscreen pass every time the layer is drawn.
+void drawSheet(Canvas canvas, RRect sheet, Paint sheetPaint) {
+  for (var i = 3; i >= 0; i--) {
+    _sheetShade.color = Color.fromARGB(0x0C + 0x06 * i, 0, 0, 0);
+    canvas.drawRRect(sheet.shift(Offset(0, 2.0 + i * 1.5)).inflate(1.5 + i * 2.5), _sheetShade);
+  }
+  canvas.drawRRect(sheet, sheetPaint);
+}
+
+/// How far the sheet (0.6 of a 24-unit cell) and its shadow reach beyond the
+/// board's cells.
+const sheetMargin = 24 * 0.6 + 14.0;
+
 final _ringOutline = Paint()..style = PaintingStyle.stroke;
 final _ringCore = Paint()..style = PaintingStyle.stroke;
 

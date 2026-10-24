@@ -9,6 +9,7 @@ import '../models/puzzle.dart';
 import '../state/game_controller.dart';
 import '../state/settings.dart';
 import 'gem_style.dart';
+import 'layer_raster.dart';
 
 /// Size of one cell at zoom 1, in logical pixels.
 const double kCell = 24;
@@ -285,6 +286,7 @@ class _BoardState extends State<Board> {
               celebrate: widget.celebrate,
               sweepAt: widget.sweepAt,
               cache: _cache,
+              pixelRatio: MediaQuery.devicePixelRatioOf(context),
             ),
           ),
         ),
@@ -308,6 +310,10 @@ class BoardCache {
   ui.Picture? labels;
   Object? key;
 
+  /// The sheet, numbers and committed drills as one bitmap at screen
+  /// resolution, so a frame draws one image instead of every drill.
+  final raster = LayerRaster();
+
   /// Placed drills in the order they went down, [chunk] cells a picture.
   final List<ui.Picture> gems = [];
   int committed = 0;
@@ -319,6 +325,7 @@ class BoardCache {
     labels?.dispose();
     base = labels = null;
     key = null;
+    raster.dispose();
     clearGems();
   }
 
@@ -342,6 +349,7 @@ class BoardPainter extends CustomPainter {
     required this.celebrate,
     this.sweepAt,
     required this.cache,
+    required this.pixelRatio,
   }) : super(repaint: Listenable.merge([game, view, shimmer]));
 
   final GameController game;
@@ -353,10 +361,10 @@ class BoardPainter extends CustomPainter {
   final DateTime? sweepAt;
   final BoardCache cache;
 
+  /// Device pixels per logical pixel, so the cached bitmap is crisp.
+  final double pixelRatio;
+
   static final _sheet = Paint();
-  static final _sheetShadow = Paint()
-    ..color = const Color(0x33000000)
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
   static final _gridFine = Paint()
     ..color = const Color(0x14000000)
     ..strokeWidth = 0.6;
@@ -391,8 +399,7 @@ class BoardPainter extends CustomPainter {
     var c = Canvas(rec);
     final board = Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell);
     final sheet = RRect.fromRectAndRadius(board.inflate(kCell * 0.6), const Radius.circular(kCell * 0.4));
-    c.drawRRect(sheet.shift(const Offset(0, 4)), _sheetShadow);
-    c.drawRRect(sheet, _sheet);
+    drawSheet(c, sheet, _sheet);
     if (!game.isComplete) {
       for (var i = 0; i < p.cellCount; i++) {
         final color = p.cells[i];
@@ -452,9 +459,8 @@ class BoardPainter extends CustomPainter {
     drawGem(c, rect, paints[p.cells[i]]);
   }
 
-  /// Draws every placed drill: the recorded chunks, then the newest few by
-  /// hand. A chunk is recorded once enough new drills have gone down.
-  void _drawGems(Canvas canvas) {
+  /// Records the placed drills in chunks, as enough new ones go down.
+  void _commitGems() {
     final p = game.puzzle;
     final order = game.order;
     final look = currentLook();
@@ -471,9 +477,29 @@ class BoardPainter extends CustomPainter {
       cache.gems.add(rec.endRecording());
       cache.committed += BoardCache.chunk;
     }
-    for (final g in cache.gems) {
-      canvas.drawPicture(g);
-    }
+  }
+
+  /// Everything that only changes on a game event: the sheet, the numbers
+  /// (when readable) and the committed drills. Drawn from one cached bitmap
+  /// most of the time, so the GPU is not handed every drill every frame.
+  void _drawStatic(Canvas canvas) {
+    final p = game.puzzle;
+    final labels = view.cellSize >= 13;
+    final board = Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell);
+    cache.raster.draw(
+      canvas,
+      key: (cache.key, labels, cache.committed, cache.gemsLook),
+      bounds: board.inflate(sheetMargin),
+      pixelsPerUnit: view.scale * pixelRatio,
+      paintLayer: (c) {
+        c.drawPicture(cache.base!);
+        if (labels) c.drawPicture(cache.labels!);
+        for (final g in cache.gems) {
+          c.drawPicture(g);
+        }
+      },
+    );
+    final order = game.order;
     for (var k = cache.committed; k < order.length; k++) {
       _drawPlaced(canvas, p, order[k]);
     }
@@ -482,13 +508,12 @@ class BoardPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     _rebuildBase();
+    _commitGems();
     final p = game.puzzle;
     canvas.save();
     canvas.translate(view.offset.dx, view.offset.dy);
     canvas.scale(view.scale);
-    canvas.drawPicture(cache.base!);
-    if (view.cellSize >= 13) canvas.drawPicture(cache.labels!);
-    _drawGems(canvas);
+    _drawStatic(canvas);
 
     final t = shimmer.value;
     final now = DateTime.now();

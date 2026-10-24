@@ -22,6 +22,7 @@ import 'completion_sheet.dart';
 import 'desk.dart';
 import 'gem_style.dart';
 import 'idle_shimmer.dart';
+import 'layer_raster.dart';
 import 'mini_map.dart';
 import 'music_sheet.dart';
 
@@ -69,8 +70,9 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
   final view = BoardView();
   late final IdleShimmer _shimmer;
   bool _animate = true;
-  AnimationController get shimmer => _shimmer.controller;
+  Animation<double> get shimmer => _shimmer.animation;
   late final Ticker _ticker;
+  int _lastFrameUs = 0;
   final clock = ValueNotifier<int>(0);
 
   /// Ticks every frame while something animates (flights, hint, pulses).
@@ -145,7 +147,13 @@ class _SortScreenState extends State<SortScreen> with TickerProviderStateMixin, 
           (game.selection != null && !_finished) ||
           (hintAt != null && now.difference(hintAt).inMilliseconds < 4000) ||
           (missAt != null && now.difference(missAt).inMilliseconds < 700)) {
-        frame.value++;
+        // Flying beads get every frame; the gentle pulses are fine at about
+        // 30 a second, which matters on 120 Hz screens.
+        final us = now.microsecondsSinceEpoch;
+        if (game.animating || us - _lastFrameUs >= 30000) {
+          _lastFrameUs = us;
+          frame.value++;
+        }
       } else {
         // Nothing moving: stop ticking until the next tap, shake or hint.
         frame.value++;
@@ -926,6 +934,7 @@ class _SortBoardState extends State<_SortBoard> {
               celebrate: widget.celebrate,
               sweepAt: widget.sweepAt,
               cache: _cache,
+              pixelRatio: MediaQuery.devicePixelRatioOf(context),
             ),
           ),
         ),
@@ -938,10 +947,14 @@ class _SortCache {
   ui.Picture? picture;
   Object? key;
 
+  /// The recorded board as one bitmap at screen resolution.
+  final raster = LayerRaster();
+
   void dispose() {
     picture?.dispose();
     picture = null;
     key = null;
+    raster.dispose();
   }
 }
 
@@ -970,6 +983,7 @@ class _SortBoardPainter extends CustomPainter {
     required this.celebrate,
     this.sweepAt,
     required this.cache,
+    required this.pixelRatio,
   }) : super(repaint: Listenable.merge([game, view, shimmer, frame]));
 
   final SortController game;
@@ -983,14 +997,15 @@ class _SortBoardPainter extends CustomPainter {
   final DateTime? sweepAt;
   final _SortCache cache;
 
+  /// Device pixels per logical pixel, so the cached bitmap is crisp.
+  final double pixelRatio;
+
   static final _sheet = Paint();
-  static final _sheetShadow = Paint()
-    ..color = const Color(0x33000000)
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
   static final _wrongDot = Paint()..color = const Color(0xCC3B2F36);
-  static final _glow = Paint()
-    ..color = const Color(0x66FFFFFF)
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, kCell * 0.25);
+  // Two soft rings instead of a blur, which would cost an offscreen pass per
+  // picked-up bead every frame.
+  static final _glowOuter = Paint()..color = const Color(0x2EFFFFFF);
+  static final _glowInner = Paint()..color = const Color(0x55FFFFFF);
   static final _spot = Paint();
   static final _ring = Paint()..style = PaintingStyle.stroke;
   static final _miss = Paint()
@@ -1013,8 +1028,7 @@ class _SortBoardPainter extends CustomPainter {
     final c = Canvas(rec);
     final board = Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell);
     final sheet = RRect.fromRectAndRadius(board.inflate(kCell * 0.6), const Radius.circular(kCell * 0.4));
-    c.drawRRect(sheet.shift(const Offset(0, 4)), _sheetShadow);
-    c.drawRRect(sheet, _sheet);
+    drawSheet(c, sheet, _sheet);
     // While peeking, show the finished picture instead of the board.
     final cur = peek ? game.game.target : game.game.current;
     for (var i = 0; i < cur.length; i++) {
@@ -1044,7 +1058,13 @@ class _SortBoardPainter extends CustomPainter {
     canvas.save();
     canvas.translate(view.offset.dx, view.offset.dy);
     canvas.scale(view.scale);
-    canvas.drawPicture(cache.picture!);
+    cache.raster.draw(
+      canvas,
+      key: cache.key!,
+      bounds: Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell).inflate(sheetMargin),
+      pixelsPerUnit: view.scale * pixelRatio,
+      paintLayer: (c) => c.drawPicture(cache.picture!),
+    );
 
     // Spots whose bead is still on its way stay empty until it lands.
     for (final cell in peek ? const <int>[] : game.arriving.keys) {
@@ -1088,7 +1108,8 @@ class _SortBoardPainter extends CustomPainter {
       final ringWidth = math.max(kCell * 0.09, 1.5 / view.scale);
       for (final c in sel.cells) {
         final r = _cell(c);
-        canvas.drawCircle(r.center, kCell * 0.5, _glow);
+        canvas.drawCircle(r.center, kCell * 0.68, _glowOuter);
+        canvas.drawCircle(r.center, kCell * 0.52, _glowInner);
         drawGem(canvas, r.deflate(kCell * 0.02), paints[sel.color], pop: 0.25);
         drawSelectRing(canvas, Rect.fromCircle(center: r.center, radius: kCell * 0.5), ringWidth,
             alpha: 0.8 + 0.2 * pulse);

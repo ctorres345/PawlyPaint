@@ -49,7 +49,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   final view = BoardView();
   late final IdleShimmer _shimmer;
   bool _animate = true;
-  AnimationController get shimmer => _shimmer.controller;
+  Animation<double> get shimmer => _shimmer.animation;
   final clock = ValueNotifier<int>(0);
   Timer? _clockTick;
   int _unsavedPlacements = 0;
