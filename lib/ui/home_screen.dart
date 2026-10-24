@@ -9,6 +9,7 @@ import 'course_screen.dart';
 import 'gallery_screen.dart';
 import 'game_screen.dart';
 import 'gem_style.dart';
+import 'jewel_paw.dart';
 import 'sort_screen.dart';
 import 'music_sheet.dart';
 import 'settings_screen.dart';
@@ -36,7 +37,7 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const CatMascot(size: 44),
+                    const JewelPawLogo(size: 44),
                     const SizedBox(width: 8),
                     Expanded(
                       child: FittedBox(

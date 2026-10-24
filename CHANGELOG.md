@@ -2,6 +2,10 @@
 
 Every PawlyPaint version, newest first. Android APKs are on the [Releases page](https://github.com/ctorres345/PawlyPaint/releases); installing a newer APK over an older one keeps all progress.
 
+## 0.9.1 (2026-10-24)
+
+- Home screen: the paw of jewels from the app icon sits next to the title, so Mochi only appears once, in the greeting below.
+
 ## 0.9.0 (2026-10-24)
 
 - New app icon: a paw made of jewels, four round gem toes over the pink jewel, so the paw in the name is on the home screen too. The launch screen shows the same paw.
