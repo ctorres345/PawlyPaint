@@ -43,7 +43,7 @@ A ticket gets `ready-for-agent` only when all of these hold:
 - It has exactly one `env-*` label (Epics have none).
 - Human gates says "None", and every blocker is Done.
 - It is not `env-device`, which stays `ready-for-human`. Fable approval sits in Review and does not count as a human gate.
-- A UI ticket names its prototype artboard and concrete values. If no prototype exists, it says so and states the visual source to follow (for example `docs/DESIGN_SYSTEM.md`), or it stays `ready-for-human` until a prototype is approved.
+- A UI ticket names its prototype artboard and concrete values. If no prototype exists, it says so and states the visual source to follow (for example the current screens in `docs/screenshots/`), or it stays `ready-for-human` until a prototype is approved.
 
 ## Batch review
 

@@ -21,5 +21,5 @@
 - [ ] Docs updated if behavior, architecture, or security posture changed
 - [ ] No secrets or credentials in the diff
 
-<!-- review-loop prints these two lines; paste them here, each at the start of a line. -->
+<!-- Paste the Review-Gate: and Review-Tier: lines that review-loop prints here, each at the start of its own line. -->
 

@@ -1,6 +1,6 @@
 # Issue tracker: Jira
 
-Tickets live in Jira project `PAP` on cjthdev.atlassian.net (cloudId `3b0b1388-2d20-4fda-afae-c83d656697f9`), through the Atlassian MCP.
+Tickets live in Jira project `PAP`, through the Atlassian MCP. Find the site with `getAccessibleAtlassianResources` if a tool needs its cloudId.
 
 ## Conventions
 
