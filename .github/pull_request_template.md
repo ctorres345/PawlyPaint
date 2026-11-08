@@ -1,5 +1,5 @@
 ## Ticket
-<!-- Jira key and link, e.g. MOB-23. Branch is cesar/<KEY>. -->
+<!-- Jira key and link, e.g. PAP-12. Branch is cesar/<KEY>. -->
 
 ## What and why
 <!-- One or two sentences: the change and the reason. -->
@@ -20,3 +20,6 @@
 - [ ] `/review-loop` ran on the final diff
 - [ ] Docs updated if behavior, architecture, or security posture changed
 - [ ] No secrets or credentials in the diff
+
+<!-- Paste the Review-Gate: and Review-Tier: lines that review-loop prints here, each at the start of its own line. -->
+

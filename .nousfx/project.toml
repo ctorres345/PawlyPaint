@@ -1,0 +1,4 @@
+# Check command the review gate runs before it records a review (NousFX docs/review-gate.md).
+[check]
+command = "flutter analyze && flutter test"
+timeout = 600
