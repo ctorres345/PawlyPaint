@@ -13,6 +13,14 @@ flutter analyze && flutter test
 
 Both must pass on the commit you release or install.
 
+Before a release or any Android build, check the signing keystore is in place. Without it, `flutter build apk` silently creates a new key, and that APK can't update the phones (see "Signing keystore" below):
+
+```bash
+test -f ~/.android/debug.keystore || { echo "stop: no ~/.android/debug.keystore; tell Cesar, don't build"; false; }
+```
+
+A non-zero exit means stop.
+
 ## Release a new version
 
 ```
@@ -41,14 +49,14 @@ CHANGELOG entry ─► bump version ─► build APK ─► pre-release on GitHu
    - A missing line or an error: the check itself failed, not the keys. Stop and tell Cesar; don't touch the keystore.
 7. Write the release notes: the new `## x.y.z` section of `CHANGELOG.md`, without its heading, into `build/notes.md`.
    ```bash
-   awk '/^## /{n++; next} n==1' CHANGELOG.md > build/notes.md
+   awk -v v="## x.y.z " 'index($0, v) == 1 {f = 1; next} /^## /{f = 0} f' CHANGELOG.md > build/notes.md
    ```
    Read `build/notes.md` and check it holds that section and nothing else.
 8. Check the release commit is what `main` holds (`git status --porcelain` is empty and `git rev-parse HEAD` equals `git rev-parse origin/main`), then create a **pre-release** tagged on that commit, with the APK attached in the same call, so no release ever exists without its APK. Cesar promotes it to a full release himself.
    ```bash
    timeout 600 gh release create vx.y.z build/PawlyPaint-x.y.z.apk --prerelease --target "$(git rev-parse HEAD)" --title "PawlyPaint x.y.z" --notes-file build/notes.md
    ```
-   `timeout` comes from GNU coreutils (`brew install coreutils`); stock macOS lacks it. If the command fails or stalls once, stop and tell Cesar with the APK path. Don't retry, and don't create the release without the APK: check `gh release view vx.y.z` first, since a half-finished call can leave a release behind for him to fix.
+   `timeout` comes from GNU coreutils (`brew install coreutils`); stock macOS lacks it. If the command fails or stalls once, run `gh release view vx.y.z` once to report what exists (it may show a draft), give Cesar that output and the APK path, and stop. Don't re-run `gh release create`, upload, or delete anything.
 
 ## Install on an Android phone
 
@@ -84,10 +92,11 @@ xcrun devicectl device install app --device <identifier> build/ios/iphoneos/Runn
 Release APKs are signed with the Mac's Android debug keystore (`~/.android/debug.keystore`). An APK signed with a different key cannot update the installed app, so losing it means uninstalling and losing progress.
 
 - Keep a backup of that file outside the Mac (an encrypted drive or password manager attachment).
-- Never commit it or paste it anywhere. On a new Mac, copy it back to the same path **before the first Flutter build**: a build without it silently creates a new keystore.
-- Restoring the backup is Cesar's step only; agents stop and tell him. He first moves the current file aside, never deleting it, then copies the backup in and rebuilds:
+- Never commit it or paste it anywhere. On a new Mac, Cesar copies it back to the same path **before the first Flutter build**: a build without it silently creates a new keystore. An agent that finds no `~/.android/debug.keystore` stops and tells him before any build.
+- Restoring the backup is Cesar's step only; agents stop and tell him. He first moves the current file aside, never deleting or overwriting it, then copies the backup in and rebuilds:
   ```bash
-  mv ~/.android/debug.keystore ~/.android/debug.keystore.$(date +%F)
+  mv -n ~/.android/debug.keystore ~/.android/debug.keystore.$(date +%F-%H%M%S)
+  test ! -e ~/.android/debug.keystore || echo "stop: not moved aside"
   ```
 
 ## Turn on the pre-push review gate (once per clone)
@@ -124,12 +133,7 @@ Don't set `core.hooksPath`: it would switch off graphify's hooks. Bypass once wi
 
 ## Require the CI review gate on `main` (once, Cesar only)
 
-The `review-gate / check` job (`.github/workflows/review-gate.yml`) runs on every PR. It only blocks merges once `main` requires it. `main` already has a ruleset named `main` (no deletion, no force-push, PRs required, admins may bypass). Turning this on is Cesar's call; an agent gives him these steps and waits.
-
-```
-PR opened ─► review-gate / check ─► green? ─► merge allowed
-                                    └─ red ─► blocked (admins can still bypass, visibly)
-```
+The `review-gate / check` job (`.github/workflows/review-gate.yml`) runs on every PR. It only blocks merges once `main` requires it. `main` already has a ruleset named `main` (no deletion, no force-push, PRs required). Turning this on is Cesar's call; an agent gives him these steps and waits.
 
 1. Check that the workflow is on `main` and has run on at least one PR (GitHub lists a check only after it ran).
 2. Add the required check to the existing ruleset. In the browser: Settings → Rules → Rulesets → `main` → "Require status checks to pass" → add `check` from GitHub Actions → Save. Or from a shell:
@@ -142,10 +146,12 @@ PR opened ─► review-gate / check ─► green? ─► merge allowed
          required_status_checks: [{context: "check", integration_id: 15368}]}}])}' > "$f"
    gh api -X PUT "repos/ctorres345/PawlyPaint/rulesets/$id" --input "$f"
    ```
-   `integration_id` 15368 is GitHub Actions, so a status posted by anything else can't satisfy the check.
+   `integration_id` 15368 is GitHub Actions, so a commit status posted from outside Actions can't satisfy the check. Any Actions job named `check` can, though (next paragraph).
 3. Verify: `gh api repos/ctorres345/PawlyPaint/rules/branches/main --jq '.[].type'` lists `required_status_checks`.
 
-The ruleset lets the admin role bypass it always, so Cesar's direct release push (above) still works and he can merge the PR that introduced the gate. A bypassed merge shows in the PR. Agents never merge.
+Limit: the ruleset lets the admin role bypass it always. That keeps the direct release push (above) working and lets Cesar merge the PR that introduced the gate, but agents run `gh` and `git` with Cesar's admin token, so GitHub does not stop an agent that merges a red PR (`gh pr merge --admin`) or pushes to `main`. Only the rules stop it: agents never merge a PR and never push to `main` except the approved release commit. Closing the gap (no bypass, releases through a PR) is Cesar's decision.
+
+Limit: on a pull request GitHub runs the workflow files from the PR itself. A PR that edits `.github/workflows/`, or adds any workflow with a job named `check`, can turn the check green without the real gate. The gate script and `tier.py` still come from `main`, but only an unchanged workflow uses them. Cesar reads every change under `.github/workflows/` before merging; a green check on such a PR proves nothing.
 
 ## Regenerate assets
 

@@ -32,6 +32,8 @@ graphify-out/
 !.claude/settings.json
 !.claude/hooks/
 !.claude/skills/
+.claude/skills/*
+!.claude/skills/review-loop/
 .claude/**/__pycache__/
 .claude/**/*.bak*
 .claude/**/.env*
