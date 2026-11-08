@@ -37,14 +37,18 @@ CHANGELOG entry ─► bump version ─► build APK ─► pre-release on GitHu
    "$apksigner" verify --print-certs build/PawlyPaint-x.y.z.apk | grep 'SHA-256'
    ```
    - Two lines with the same SHA-256: continue.
-   - Two lines that differ: stop, restore the keystore (below) and rebuild.
+   - Two lines that differ: stop and tell Cesar. Don't touch the keystore; restoring it is his step (see "Signing keystore" below).
    - A missing line or an error: the check itself failed, not the keys. Stop and tell Cesar; don't touch the keystore.
-7. Check the release commit is what `main` holds (`git status --porcelain` is empty and `git rev-parse HEAD` equals `git rev-parse origin/main`), then create a **pre-release** tagged on that commit. Cesar promotes it to a full release himself.
+7. Write the release notes: the new `## x.y.z` section of `CHANGELOG.md`, without its heading, into `build/notes.md`.
    ```bash
-   gh release create vx.y.z --prerelease --target "$(git rev-parse HEAD)" --title "PawlyPaint x.y.z" --notes-file <notes>
-   timeout 300 gh release upload vx.y.z build/PawlyPaint-x.y.z.apk
+   awk '/^## /{n++; next} n==1' CHANGELOG.md > build/notes.md
    ```
-   `timeout` comes from GNU coreutils (`brew install coreutils`); stock macOS lacks it. If the upload fails or stalls once, stop and give Cesar the APK path so he can attach it by hand.
+   Read `build/notes.md` and check it holds that section and nothing else.
+8. Check the release commit is what `main` holds (`git status --porcelain` is empty and `git rev-parse HEAD` equals `git rev-parse origin/main`), then create a **pre-release** tagged on that commit, with the APK attached in the same call, so no release ever exists without its APK. Cesar promotes it to a full release himself.
+   ```bash
+   timeout 600 gh release create vx.y.z build/PawlyPaint-x.y.z.apk --prerelease --target "$(git rev-parse HEAD)" --title "PawlyPaint x.y.z" --notes-file build/notes.md
+   ```
+   `timeout` comes from GNU coreutils (`brew install coreutils`); stock macOS lacks it. If the command fails or stalls once, stop and tell Cesar with the APK path. Don't retry, and don't create the release without the APK: check `gh release view vx.y.z` first, since a half-finished call can leave a release behind for him to fix.
 
 ## Install on an Android phone
 
@@ -57,7 +61,10 @@ flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
 
-`-r` updates in place and keeps progress. If adb reports `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, stop and never uninstall (that erases progress): the APK was signed with another key. Restore the keystore backup (below) and rebuild.
+`-r` updates in place and keeps progress. If adb reports any `INSTALL_FAILED_*` error, stop and tell Cesar with the full message. Never run `adb uninstall` (it erases progress), and don't touch the keystore. The usual causes:
+
+- `INSTALL_FAILED_UPDATE_INCOMPATIBLE`: the APK was signed with another key (see "Signing keystore" below; restoring it is Cesar's step).
+- `INSTALL_FAILED_VERSION_DOWNGRADE`: the phone has a higher build number than this APK.
 
 ## Install on an iPhone
 
@@ -78,6 +85,10 @@ Release APKs are signed with the Mac's Android debug keystore (`~/.android/debug
 
 - Keep a backup of that file outside the Mac (an encrypted drive or password manager attachment).
 - Never commit it or paste it anywhere. On a new Mac, copy it back to the same path **before the first Flutter build**: a build without it silently creates a new keystore.
+- Restoring the backup is Cesar's step only; agents stop and tell him. He first moves the current file aside, never deleting it, then copies the backup in and rebuilds:
+  ```bash
+  mv ~/.android/debug.keystore ~/.android/debug.keystore.$(date +%F)
+  ```
 
 ## Turn on the pre-push review gate (once per clone)
 
@@ -110,6 +121,31 @@ fi
 Run the verify again after switching the main checkout to another branch: the link follows whatever is checked out there.
 
 Don't set `core.hooksPath`: it would switch off graphify's hooks. Bypass once with `git push --no-verify`.
+
+## Require the CI review gate on `main` (once, Cesar only)
+
+The `review-gate / check` job (`.github/workflows/review-gate.yml`) runs on every PR. It only blocks merges once `main` requires it. `main` already has a ruleset named `main` (no deletion, no force-push, PRs required, admins may bypass). Turning this on is Cesar's call; an agent gives him these steps and waits.
+
+```
+PR opened ─► review-gate / check ─► green? ─► merge allowed
+                                    └─ red ─► blocked (admins can still bypass, visibly)
+```
+
+1. Check that the workflow is on `main` and has run on at least one PR (GitHub lists a check only after it ran).
+2. Add the required check to the existing ruleset. In the browser: Settings → Rules → Rulesets → `main` → "Require status checks to pass" → add `check` from GitHub Actions → Save. Or from a shell:
+   ```bash
+   id=$(gh api repos/ctorres345/PawlyPaint/rulesets --jq '.[] | select(.name == "main") | .id')
+   f=$(mktemp)
+   gh api "repos/ctorres345/PawlyPaint/rulesets/$id" --jq '{name, target, enforcement, conditions, bypass_actors,
+     rules: ([.rules[] | select(.type != "required_status_checks")] + [{type: "required_status_checks",
+       parameters: {strict_required_status_checks_policy: false,
+         required_status_checks: [{context: "check", integration_id: 15368}]}}])}' > "$f"
+   gh api -X PUT "repos/ctorres345/PawlyPaint/rulesets/$id" --input "$f"
+   ```
+   `integration_id` 15368 is GitHub Actions, so a status posted by anything else can't satisfy the check.
+3. Verify: `gh api repos/ctorres345/PawlyPaint/rules/branches/main --jq '.[].type'` lists `required_status_checks`.
+
+The ruleset lets the admin role bypass it always, so Cesar's direct release push (above) still works and he can merge the PR that introduced the gate. A bypassed merge shows in the PR. Agents never merge.
 
 ## Regenerate assets
 

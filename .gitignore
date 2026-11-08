@@ -30,6 +30,9 @@ graphify-out/
 # Agent workflow: only shared .claude files are tracked
 .claude/*
 !.claude/settings.json
+!.claude/hooks/
+!.claude/skills/
+.claude/**/__pycache__/
 .claude/**/*.bak*
 .claude/**/.env*
 .claude/**/settings.local.json
