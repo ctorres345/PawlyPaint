@@ -16,7 +16,7 @@
 |  |  |
 
 ## Checklist
-- [ ] Tests and lint pass (commands in the project's CLAUDE.md)
+- [ ] Tests and lint pass (commands in `AGENTS.md`)
 - [ ] `/review-loop` ran on the final diff
 - [ ] Docs updated if behavior, architecture, or security posture changed
 - [ ] No secrets or credentials in the diff
