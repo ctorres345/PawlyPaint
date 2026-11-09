@@ -31,6 +31,9 @@ graphify-out/
 .claude/*
 !.claude/settings.json
 !.claude/hooks/
+.claude/hooks/*
+!.claude/hooks/review-gate.py
+!.claude/hooks/pr_create_parser.py
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/review-loop/

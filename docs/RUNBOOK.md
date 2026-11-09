@@ -138,20 +138,37 @@ The `review-gate / check` job (`.github/workflows/review-gate.yml`) runs on ever
 1. Check that the workflow is on `main` and has run on at least one PR (GitHub lists a check only after it ran).
 2. Add the required check to the existing ruleset. In the browser: Settings → Rules → Rulesets → `main` → "Require status checks to pass" → add `check` from GitHub Actions → Save. Or from a shell:
    ```bash
-   id=$(gh api repos/ctorres345/PawlyPaint/rulesets --jq '.[] | select(.name == "main") | .id')
-   f=$(mktemp)
-   gh api "repos/ctorres345/PawlyPaint/rulesets/$id" --jq '{name, target, enforcement, conditions, bypass_actors,
-     rules: ([.rules[] | select(.type != "required_status_checks")] + [{type: "required_status_checks",
-       parameters: {strict_required_status_checks_policy: false,
-         required_status_checks: [{context: "check", integration_id: 15368}]}}])}' > "$f"
-   gh api -X PUT "repos/ctorres345/PawlyPaint/rulesets/$id" --input "$f"
+   if ! id=$(gh api repos/ctorres345/PawlyPaint/rulesets --jq '.[] | select(.name == "main") | .id'); then
+     echo "stop: could not list rulesets; nothing changed"
+   elif [ -z "$id" ]; then
+     echo "stop: no ruleset named main; nothing changed"
+   else
+     f=$(mktemp)
+     gh api "repos/ctorres345/PawlyPaint/rulesets/$id" --jq '
+       def want: {context: "check", integration_id: 15368};
+       {name, target, enforcement, conditions, bypass_actors,
+         rules: (if any(.rules[]; .type == "required_status_checks")
+           then [.rules[] | if .type == "required_status_checks"
+             then .parameters.required_status_checks |= (map(select(.context != "check")) + [want])
+             else . end]
+           else .rules + [{type: "required_status_checks",
+             parameters: {strict_required_status_checks_policy: false, required_status_checks: [want]}}] end)}' > "$f" \
+       && gh api -X PUT "repos/ctorres345/PawlyPaint/rulesets/$id" --input "$f"
+     rm -f "$f"
+   fi
    ```
-   `integration_id` 15368 is GitHub Actions, so a commit status posted from outside Actions can't satisfy the check. Any Actions job named `check` can, though (next paragraph).
+   It keeps every other rule and required check, and running it twice changes nothing. `integration_id` 15368 is GitHub Actions, so a commit status posted from outside Actions can't satisfy the check. Any Actions job named `check` can, though (next paragraph).
 3. Verify: `gh api repos/ctorres345/PawlyPaint/rules/branches/main --jq '.[].type'` lists `required_status_checks`.
 
 Limit: the ruleset lets the admin role bypass it always. That keeps the direct release push (above) working and lets Cesar merge the PR that introduced the gate, but agents run `gh` and `git` with Cesar's admin token, so GitHub does not stop an agent that merges a red PR (`gh pr merge --admin`) or pushes to `main`. Only the rules stop it: agents never merge a PR and never push to `main` except the approved release commit. Closing the gap (no bypass, releases through a PR) is Cesar's decision.
 
-Limit: on a pull request GitHub runs the workflow files from the PR itself. A PR that edits `.github/workflows/`, or adds any workflow with a job named `check`, can turn the check green without the real gate. The gate script and `tier.py` still come from `main`, but only an unchanged workflow uses them. Cesar reads every change under `.github/workflows/` before merging; a green check on such a PR proves nothing.
+Limit: on a pull request GitHub runs the workflow files from the PR itself. A PR that edits `.github/workflows/`, or adds any workflow with a job named `check`, can turn the check green without the real gate. The gate script and `tier.py` still come from `main`, but only an unchanged workflow uses them. A green check on such a PR proves nothing, so `.github/CODEOWNERS` names Cesar as owner of `.github/`, `.claude/` and `.nousfx/` (the workflow, the gate copies and the check command). The `main` ruleset requires a Code Owner review, and GitHub doesn't let an author approve their own PR, so a PR of Cesar's that touches those paths merges only through his admin bypass after he reads it: a deliberate, visible step. PRs that don't touch them are unaffected. Check the setting is still on:
+
+```bash
+gh api repos/ctorres345/PawlyPaint/rules/branches/main --jq '.[] | select(.type == "pull_request") | .parameters.require_code_owner_review'
+```
+
+It prints `true`.
 
 ## Regenerate assets
 

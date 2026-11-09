@@ -1,0 +1,4 @@
+# CI workflow, review gate copies and check command; why: docs/RUNBOOK.md, "Require the CI review gate on `main`".
+/.github/ @ctorres345
+/.claude/ @ctorres345
+/.nousfx/ @ctorres345
