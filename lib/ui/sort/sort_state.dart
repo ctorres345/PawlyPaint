@@ -7,7 +7,7 @@ abstract class _SortStateBase extends State<SortScreen> with TickerProviderState
   AppSettings get _settings => SettingsScope.read(context);
 
   late final SortController game;
-  late final List<GemPaints> paints;
+  late List<GemPaints> paints;
   final view = BoardView();
   late final IdleShimmer _shimmer;
   bool _animate = true;
@@ -77,7 +77,7 @@ abstract class _SortStateBase extends State<SortScreen> with TickerProviderState
         ? SortController.timed(widget.puzzle, seed: widget.seed)
         : SortController(widget.puzzle, resume: widget.tutorial ? null : widget.store.sortSaved(widget.puzzle.id));
     _comboBar = AnimationController(vsync: this, duration: Scoring.comboWindow);
-    paints = GemPaints.forPuzzle(widget.puzzle);
+    paints = GemPaints.forPuzzle(widget.puzzle, _settings.shape);
     _shimmer = IdleShimmer(this)..poke();
     _ticker = createTicker((_) {
       game.tick();
@@ -115,6 +115,8 @@ abstract class _SortStateBase extends State<SortScreen> with TickerProviderState
   void didChangeDependencies() {
     super.didChangeDependencies();
     game.relaxed = SettingsScope.of(context).relaxed;
+    final shape = SettingsScope.of(context).shape;
+    if (paints.first.shape != shape) paints = GemPaints.forPuzzle(widget.puzzle, shape);
     if (_music == null) {
       _music = MusicScope.read(context);
       _music!.enterGame();

@@ -387,7 +387,7 @@ class BoardPainter extends CustomPainter {
   void _rebuildBase() {
     final smart = _smart;
     final sel = game.selected;
-    final key = (smart, sel, game.isComplete, currentLook());
+    final key = (smart, sel, game.isComplete, look);
     _sheet.color = canvasTheme.sheet;
     if (cache.key == key && cache.base != null) return;
     cache.base?.dispose();
@@ -463,7 +463,6 @@ class BoardPainter extends CustomPainter {
   void _commitGems() {
     final p = game.puzzle;
     final order = game.order;
-    final look = currentLook();
     if (cache.gemsLook != look || order.length < cache.committed) {
       cache.clearGems();
       cache.gemsLook = look;
@@ -543,7 +542,7 @@ class BoardPainter extends CustomPainter {
       if (shine <= 0) continue;
       for (var x = math.max(0, s - p.height + 1); x <= math.min(p.width - 1, s); x++) {
         final i = (s - x) * p.width + x;
-        if (game.placed[i] == 1) drawGemShine(canvas, cellRect(i), shine);
+        if (game.placed[i] == 1) drawGemShine(canvas, cellRect(i), shine, paints.first.shape);
       }
     }
 
@@ -566,7 +565,7 @@ class BoardPainter extends CustomPainter {
         for (final i in p.cellsByColor[doneColor]) {
           final hash = (i * 2654435761) & 0xFFFF;
           final s = 0.5 + 0.5 * math.sin(age / 90 + hash / 0xFFFF * 2 * math.pi);
-          drawGemShine(canvas, cellRect(i), fade * s);
+          drawGemShine(canvas, cellRect(i), fade * s, paints.first.shape);
           if (hash % 4 == 0 && s > 0.8) drawGemSparkle(canvas, cellRect(i), fade * (s - 0.8) / 0.2);
         }
       }
@@ -629,7 +628,8 @@ class BoardPainter extends CustomPainter {
     canvas.restore();
   }
 
-  final Object look = currentLook();
+  final CanvasTheme _theme = canvasTheme;
+  Object get look => (_theme, paints.first.shape);
 
   @override
   bool shouldRepaint(BoardPainter old) =>

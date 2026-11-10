@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 
 import '../models/puzzle.dart';
+import '../state/settings.dart' show SettingsScope;
 import 'gem_style.dart';
 
 /// Draws the finished [puzzle] as an image about 1600 pixels across, on a
 /// paper-white sheet with a small margin.
-Future<ui.Image> renderPicture(Puzzle puzzle, {Color sheet = const Color(0xFFFFFBF7)}) {
+Future<ui.Image> renderPicture(Puzzle puzzle, {required GemShape shape, Color sheet = const Color(0xFFFFFBF7)}) {
   final cell = (1600 / math.max(puzzle.width, puzzle.height)).floorToDouble().clamp(24.0, 96.0);
-  final paints = GemPaints.forPuzzle(puzzle);
+  final paints = GemPaints.forPuzzle(puzzle, shape);
   final margin = cell;
   final w = puzzle.width * cell + margin * 2, h = puzzle.height * cell + margin * 2;
   final rec = ui.PictureRecorder();
@@ -26,12 +27,12 @@ Future<ui.Image> renderPicture(Puzzle puzzle, {Color sheet = const Color(0xFFFFF
 
 /// Saves the finished [puzzle] to the phone's photos. Returns null when it
 /// worked, or what went wrong.
-Future<String?> savePictureToPhotos(Puzzle puzzle) async {
+Future<String?> savePictureToPhotos(Puzzle puzzle, GemShape shape) async {
   try {
     if (!await Gal.hasAccess() && !await Gal.requestAccess()) {
       return 'PawlyPaint needs permission to add photos. You can allow it in Settings.';
     }
-    final image = await renderPicture(puzzle);
+    final image = await renderPicture(puzzle, shape: shape);
     final png = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     if (png == null) throw StateError('No image data');
@@ -61,7 +62,7 @@ class _SavePictureButtonState extends State<SavePictureButton> {
 
   Future<void> _save() async {
     setState(() => _busy = true);
-    final error = await savePictureToPhotos(widget.puzzle);
+    final error = await savePictureToPhotos(widget.puzzle, SettingsScope.read(context).shape);
     if (!mounted) return;
     setState(() {
       _busy = false;

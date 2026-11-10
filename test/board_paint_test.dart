@@ -55,7 +55,7 @@ void main() {
       game: game,
       view: view,
       shimmer: shimmer,
-      paints: GemPaints.forPuzzle(puzzle),
+      paints: GemPaints.forPuzzle(puzzle, GemShape.square),
       highlight: true,
       celebrate: false,
       cache: cache,

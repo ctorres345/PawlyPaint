@@ -152,25 +152,21 @@ class _SheetSwatch extends StatelessWidget {
 
 /// Three drills in the given shape.
 class _DrillPreview extends CustomPainter {
-  _DrillPreview(this.shape);
+  _DrillPreview(this.shape)
+      : _paints = [
+          for (final c in const [Color(0xFFE53950), Color(0xFF4AD6D0), Color(0xFFFFD54F)]) GemPaints(c, shape: shape),
+        ];
 
   final GemShape shape;
-  static final _paints = [
-    GemPaints(const Color(0xFFE53950)),
-    GemPaints(const Color(0xFF4AD6D0)),
-    GemPaints(const Color(0xFFFFD54F))
-  ];
+  final List<GemPaints> _paints;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final saved = gemShape;
-    gemShape = shape;
     const s = 26.0;
     final left = (size.width - s * 3) / 2, top = (size.height - s) / 2;
     for (var i = 0; i < 3; i++) {
       drawGem(canvas, Rect.fromLTWH(left + i * s, top, s, s), _paints[i]);
     }
-    gemShape = saved;
   }
 
   @override

@@ -122,7 +122,7 @@ class PictureViewer extends StatefulWidget {
 
 class _PictureViewerState extends State<PictureViewer> with SingleTickerProviderStateMixin {
   late final IdleShimmer _shimmer = IdleShimmer(this, idleAfter: const Duration(seconds: 30))..poke();
-  late final paints = GemPaints.forPuzzle(widget.puzzle);
+  late final paints = GemPaints.forPuzzle(widget.puzzle, SettingsScope.read(context).shape);
   final _cache = _GemsCache();
 
   @override
@@ -222,7 +222,8 @@ class _FinishedPainter extends CustomPainter {
   final List<GemPaints> paints;
   final Animation<double> shimmer;
   final _GemsCache cache;
-  final Object look = currentLook();
+  final CanvasTheme _theme = canvasTheme;
+  Object get look => (_theme, paints.first.shape);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -248,7 +249,7 @@ class _FinishedPainter extends CustomPainter {
     for (var i = 0; i < puzzle.cellCount; i++) {
       final x = i % puzzle.width, y = i ~/ puzzle.width;
       final shine = (1 - ((x + y) / span - band).abs() / 0.07).clamp(0.0, 1.0);
-      if (shine > 0) drawGemShine(canvas, cell(i), shine);
+      if (shine > 0) drawGemShine(canvas, cell(i), shine, paints.first.shape);
       final hash = (i * 2654435761) & 0xFFFF;
       if (hash % 5 == 0) {
         final s = math.sin(2 * math.pi * (t * 3 + hash / 0xFFFF));
