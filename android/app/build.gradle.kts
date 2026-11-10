@@ -72,7 +72,7 @@ android {
         }
         create("store") {
             dimension = "dist"
-            applicationIdSuffix = ".store"
+            applicationId = "com.cjtech.pawlypaint"
             signingConfig = signingConfigs.findByName("upload")
         }
     }
