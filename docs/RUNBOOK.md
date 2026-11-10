@@ -131,6 +131,50 @@ flutter build apk --release --flavor store     # needs the upload key (below); b
 - **Never install a local store build on a phone that has (or will get) the Play build.** The two are signed with different keys, so the install fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, and if `flutter run` offers to uninstall first, answer no: that erases the store app's progress. Test Play builds through the internal track.
 - iPhone builds have no flavor and carry the sideload content.
 
+## Google Play internal test
+
+The internal test track puts the `store` build on Cesar's phone (and a few trusted testers) through Google Play, weeks before the closed test. It is not a GitHub release: no CHANGELOG entry, pre-release or APK. The shared `+N` build-number counter ("Release a new version" step 3) still applies. Cesar presses every Play Console button; agents never touch Play Console or the upload key. Menu names below follow Google's help pages and may move: if one is missing, follow the Dashboard and tell the agent what you saw.
+
+```
+agent: bump +N, build, check bundle ─► Cesar: Create new release ─► upload .aab ─► Start rollout ─► testers opt in ─► install from Play
+```
+
+### One time: create the app (Cesar)
+
+Source: [Create and set up your app](https://support.google.com/googleplay/android-developer/answer/9859152).
+
+1. In Play Console, click **Create app**. Fill in the app name, default language, **Game**, **Free** and a contact email. Accept the declarations (Developer Program Policies, US export laws, Play App Signing Terms). **Free is permanent**: Play never lets a free app become paid. The name and language can change later.
+2. The package name (`com.pawlypaint.pawlypaint.store`) becomes permanent with the first upload.
+3. Open **Test and release > Testing > Internal testing > Testers**. Click **Create email list**, name it, add the Google account emails (up to 100), then **Save changes** and **Create**. Tick the list, add a feedback email, **Save changes**.
+4. The opt-in link on the same tab works only after the first rollout; send it then ("Every upload" step 5).
+
+Internal testing has no tester-count or waiting-period rule, also for personal accounts created after Nov 2023. The 12 testers for 14 days rule belongs to the closed test (PAP-30). Source: [Test requirements](https://support.google.com/googleplay/android-developer/answer/14151465).
+
+### Every upload
+
+1. **Agent:** bump `+N` in `pubspec.yaml` (higher than the last GitHub release and the last Play upload; see "Release a new version" step 3), land it on `main` through the upload ticket's PR or, with Cesar's go-ahead, a release commit ("Build flavors"). After it is on `main`, the agent updates to `main` (clean tree, `git rev-parse HEAD` equals `origin/main`), runs "Before any step" (pub get, analyze and test, keystore check), then builds the store bundle and runs every check in "Build flavors" (fan-art grep prints `0`, upload-key SHA, `targetSdkVersion`, `versionCode`, 16 KB alignment). The agent gives Cesar the path `build/app/outputs/bundle/storeRelease/app-store-release.aab`, the `versionCode` it checked and the `keytool -printcert -jarfile ... | grep SHA256` line of the bundle. **Before the first upload, Cesar compares that SHA-256 with the fingerprint he noted when he made the upload key ("Upload key (store build)" step 2) and stops if they differ**: Play registers the first bundle's signing certificate as the upload key, and only a support reset (days) undoes a wrong one.
+2. **Cesar:** open **Test and release > Testing > Internal testing** and click **Create new release**. If the button is greyed out, finish the tasks the **Dashboard** lists first.
+3. **First upload only:** keep the default Google-generated app signing key; never choose "use the same key as upload" or export a key. You sign the bundle only with the upload key ("Upload key (store build)").
+4. Click **Upload** and add the `.aab`. Check the release name, add short release notes (500 characters max per language), then **Next**. Read anything under **Show more**, then **Start rollout**.
+5. Send testers the opt-in link from the **Testers** tab, once the release shows as available in Play Console (see "Testers": the link only works once the app is **Published**).
+
+Source: [Prepare and roll out a release](https://support.google.com/googleplay/android-developer/answer/9859348).
+
+If Play rejects a bundle for its version code, bump `+N` again and rebuild. Google doesn't say whether a number from a rejected or draft upload can be reused, so treat every number you tried as used: Cesar tells the agent each number he tried, and the re-bump goes to `main` (through the ticket's PR, or a release commit with Cesar's go-ahead) before the rebuilt bundle is handed over. Play Console's "last upload" does not show rejected attempts.
+
+### Testers
+
+- They need a Google account on the email list. They open the opt-in link on the phone, accept, then install from the Play Store. Searching Play will not find the app.
+- The opt-in link only works once the app status is **Published**. A first upload reaches internal testers within minutes, but for up to 48 hours (or until the first review) they see a temporary name and listing. This is expected. Source: [Set up an open, closed, or internal test](https://support.google.com/googleplay/android-developer/answer/9845334).
+- The Play app (`.store` id) installs next to the sideload app and keeps separate progress. Never uninstall the sideload app (erases her progress), and never install a local store build over the Play build ("Build flavors"). If a phone already has a `.store` app that was not installed from Play (Settings → Apps → PawlyPaint → App info shows the package name and where it was installed from), the Play install fails with a signature conflict. Ask whoever plays on it first, because uninstalling loses that app's progress. Uninstall only that `.store` app, never the one without `.store`, then install from Play.
+
+### Smoke test (Cesar, on the Play install)
+
+- [ ] Open each course.
+- [ ] Play one picture in Paint, one in Sort and one in Time Attack.
+- [ ] No fan-art course and no For You course is visible.
+- [ ] Settings → Apps → PawlyPaint shows both apps (the Play one has a package name ending in `.store`).
+
 ## Install on an iPhone
 
 One-time setup (Xcode, Apple ID, signing team, Developer Mode) is in the README, "Installing on an iPhone".
