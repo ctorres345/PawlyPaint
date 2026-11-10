@@ -93,12 +93,12 @@ flutter build apk --release --flavor store     # needs the upload key (below); b
 - **What `--flavor store` changes in Dart.** Flutter passes the flavor to the app (`appFlavor`, read in `lib/data/build_flavor.dart`). The store build lists no course in `sideloadOnlyCourseIds` (`lib/data/sideload_courses.dart`) and the compiler drops its art. Picture ids and saved-progress keys are the same in both builds.
 - **Check a store build before it goes anywhere** (the grep must print `0`; the same grep on the sideload build prints more than `0`):
   ```bash
-  unzip -p build/app/outputs/flutter-apk/app-store-release.apk lib/arm64-v8a/libapp.so | strings -a | grep -ciE 'minecraft|vocaloid|kpop|Blocky World|Virtual Stage|K-Pop Stage'
+  unzip -p build/app/outputs/flutter-apk/app-store-release.apk lib/arm64-v8a/libapp.so | strings -a | /usr/bin/grep -ciE 'minecraft|vocaloid|kpop|Blocky World|Virtual Stage|K-Pop Stage'
   ```
-- Play takes an `.aab`, not an APK. For a bundle, run the same check on its `base/lib/arm64-v8a/libapp.so` (`unzip -p <file>.aab base/lib/arm64-v8a/libapp.so | strings -a | grep -ciE '...'`). The filter only applies to `--flavor store`: any other flavor name, or a build without `--flavor`, ships the fan art.
+- Play takes an `.aab`, not an APK. For a bundle, run the same check on its `base/lib/arm64-v8a/libapp.so` (`unzip -p <file>.aab base/lib/arm64-v8a/libapp.so | strings -a | /usr/bin/grep -ciE '...'`). The filter only applies to `--flavor store`: any other flavor name, or a build without `--flavor`, ships the fan art.
 - **Both flavors show the same name and icon** (the store name is PAP-33's call). On a phone that has both, tell them apart in Settings → Apps → PawlyPaint → App info (the package name ends in `.store`), and never uninstall the sideload one: that erases her progress.
 - **Signing.** `sideload` is signed with the Mac's debug key ("Signing keystore" below). `store` is signed with the upload key from `android/key.properties` ("Upload key (store build)" below). A store release build without that file fails with a message; it never falls back to the debug key.
-- **Build the store bundle** (needs the upload key set up first):
+- **Build the store bundle** (needs the upload key set up first). **Bump the build number first.** Every Play upload needs a `versionCode` (the `+N` in `pubspec.yaml`) higher than both the last GitHub release and the last Play upload (the shared counter, "Release a new version" step 3). The bump must reach `main` before the next release builds on it, or that release would reuse a number Play has already seen: commit it in the PR of the ticket that does the upload, or, with Cesar's go-ahead, as a release commit (the one allowed direct push to `main`). Then build:
   ```bash
   rm -rf build/app/outputs/bundle   # clear any stale bundle first
   flutter build appbundle --release --flavor store   # build/app/outputs/bundle/storeRelease/app-store-release.aab
@@ -109,19 +109,23 @@ flutter build apk --release --flavor store     # needs the upload key (below); b
   ```bash
   keytool -printcert -jarfile build/app/outputs/bundle/storeRelease/app-store-release.aab | grep SHA256
   ```
-  Then check Google Play's upload rules (PAP-50). Use `/usr/bin/grep` (see the fan-art note above):
+  Then check Google Play's upload rules (PAP-50), right after the build above. Cesar's shell defines `grep` as a function that drops `-c`, so these checks call `/usr/bin/grep`:
   ```bash
   # 1. Target API: expect targetSdkVersion="36" or higher (minSdkVersion stays 24 so her Galaxy S22 installs).
-  /usr/bin/grep -h -A2 '<uses-sdk' build/app/intermediates/merged_manifest/storeRelease/*/AndroidManifest.xml
+  #    This is the merged manifest Gradle packs into the bundle (bundletool isn't installed to read the .aab itself).
+  /usr/bin/grep -A2 '<uses-sdk' build/app/intermediates/merged_manifest/storeRelease/processStoreReleaseMainManifest/AndroidManifest.xml
+  # Version code: must be higher than the last Play upload (Play Console shows it) and the last GitHub release.
+  /usr/bin/grep -o 'android:versionCode="[0-9]*"' build/app/intermediates/merged_manifest/storeRelease/processStoreReleaseMainManifest/AndroidManifest.xml
 
   # 2. 16 KB pages: every 64-bit library must have LOAD alignment 0x4000 or more (32-bit armeabi-v7a is exempt).
   d=$(mktemp -d) && unzip -q build/app/outputs/bundle/storeRelease/app-store-release.aab 'base/lib/*' -d "$d"
   readelf=$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/ndk/*/toolchains/llvm/prebuilt/*/bin/llvm-readelf | tail -1)
+  [ -x "$readelf" ] || { echo "stop: no llvm-readelf, install the NDK"; false; }
   for f in "$d"/base/lib/arm64-v8a/*.so "$d"/base/lib/x86_64/*.so; do
     echo "${f#$d/}: $("$readelf" -lW "$f" | awk '/LOAD/{print $NF}' | sort -u | tr '\n' ' ')"
   done
   ```
-  Any alignment below `0x4000` (for example `0x1000`) fails the rule: update Flutter or the plugin that ships that library before uploading.
+  Any alignment below `0x4000` (for example `0x1000`) fails the rule: update Flutter or the plugin that ships that library before uploading. Every line must end in a value (`0x4000` or `0x10000`); a blank value, an error or a missing library means the check did not run, so stop.
   To check an APK's signer, use `apksigner verify --print-certs <apk>` (from `~/Library/Android/sdk/build-tools/<version>/`); `keytool -jarfile` can't read modern APK signatures.
 - **`Unresolved reference` in a plugin's Kotlin during the first flavor build** is a stale build cache, not a code error. Run `flutter clean` (it only removes `build/`) and build again.
 - **Never install a local store build on a phone that has (or will get) the Play build.** The two are signed with different keys, so the install fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, and if `flutter run` offers to uninstall first, answer no: that erases the store app's progress. Test Play builds through the internal track.
