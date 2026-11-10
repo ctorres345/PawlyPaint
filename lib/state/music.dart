@@ -80,6 +80,26 @@ enum Sfx {
   final String asset;
 }
 
+/// Remembers that another app paused the music, so it comes back by itself only
+/// when it should: not while the app is in the background (the lifecycle brings
+/// it back when the app returns) and not when the player muted it meanwhile.
+class InterruptionGate {
+  bool _interrupted = false;
+
+  /// The music was playing and another app took the audio.
+  void begin() => _interrupted = true;
+
+  /// Forget the interruption without resuming.
+  void clear() => _interrupted = false;
+
+  /// The other app let go. True when the music should start playing again.
+  bool shouldResume({required bool appActive, required bool muted}) {
+    final resume = _interrupted && appActive && !muted;
+    _interrupted = false;
+    return resume;
+  }
+}
+
 /// Plays the menu song on menus and the chosen (or shuffled) theme while
 /// painting. Settings are remembered on the device.
 class MusicController extends ChangeNotifier with WidgetsBindingObserver {
@@ -127,7 +147,12 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   final SharedPreferences? _prefs;
-  final _player = ja.AudioPlayer();
+  // The package's own interruption handling is off: it would resume the music
+  // after a call even when the app is in the background, and halve then double
+  // the volume on a duck. [_onInterruption] does it with the app's state.
+  final _player = ja.AudioPlayer(handleInterruptions: false);
+  final _interruptions = InterruptionGate();
+  StreamSubscription<session.AudioInterruptionEvent>? _interruptionSub;
   final _rng = math.Random();
 
   bool muted;
@@ -270,7 +295,9 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
         // Once, and never blocking the music: if this fails the music still plays.
         _musicContextSet = true;
         try {
-          await (await session.AudioSession.instance).configure(musicSession);
+          final audioSession = await session.AudioSession.instance;
+          await audioSession.configure(musicSession);
+          _interruptionSub = audioSession.interruptionEventStream.listen(_onInterruption);
         } catch (e) {
           debugPrint('Music audio session failed: $e');
         }
@@ -280,6 +307,8 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       if (generation != _generation) return;
       await _player.setLoopMode(ja.LoopMode.one);
       await _player.setVolume(musicVolume);
+      // A newer request (mute, next level) may have come in while this one loaded.
+      if (generation != _generation) return;
       // play() only finishes when playback ends, which a loop never does.
       unawaited(_player.play());
       // The app may have gone to the background while the track loaded.
@@ -287,6 +316,32 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       // Music is a nice-to-have; never let an audio hiccup break the game.
       debugPrint('Music failed: $e');
+    }
+  }
+
+  /// Another app took the audio (a call, a video): pause, and come back when it
+  /// ends. A duck (a notification sound) just lowers the volume meanwhile.
+  void _onInterruption(session.AudioInterruptionEvent event) {
+    if (event.begin) {
+      switch (event.type) {
+        case session.AudioInterruptionType.duck:
+          unawaited(_player.setVolume(musicVolume / 2));
+        case session.AudioInterruptionType.pause:
+        case session.AudioInterruptionType.unknown:
+          if (_player.playing) {
+            _interruptions.begin();
+            unawaited(_player.pause());
+          }
+      }
+    } else {
+      switch (event.type) {
+        case session.AudioInterruptionType.duck:
+          unawaited(_player.setVolume(musicVolume));
+        case session.AudioInterruptionType.pause:
+          if (_interruptions.shouldResume(appActive: _appActive, muted: muted)) unawaited(_player.play());
+        case session.AudioInterruptionType.unknown:
+          _interruptions.clear();
+      }
     }
   }
 
@@ -311,6 +366,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _interruptionSub?.cancel();
     _player.dispose();
     for (final voices in _sfxPlayers.values) {
       for (final p in voices) {
