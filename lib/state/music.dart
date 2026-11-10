@@ -160,6 +160,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   static const _voices = 3;
   final Map<Sfx, List<AudioPlayer>> _sfxPlayers = {};
   final Map<Sfx, int> _nextVoice = {};
+  final Set<AudioPlayer> _stopModeSet = {};
 
   /// audioplayers redraws the screen every frame while a player plays, to
   /// report its position. Nothing here needs the position, so that is off:
@@ -215,7 +216,16 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final voices = _sfxPlayers[sfx] ??= List.generate(_voices, (_) => _quietPlayer());
       final i = _nextVoice[sfx] = ((_nextVoice[sfx] ?? -1) + 1) % _voices;
-      await voices[i].play(AssetSource(sfx.asset), volume: sfxVolume, mode: PlayerMode.lowLatency);
+      final voice = voices[i];
+      // SoundPool never reports that a sound finished, so on Android a voice
+      // stays "playing" and ignores every later play. Stopping it first frees
+      // it for the next one (PAP-54). Stop, not release, keeps the sound loaded.
+      if (!_stopModeSet.contains(voice)) {
+        _stopModeSet.add(voice);
+        await voice.setReleaseMode(ReleaseMode.stop);
+      }
+      await voice.stop();
+      await voice.play(AssetSource(sfx.asset), volume: sfxVolume, mode: PlayerMode.lowLatency);
     } catch (e) {
       debugPrint('Sound effect failed: $e');
     }
