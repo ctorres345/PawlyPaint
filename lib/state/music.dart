@@ -229,7 +229,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   static AudioPlayer _quietPlayer() => AudioPlayer()..positionUpdater = null;
   final Map<Sfx, DateTime> _lastPlayed = {};
   bool _inGame = false;
-  bool _musicContextSet = false;
+  Future<void>? _sessionReady;
   bool _appActive = true;
   int _generation = 0;
 
@@ -311,6 +311,17 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     if (_inGame) playGame();
   }
 
+  Future<void> _setUpSession() async {
+    try {
+      final audioSession = await session.AudioSession.instance;
+      // Listen first: a failed setup must not leave calls unhandled.
+      _interruptionSub = audioSession.interruptionEventStream.listen(_onInterruption);
+      await audioSession.configure(musicSession);
+    } catch (e) {
+      debugPrint('Music audio session failed: $e');
+    }
+  }
+
   Future<void> _start() async {
     notifyListeners();
     // A newer request may arrive while this one awaits; only the latest plays.
@@ -320,19 +331,9 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       if (muted || !_appActive || generation != _generation) return;
       // One theme per level: shuffle picks it when the level starts, and it
       // loops until the level ends or starts over.
-      if (!_musicContextSet) {
-        // Once, and never blocking the music: if this fails the music still plays.
-        _musicContextSet = true;
-        try {
-          final audioSession = await session.AudioSession.instance;
-          // Listen first: a failed setup must not leave calls unhandled.
-          _interruptionSub = audioSession.interruptionEventStream.listen(_onInterruption);
-          await audioSession.configure(musicSession);
-        } catch (e) {
-          debugPrint('Music audio session failed: $e');
-        }
-        if (generation != _generation) return;
-      }
+      // Once, and never blocking the music: if this fails the music still plays.
+      await (_sessionReady ??= _setUpSession());
+      if (generation != _generation) return;
       await _player.setAsset('assets/${_inGame ? current!.asset : _menuAsset}');
       if (generation != _generation) return;
       await _player.setLoopMode(ja.LoopMode.one);
@@ -392,9 +393,13 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
           _ducked = false;
           _quiet(_player.setVolume(_volume));
         case session.AudioInterruptionType.pause:
+          // A duck can end as a pause (audio_session forgets it on a new focus
+          // request), so put the volume back whatever the type.
           _ducked = false;
+          _quiet(_player.setVolume(_volume));
           if (_interruptions.end(appActive: _appActive, muted: muted)) _play();
         case session.AudioInterruptionType.unknown:
+          _ducked = false;
           _interruptions.clear();
       }
     }
