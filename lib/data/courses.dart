@@ -22,9 +22,9 @@ export 'sideload_courses.dart' show sideloadOnlyCourseIds;
 const unlockAfter = 3;
 
 /// Every course this build ships, drawn once on first use. The store build
-/// leaves out the sideload-only courses; the compiler drops their art.
-// Keep the explicit `if (!isStoreBuild)`: it is a compile-time constant, so the
-// store build drops the sideload art. Don't swap it for `buildCourses(...)`.
+/// leaves out the sideload-only courses; the compiler drops their art because
+/// `isStoreBuild` is a constant. Keep the explicit `if (!isStoreBuild)` and
+/// don't swap it for `buildCourses(...)`.
 final List<Course> allCourses = [...sharedCourses(), if (!isStoreBuild) ...sideloadOnlyCourses()];
 
 /// The courses both builds ship. All of them are open from the start.
