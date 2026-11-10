@@ -26,6 +26,27 @@ MusicTheme nextShuffleTheme(MusicTheme? last, math.Random rng) {
 
 const _menuAsset = 'music/menu.m4a';
 
+/// Respect the iPhone's silent switch and mix politely with other audio.
+final _iosContext = AudioContextIOS(category: AVAudioSessionCategory.ambient);
+
+/// The music asks Android for audio focus, so calls and other apps pause it.
+final musicAudioContext = AudioContext(
+  iOS: _iosContext,
+  android: const AudioContextAndroid(usageType: AndroidUsageType.game, contentType: AndroidContentType.music),
+);
+
+/// Sound effects mix in without asking for focus. With the default (gain) each
+/// effect took focus from the music player, which Android reported as a
+/// permanent loss, so the music paused for good (PAP-53).
+final sfxAudioContext = AudioContext(
+  iOS: _iosContext,
+  android: const AudioContextAndroid(
+    usageType: AndroidUsageType.game,
+    contentType: AndroidContentType.music,
+    audioFocus: AndroidAudioFocus.none,
+  ),
+);
+
 /// Short sound effects, composed by tool/compose_sfx.py.
 enum Sfx {
   place('sfx/place.wav'),
@@ -81,12 +102,10 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('Music settings unavailable: $e');
     }
     final name = prefs?.getString(_choiceKey);
-    // Respect the iPhone's silent switch and mix politely with other audio.
     try {
-      await AudioPlayer.global.setAudioContext(AudioContext(
-        iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
-        android: const AudioContextAndroid(usageType: AndroidUsageType.game, contentType: AndroidContentType.music),
-      ));
+      // Every player starts with this: effects mix in without asking for focus.
+      // Only the music player gets its own focus-taking context (see _start).
+      await AudioPlayer.global.setAudioContext(sfxAudioContext);
     } catch (e) {
       debugPrint('Audio setup failed: $e');
     }
@@ -148,6 +167,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   static AudioPlayer _quietPlayer() => AudioPlayer()..positionUpdater = null;
   final Map<Sfx, DateTime> _lastPlayed = {};
   bool _inGame = false;
+  bool _musicContextSet = false;
   bool _appActive = true;
   int _generation = 0;
 
@@ -229,6 +249,16 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       if (muted || !_appActive || generation != _generation) return;
       // One theme per level: shuffle picks it when the level starts, and it
       // loops until the level ends or starts over.
+      if (!_musicContextSet) {
+        // Once, and never blocking the music: if this fails the music still plays.
+        _musicContextSet = true;
+        try {
+          await _player.setAudioContext(musicAudioContext);
+        } catch (e) {
+          debugPrint('Music audio context failed: $e');
+        }
+        if (generation != _generation) return;
+      }
       await _player.setReleaseMode(ReleaseMode.loop);
       await _player.play(AssetSource(_inGame ? current!.asset : _menuAsset), volume: musicVolume);
       // The app may have gone to the background while the track loaded.
