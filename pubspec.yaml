@@ -7,10 +7,12 @@ environment:
   sdk: '>=3.4.0 <4.0.0'
 
 dependencies:
+  audio_session: ^0.2.4
   audioplayers: ^6.8.1
   flutter:
     sdk: flutter
   gal: ^2.3.3
+  just_audio: ^0.10.6
   shared_preferences: ^2.3.2
 
 dev_dependencies:

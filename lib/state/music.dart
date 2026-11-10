@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:audio_session/audio_session.dart' as session;
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/widgets.dart';
+import 'package:just_audio/just_audio.dart' as ja;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The three in-game themes, Dr. Mario style.
@@ -29,12 +32,6 @@ const _menuAsset = 'music/menu.m4a';
 /// Respect the iPhone's silent switch and mix politely with other audio.
 final _iosContext = AudioContextIOS(category: AVAudioSessionCategory.ambient);
 
-/// The music asks Android for audio focus, so calls and other apps pause it.
-final musicAudioContext = AudioContext(
-  iOS: _iosContext,
-  android: const AudioContextAndroid(usageType: AndroidUsageType.game, contentType: AndroidContentType.music),
-);
-
 /// Sound effects mix in without asking for focus. With the default (gain) each
 /// effect took focus from the music player, which Android reported as a
 /// permanent loss, so the music paused for good (PAP-53).
@@ -45,6 +42,17 @@ final sfxAudioContext = AudioContext(
     contentType: AndroidContentType.music,
     audioFocus: AndroidAudioFocus.none,
   ),
+);
+
+/// The music asks Android for audio focus (calls and other apps pause it) and
+/// respects the iPhone's silent switch.
+const musicSession = session.AudioSessionConfiguration(
+  avAudioSessionCategory: session.AVAudioSessionCategory.ambient,
+  androidAudioAttributes: session.AndroidAudioAttributes(
+    contentType: session.AndroidAudioContentType.music,
+    usage: session.AndroidAudioUsage.game,
+  ),
+  androidAudioFocusGainType: session.AndroidAudioFocusGainType.gain,
 );
 
 /// Short sound effects, composed by tool/compose_sfx.py.
@@ -71,6 +79,53 @@ enum Sfx {
   const Sfx(this.asset);
 
   final String asset;
+}
+
+/// Tracks another app holding the audio (a call, a video). While it does, the
+/// music must not start: Android keeps granting focus requests during a
+/// transient loss, so asking again would play over the call. Music that wanted
+/// to play comes back when the other app lets go, but only while the app is
+/// open and not muted; the lifecycle brings it back when the app returns.
+class InterruptionGate {
+  bool _held = false;
+  bool _resumePending = false;
+
+  /// Another app has the audio right now.
+  bool get held => _held;
+
+  /// The other app took the audio. [wasPlaying]: the music was going.
+  void begin({required bool wasPlaying}) {
+    _held = true;
+    if (wasPlaying) _resumePending = true;
+  }
+
+  /// An interruption that audio_session reports as `unknown`. On Android that is
+  /// the focus lost for good: no end event follows, so there is nothing to wait
+  /// for. On an iPhone every interruption starts as `unknown` and ends as
+  /// `pause`, so it is held like any other.
+  void beginUnknown({required bool wasPlaying, required bool ios}) {
+    if (ios) {
+      begin(wasPlaying: wasPlaying);
+    } else {
+      clear();
+    }
+  }
+
+  /// The music wanted to start while the other app has the audio.
+  void deferPlay() => _resumePending = true;
+
+  /// Forget everything without resuming.
+  void clear() {
+    _held = false;
+    _resumePending = false;
+  }
+
+  /// The other app let go. True when the music should start playing again.
+  bool end({required bool appActive, required bool muted}) {
+    final resume = _resumePending && appActive && !muted;
+    clear();
+    return resume;
+  }
 }
 
 /// Plays the menu song on menus and the chosen (or shuffled) theme while
@@ -120,7 +175,13 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   final SharedPreferences? _prefs;
-  final _player = _quietPlayer();
+  // The package's own interruption handling is off: it would resume the music
+  // after a call even when the app is in the background, and halve then double
+  // the volume on a duck. [_onInterruption] does it with the app's state.
+  final _player = ja.AudioPlayer(handleInterruptions: false);
+  final _interruptions = InterruptionGate();
+  bool _ducked = false;
+  StreamSubscription<session.AudioInterruptionEvent>? _interruptionSub;
   final _rng = math.Random();
 
   bool muted;
@@ -143,7 +204,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     musicVolume = v;
     notifyListeners();
     try {
-      await _player.setVolume(v);
+      await _player.setVolume(_volume);
     } catch (_) {}
     await _prefs?.setDouble(_musicVolumeKey, v);
   }
@@ -168,7 +229,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   static AudioPlayer _quietPlayer() => AudioPlayer()..positionUpdater = null;
   final Map<Sfx, DateTime> _lastPlayed = {};
   bool _inGame = false;
-  bool _musicContextSet = false;
+  Future<void>? _sessionReady;
   bool _appActive = true;
   int _generation = 0;
 
@@ -250,6 +311,17 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     if (_inGame) playGame();
   }
 
+  Future<void> _setUpSession() async {
+    try {
+      final audioSession = await session.AudioSession.instance;
+      // Listen first: a failed setup must not leave calls unhandled.
+      _interruptionSub = audioSession.interruptionEventStream.listen(_onInterruption);
+      await audioSession.configure(musicSession);
+    } catch (e) {
+      debugPrint('Music audio session failed: $e');
+    }
+  }
+
   Future<void> _start() async {
     notifyListeners();
     // A newer request may arrive while this one awaits; only the latest plays.
@@ -259,23 +331,77 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       if (muted || !_appActive || generation != _generation) return;
       // One theme per level: shuffle picks it when the level starts, and it
       // loops until the level ends or starts over.
-      if (!_musicContextSet) {
-        // Once, and never blocking the music: if this fails the music still plays.
-        _musicContextSet = true;
-        try {
-          await _player.setAudioContext(musicAudioContext);
-        } catch (e) {
-          debugPrint('Music audio context failed: $e');
-        }
-        if (generation != _generation) return;
-      }
-      await _player.setReleaseMode(ReleaseMode.loop);
-      await _player.play(AssetSource(_inGame ? current!.asset : _menuAsset), volume: musicVolume);
+      // Once, and never blocking the music: if this fails the music still plays.
+      await (_sessionReady ??= _setUpSession());
+      if (generation != _generation) return;
+      await _player.setAsset('assets/${_inGame ? current!.asset : _menuAsset}');
+      if (generation != _generation) return;
+      await _player.setLoopMode(ja.LoopMode.one);
+      // A newer request (mute, next level) may have come in while this one loaded.
+      if (generation != _generation) return;
+      _play();
       // The app may have gone to the background while the track loaded.
       if (!_appActive) await _player.pause();
     } catch (e) {
       // Music is a nice-to-have; never let an audio hiccup break the game.
       debugPrint('Music failed: $e');
+    }
+  }
+
+  /// Half the volume while another app's short sound ducks the music.
+  double get _volume => _ducked ? musicVolume / 2 : musicVolume;
+
+  /// Audio calls that nobody waits for: log a failure instead of leaving it
+  /// uncaught.
+  void _quiet(Future<void> call) => unawaited(call.catchError((Object e) => debugPrint('Music audio call failed: $e')));
+
+  /// Starts the music, unless another app holds the audio: then it starts when
+  /// that app lets go (see [InterruptionGate]). No await between the checks and
+  /// `play`, so nothing can change in between.
+  void _play() {
+    if (_interruptions.held) {
+      _interruptions.deferPlay();
+      return;
+    }
+    if (!_appActive || muted) return;
+    // The channel keeps these in order: the volume is set before play starts.
+    _quiet(_player.setVolume(_volume));
+    // play() only finishes when playback ends, which a loop never does.
+    _quiet(_player.play());
+  }
+
+  /// Another app took the audio (a call, a video): pause, and come back when it
+  /// ends. A duck (a notification sound) just lowers the volume meanwhile.
+  void _onInterruption(session.AudioInterruptionEvent event) {
+    if (event.begin) {
+      switch (event.type) {
+        case session.AudioInterruptionType.duck:
+          _ducked = true;
+          _quiet(_player.setVolume(_volume));
+        case session.AudioInterruptionType.pause:
+          _ducked = false;
+          _interruptions.begin(wasPlaying: _player.playing);
+          if (_player.playing) _quiet(_player.pause());
+        case session.AudioInterruptionType.unknown:
+          _ducked = false;
+          _interruptions.beginUnknown(wasPlaying: _player.playing, ios: defaultTargetPlatform == TargetPlatform.iOS);
+          if (_player.playing) _quiet(_player.pause());
+      }
+    } else {
+      switch (event.type) {
+        case session.AudioInterruptionType.duck:
+          _ducked = false;
+          _quiet(_player.setVolume(_volume));
+        case session.AudioInterruptionType.pause:
+          // A duck can end as a pause (audio_session forgets it on a new focus
+          // request), so put the volume back whatever the type.
+          _ducked = false;
+          _quiet(_player.setVolume(_volume));
+          if (_interruptions.end(appActive: _appActive, muted: muted)) _play();
+        case session.AudioInterruptionType.unknown:
+          _ducked = false;
+          _interruptions.clear();
+      }
     }
   }
 
@@ -285,21 +411,24 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     if (active == _appActive) return;
     _appActive = active;
     if (active) {
+      // An iPhone interruption may end without telling the app: don't wait for it.
+      if (defaultTargetPlatform == TargetPlatform.iOS) _interruptions.clear();
       // Pick up where the song left off (pulling down Control Center or a
       // notification shouldn't restart it); start fresh only if it stopped.
-      if (_player.state == PlayerState.paused && !muted) {
-        unawaited(_player.resume());
+      if (_player.processingState == ja.ProcessingState.ready && !_player.playing && !muted) {
+        _play();
       } else {
         _start();
       }
     } else {
-      unawaited(_player.pause());
+      _quiet(_player.pause());
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _interruptionSub?.cancel();
     _player.dispose();
     for (final voices in _sfxPlayers.values) {
       for (final p in voices) {
