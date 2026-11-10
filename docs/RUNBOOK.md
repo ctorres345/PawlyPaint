@@ -29,7 +29,7 @@ CHANGELOG entry ─► bump version ─► build APK ─► pre-release on GitHu
 
 1. Ask Cesar before starting a release.
 2. Add a `## x.y.z (YYYY-MM-DD)` entry at the top of `CHANGELOG.md`, and move any "Unreleased" items into it.
-3. Bump `version:` in `pubspec.yaml`: `x.y.z+N`, where `N` goes up by one every release (Android refuses to update over a lower build number).
+3. Bump `version:` in `pubspec.yaml`: `x.y.z+N`, where `N` goes up by one every GitHub release **and** every Google Play upload (Android refuses to update over a lower build number, and Play rejects a code it has already seen). Both flavors share this one counter, so a sideload release may skip numbers; that is fine. Bump `N` before building any bundle you will upload, even when the upload is only a fix for a rejected one.
 4. Commit and push to `main`. This release commit is the one allowed direct push to `main`, and only after Cesar's go-ahead; all other work goes through a `cesar/PAP-<n>` PR.
 5. Build and name the APK:
    ```bash
@@ -109,6 +109,19 @@ flutter build apk --release --flavor store     # needs the upload key (below); b
   ```bash
   keytool -printcert -jarfile build/app/outputs/bundle/storeRelease/app-store-release.aab | grep SHA256
   ```
+  Then check Google Play's upload rules (PAP-50). Use `/usr/bin/grep` (see the fan-art note above):
+  ```bash
+  # 1. Target API: expect targetSdkVersion="36" or higher (minSdkVersion stays 24 so her Galaxy S22 installs).
+  /usr/bin/grep -h -A2 '<uses-sdk' build/app/intermediates/merged_manifest/storeRelease/*/AndroidManifest.xml
+
+  # 2. 16 KB pages: every 64-bit library must have LOAD alignment 0x4000 or more (32-bit armeabi-v7a is exempt).
+  d=$(mktemp -d) && unzip -q build/app/outputs/bundle/storeRelease/app-store-release.aab 'base/lib/*' -d "$d"
+  readelf=$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/ndk/*/toolchains/llvm/prebuilt/*/bin/llvm-readelf | tail -1)
+  for f in "$d"/base/lib/arm64-v8a/*.so "$d"/base/lib/x86_64/*.so; do
+    echo "${f#$d/}: $("$readelf" -lW "$f" | awk '/LOAD/{print $NF}' | sort -u | tr '\n' ' ')"
+  done
+  ```
+  Any alignment below `0x4000` (for example `0x1000`) fails the rule: update Flutter or the plugin that ships that library before uploading.
   To check an APK's signer, use `apksigner verify --print-certs <apk>` (from `~/Library/Android/sdk/build-tools/<version>/`); `keytool -jarfile` can't read modern APK signatures.
 - **`Unresolved reference` in a plugin's Kotlin during the first flavor build** is a stale build cache, not a code error. Run `flutter clean` (it only removes `build/`) and build again.
 - **Never install a local store build on a phone that has (or will get) the Play build.** The two are signed with different keys, so the install fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, and if `flutter run` offers to uninstall first, answer no: that erases the store app's progress. Test Play builds through the internal track.
