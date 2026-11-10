@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:audio_session/audio_session.dart' as session;
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/widgets.dart';
 import 'package:just_audio/just_audio.dart' as ja;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -96,6 +97,18 @@ class InterruptionGate {
   void begin({required bool wasPlaying}) {
     _held = true;
     if (wasPlaying) _resumePending = true;
+  }
+
+  /// An interruption that audio_session reports as `unknown`. On Android that is
+  /// the focus lost for good: no end event follows, so there is nothing to wait
+  /// for. On an iPhone every interruption starts as `unknown` and ends as
+  /// `pause`, so it is held like any other.
+  void beginUnknown({required bool wasPlaying, required bool ios}) {
+    if (ios) {
+      begin(wasPlaying: wasPlaying);
+    } else {
+      clear();
+    }
   }
 
   /// The music wanted to start while the other app has the audio.
@@ -312,8 +325,9 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
         _musicContextSet = true;
         try {
           final audioSession = await session.AudioSession.instance;
-          await audioSession.configure(musicSession);
+          // Listen first: a failed setup must not leave calls unhandled.
           _interruptionSub = audioSession.interruptionEventStream.listen(_onInterruption);
+          await audioSession.configure(musicSession);
         } catch (e) {
           debugPrint('Music audio session failed: $e');
         }
@@ -324,7 +338,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       await _player.setLoopMode(ja.LoopMode.one);
       // A newer request (mute, next level) may have come in while this one loaded.
       if (generation != _generation) return;
-      await _play();
+      _play();
       // The app may have gone to the background while the track loaded.
       if (!_appActive) await _player.pause();
     } catch (e) {
@@ -336,20 +350,23 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   /// Half the volume while another app's short sound ducks the music.
   double get _volume => _ducked ? musicVolume / 2 : musicVolume;
 
+  /// Audio calls that nobody waits for: log a failure instead of leaving it
+  /// uncaught.
+  void _quiet(Future<void> call) => unawaited(call.catchError((Object e) => debugPrint('Music audio call failed: $e')));
+
   /// Starts the music, unless another app holds the audio: then it starts when
-  /// that app lets go (see [InterruptionGate]).
-  Future<void> _play() async {
+  /// that app lets go (see [InterruptionGate]). No await between the checks and
+  /// `play`, so nothing can change in between.
+  void _play() {
     if (_interruptions.held) {
       _interruptions.deferPlay();
       return;
     }
-    try {
-      await _player.setVolume(_volume);
-      // play() only finishes when playback ends, which a loop never does.
-      unawaited(_player.play().catchError((Object e) => debugPrint('Music play failed: $e')));
-    } catch (e) {
-      debugPrint('Music play failed: $e');
-    }
+    if (!_appActive || muted) return;
+    // The channel keeps these in order: the volume is set before play starts.
+    _quiet(_player.setVolume(_volume));
+    // play() only finishes when playback ends, which a loop never does.
+    _quiet(_player.play());
   }
 
   /// Another app took the audio (a call, a video): pause, and come back when it
@@ -359,25 +376,24 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       switch (event.type) {
         case session.AudioInterruptionType.duck:
           _ducked = true;
-          unawaited(_player.setVolume(_volume));
+          _quiet(_player.setVolume(_volume));
         case session.AudioInterruptionType.pause:
           _ducked = false;
           _interruptions.begin(wasPlaying: _player.playing);
-          if (_player.playing) unawaited(_player.pause());
+          if (_player.playing) _quiet(_player.pause());
         case session.AudioInterruptionType.unknown:
-          // The focus is gone for good and no end event follows.
           _ducked = false;
-          _interruptions.clear();
-          if (_player.playing) unawaited(_player.pause());
+          _interruptions.beginUnknown(wasPlaying: _player.playing, ios: defaultTargetPlatform == TargetPlatform.iOS);
+          if (_player.playing) _quiet(_player.pause());
       }
     } else {
       switch (event.type) {
         case session.AudioInterruptionType.duck:
           _ducked = false;
-          unawaited(_player.setVolume(_volume));
+          _quiet(_player.setVolume(_volume));
         case session.AudioInterruptionType.pause:
           _ducked = false;
-          if (_interruptions.end(appActive: _appActive, muted: muted)) unawaited(_play());
+          if (_interruptions.end(appActive: _appActive, muted: muted)) _play();
         case session.AudioInterruptionType.unknown:
           _interruptions.clear();
       }
@@ -390,15 +406,17 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     if (active == _appActive) return;
     _appActive = active;
     if (active) {
+      // An iPhone interruption may end without telling the app: don't wait for it.
+      if (defaultTargetPlatform == TargetPlatform.iOS) _interruptions.clear();
       // Pick up where the song left off (pulling down Control Center or a
       // notification shouldn't restart it); start fresh only if it stopped.
       if (_player.processingState == ja.ProcessingState.ready && !_player.playing && !muted) {
-        unawaited(_play());
+        _play();
       } else {
         _start();
       }
     } else {
-      unawaited(_player.pause());
+      _quiet(_player.pause());
     }
   }
 

@@ -51,5 +51,17 @@ void main() {
         ..clear();
       expect(gate.held, isFalse);
     });
+
+    test('on an iPhone an unknown start is held and the pause end brings the music back', () {
+      final gate = InterruptionGate()..beginUnknown(wasPlaying: true, ios: true);
+      expect(gate.held, isTrue);
+      expect(gate.end(appActive: true, muted: false), isTrue);
+    });
+
+    test('on Android an unknown start is a focus lost for good: nothing is held', () {
+      final gate = InterruptionGate()..beginUnknown(wasPlaying: true, ios: false);
+      expect(gate.held, isFalse);
+      expect(gate.end(appActive: true, muted: false), isFalse);
+    });
   });
 }
