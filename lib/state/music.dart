@@ -80,22 +80,37 @@ enum Sfx {
   final String asset;
 }
 
-/// Remembers that another app paused the music, so it comes back by itself only
-/// when it should: not while the app is in the background (the lifecycle brings
-/// it back when the app returns) and not when the player muted it meanwhile.
+/// Tracks another app holding the audio (a call, a video). While it does, the
+/// music must not start: Android keeps granting focus requests during a
+/// transient loss, so asking again would play over the call. Music that wanted
+/// to play comes back when the other app lets go, but only while the app is
+/// open and not muted; the lifecycle brings it back when the app returns.
 class InterruptionGate {
-  bool _interrupted = false;
+  bool _held = false;
+  bool _resumePending = false;
 
-  /// The music was playing and another app took the audio.
-  void begin() => _interrupted = true;
+  /// Another app has the audio right now.
+  bool get held => _held;
 
-  /// Forget the interruption without resuming.
-  void clear() => _interrupted = false;
+  /// The other app took the audio. [wasPlaying]: the music was going.
+  void begin({required bool wasPlaying}) {
+    _held = true;
+    if (wasPlaying) _resumePending = true;
+  }
+
+  /// The music wanted to start while the other app has the audio.
+  void deferPlay() => _resumePending = true;
+
+  /// Forget everything without resuming.
+  void clear() {
+    _held = false;
+    _resumePending = false;
+  }
 
   /// The other app let go. True when the music should start playing again.
-  bool shouldResume({required bool appActive, required bool muted}) {
-    final resume = _interrupted && appActive && !muted;
-    _interrupted = false;
+  bool end({required bool appActive, required bool muted}) {
+    final resume = _resumePending && appActive && !muted;
+    clear();
     return resume;
   }
 }
@@ -152,6 +167,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   // the volume on a duck. [_onInterruption] does it with the app's state.
   final _player = ja.AudioPlayer(handleInterruptions: false);
   final _interruptions = InterruptionGate();
+  bool _ducked = false;
   StreamSubscription<session.AudioInterruptionEvent>? _interruptionSub;
   final _rng = math.Random();
 
@@ -175,7 +191,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     musicVolume = v;
     notifyListeners();
     try {
-      await _player.setVolume(v);
+      await _player.setVolume(_volume);
     } catch (_) {}
     await _prefs?.setDouble(_musicVolumeKey, v);
   }
@@ -306,16 +322,33 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       await _player.setAsset('assets/${_inGame ? current!.asset : _menuAsset}');
       if (generation != _generation) return;
       await _player.setLoopMode(ja.LoopMode.one);
-      await _player.setVolume(musicVolume);
       // A newer request (mute, next level) may have come in while this one loaded.
       if (generation != _generation) return;
-      // play() only finishes when playback ends, which a loop never does.
-      unawaited(_player.play());
+      await _play();
       // The app may have gone to the background while the track loaded.
       if (!_appActive) await _player.pause();
     } catch (e) {
       // Music is a nice-to-have; never let an audio hiccup break the game.
       debugPrint('Music failed: $e');
+    }
+  }
+
+  /// Half the volume while another app's short sound ducks the music.
+  double get _volume => _ducked ? musicVolume / 2 : musicVolume;
+
+  /// Starts the music, unless another app holds the audio: then it starts when
+  /// that app lets go (see [InterruptionGate]).
+  Future<void> _play() async {
+    if (_interruptions.held) {
+      _interruptions.deferPlay();
+      return;
+    }
+    try {
+      await _player.setVolume(_volume);
+      // play() only finishes when playback ends, which a loop never does.
+      unawaited(_player.play().catchError((Object e) => debugPrint('Music play failed: $e')));
+    } catch (e) {
+      debugPrint('Music play failed: $e');
     }
   }
 
@@ -325,20 +358,26 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     if (event.begin) {
       switch (event.type) {
         case session.AudioInterruptionType.duck:
-          unawaited(_player.setVolume(musicVolume / 2));
+          _ducked = true;
+          unawaited(_player.setVolume(_volume));
         case session.AudioInterruptionType.pause:
+          _ducked = false;
+          _interruptions.begin(wasPlaying: _player.playing);
+          if (_player.playing) unawaited(_player.pause());
         case session.AudioInterruptionType.unknown:
-          if (_player.playing) {
-            _interruptions.begin();
-            unawaited(_player.pause());
-          }
+          // The focus is gone for good and no end event follows.
+          _ducked = false;
+          _interruptions.clear();
+          if (_player.playing) unawaited(_player.pause());
       }
     } else {
       switch (event.type) {
         case session.AudioInterruptionType.duck:
-          unawaited(_player.setVolume(musicVolume));
+          _ducked = false;
+          unawaited(_player.setVolume(_volume));
         case session.AudioInterruptionType.pause:
-          if (_interruptions.shouldResume(appActive: _appActive, muted: muted)) unawaited(_player.play());
+          _ducked = false;
+          if (_interruptions.end(appActive: _appActive, muted: muted)) unawaited(_play());
         case session.AudioInterruptionType.unknown:
           _interruptions.clear();
       }
@@ -354,7 +393,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
       // Pick up where the song left off (pulling down Control Center or a
       // notification shouldn't restart it); start fresh only if it stopped.
       if (_player.processingState == ja.ProcessingState.ready && !_player.playing && !muted) {
-        unawaited(_player.play());
+        unawaited(_play());
       } else {
         _start();
       }
