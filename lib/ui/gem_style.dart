@@ -8,7 +8,7 @@ import '../models/puzzle.dart';
 
 /// Pre-built paints for one drill color, so painting a frame allocates nothing.
 class GemPaints {
-  GemPaints(this.color, {this.shape = GemShape.square})
+  GemPaints(this.color, {required this.shape})
       : base = Paint()..color = color,
         light = Paint()..color = Color.lerp(color, Colors.white, 0.38)!,
         dark = Paint()..color = Color.lerp(color, Colors.black, 0.28)!,

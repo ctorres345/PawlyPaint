@@ -9,7 +9,6 @@ void main() {
       expect(s.seconds, 12);
       now = now.add(const Duration(minutes: 5));
       expect(s.seconds, 12);
-      expect(s.running, isFalse);
     });
 
     test('counts only while running; a second start keeps the first start time', () {
@@ -18,7 +17,6 @@ void main() {
       now = now.add(const Duration(seconds: 7));
       s.start();
       expect(s.seconds, 7);
-      expect(s.running, isTrue);
       s.pause();
       now = now.add(const Duration(seconds: 30));
       expect(s.seconds, 7);

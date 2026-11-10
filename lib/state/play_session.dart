@@ -28,8 +28,6 @@ class PlaySession {
   /// counts as relaxed even if the setting was switched off later.
   bool excusedMistakes;
 
-  bool get running => _runningSince != null;
-
   /// Whole seconds played so far.
   int get seconds {
     final since = _runningSince;

@@ -23,9 +23,6 @@ enum CanvasTheme {
 /// The canvas theme everything is drawn with; set from the player's settings.
 CanvasTheme canvasTheme = CanvasTheme.linen;
 
-/// Look of the canvas right now in [shape], for painters' caches and repaints.
-Object currentLook(GemShape shape) => (canvasTheme, shape);
-
 /// Player preferences that change how the game looks and feels.
 class AppSettings extends ChangeNotifier {
   AppSettings._(this._prefs,
