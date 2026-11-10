@@ -81,7 +81,7 @@ Android has two flavors. Always pass `--flavor`: a build without it fails.
 | Flavor | App id | Content | For |
 | --- | --- | --- | --- |
 | `sideload` | `com.pawlypaint.pawlypaint` | Everything: fan-art courses and, later, For You | Her phone and yours, from GitHub Releases |
-| `store` | `com.pawlypaint.pawlypaint.store` | Shared courses only | Google Play (internal, closed and production tracks) |
+| `store` | `com.cjtech.pawlypaint` | Shared courses only | Google Play (internal, closed and production tracks) |
 
 ```bash
 flutter run --flavor sideload                 # or --flavor store
@@ -96,7 +96,7 @@ flutter build apk --release --flavor store     # needs the upload key (below); b
   unzip -p build/app/outputs/flutter-apk/app-store-release.apk lib/arm64-v8a/libapp.so | strings -a | /usr/bin/grep -ciE 'minecraft|vocaloid|kpop|Blocky World|Virtual Stage|K-Pop Stage'
   ```
 - Play takes an `.aab`, not an APK. For a bundle, run the same check on its `base/lib/arm64-v8a/libapp.so` (`unzip -p <file>.aab base/lib/arm64-v8a/libapp.so | strings -a | /usr/bin/grep -ciE '...'`). The filter only applies to `--flavor store`: any other flavor name, or a build without `--flavor`, ships the fan art.
-- **Both flavors show the same name and icon** (the store name is PAP-33's call). On a phone that has both, tell them apart in Settings → Apps → PawlyPaint → App info (the package name ends in `.store`), and never uninstall the sideload one: that erases her progress.
+- **Both flavors show the same name and icon** (the store name is PAP-33's call). On a phone that has both, tell them apart in Settings → Apps → PawlyPaint → App info (the package name is `com.cjtech.pawlypaint` for the store app and `com.pawlypaint.pawlypaint` for sideload), and never uninstall the sideload one: that erases her progress.
 - **Signing.** `sideload` is signed with the Mac's debug key ("Signing keystore" below). `store` is signed with the upload key from `android/key.properties` ("Upload key (store build)" below). A store release build without that file fails with a message; it never falls back to the debug key.
 - **Build the store bundle** (needs the upload key set up first). **Bump the build number first.** Every Play upload needs a `versionCode` (the `+N` in `pubspec.yaml`) higher than both the last GitHub release and the last Play upload (the shared counter, "Release a new version" step 3). The bump must reach `main` before the next release builds on it, or that release would reuse a number Play has already seen: commit it in the PR of the ticket that does the upload, or, with Cesar's go-ahead, as a release commit (the one allowed direct push to `main`). Then build:
   ```bash
@@ -144,7 +144,7 @@ agent: bump +N, build, check bundle ─► Cesar: Create new release ─► uplo
 Source: [Create and set up your app](https://support.google.com/googleplay/android-developer/answer/9859152).
 
 1. In Play Console, click **Create app**. Fill in the app name, default language, **Game**, **Free** and a contact email. Accept the declarations (Developer Program Policies, US export laws, Play App Signing Terms). **Free is permanent**: Play never lets a free app become paid. The name and language can change later.
-2. The package name (`com.pawlypaint.pawlypaint.store`) becomes permanent with the first upload.
+2. The package name (`com.cjtech.pawlypaint`) comes from the first bundle you upload and becomes permanent then. Play also needs it to be unique across Google Play: if the upload says it is taken, stop and tell the agent.
 3. Open **Test and release > Testing > Internal testing > Testers**. Click **Create email list**, name it, add the Google account emails (up to 100), then **Save changes** and **Create**. Tick the list, add a feedback email, **Save changes**.
 4. The opt-in link on the same tab works only after the first rollout; send it then ("Every upload" step 5).
 
@@ -166,14 +166,15 @@ If Play rejects a bundle for its version code, bump `+N` again and rebuild. Goog
 
 - They need a Google account on the email list. They open the opt-in link on the phone, accept, then install from the Play Store. Searching Play will not find the app.
 - The opt-in link only works once the app status is **Published**. A first upload reaches internal testers within minutes, but for up to 48 hours (or until the first review) they see a temporary name and listing. This is expected. Source: [Set up an open, closed, or internal test](https://support.google.com/googleplay/android-developer/answer/9845334).
-- The Play app (`.store` id) installs next to the sideload app and keeps separate progress. Never uninstall the sideload app (erases her progress), and never install a local store build over the Play build ("Build flavors"). If a phone already has a `.store` app that was not installed from Play (Settings → Apps → PawlyPaint → App info shows the package name and where it was installed from), the Play install fails with a signature conflict. Ask whoever plays on it first, because uninstalling loses that app's progress. Uninstall only that `.store` app, never the one without `.store`, then install from Play.
+- The Play app (`com.cjtech.pawlypaint`) installs next to the sideload app (`com.pawlypaint.pawlypaint`) and keeps separate progress. Never uninstall the sideload app (erases her progress), and never install a local store build over the Play build ("Build flavors"). If a phone already has a `com.cjtech.pawlypaint` app that was not installed from Play (Settings → Apps → PawlyPaint → App info shows the package name and where it was installed from), the Play install fails with a signature conflict. Ask whoever plays on it first, because uninstalling loses that app's progress. Uninstall only that `com.cjtech.pawlypaint` app, never `com.pawlypaint.pawlypaint`, then install from Play.
+- Before PAP-51's id change, local store builds used `com.pawlypaint.pawlypaint.store`. A phone that ran one still has that app, now obsolete: nothing updates it. After asking whoever plays on it, it can be uninstalled. Read the full package name first, because the sideload app is exactly `com.pawlypaint.pawlypaint` and the obsolete one only starts with it.
 
 ### Smoke test (Cesar, on the Play install)
 
 - [ ] Open each course.
 - [ ] Play one picture in Paint, one in Sort and one in Time Attack.
 - [ ] No fan-art course and no For You course is visible.
-- [ ] Settings → Apps → PawlyPaint shows both apps (the Play one has a package name ending in `.store`).
+- [ ] Settings → Apps → PawlyPaint shows the Play app (`com.cjtech.pawlypaint`) and the sideload app (`com.pawlypaint.pawlypaint`).
 
 ## Install on an iPhone
 
