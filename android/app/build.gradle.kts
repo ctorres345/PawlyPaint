@@ -97,7 +97,7 @@ flutter {
     source = "../.."
 }
 
-// A store release without the upload key would ship unsigned; stop it early.
+// A store release without the upload key would ship unsigned; stop it before it is packaged.
 if (missingKeyProperties.isNotEmpty()) {
     val missing = missingKeyProperties.joinToString()
     tasks.configureEach {

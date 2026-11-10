@@ -100,14 +100,18 @@ flutter build apk --release --flavor store     # needs the upload key (below); b
 - **Signing.** `sideload` is signed with the Mac's debug key ("Signing keystore" below). `store` is signed with the upload key from `android/key.properties` ("Upload key (store build)" below). A store release build without that file fails with a message; it never falls back to the debug key.
 - **Build the store bundle** (needs the upload key set up first):
   ```bash
+  rm -rf build/app/outputs/bundle   # clear any stale bundle first
   flutter build appbundle --release --flavor store   # build/app/outputs/bundle/storeRelease/app-store-release.aab
   ```
+  Always pass `--flavor store`: `flutter build appbundle` without it builds both flavors and can leave an upload-signed bundle with fan art at that same path. Never upload a bundle until the fan-art grep below prints `0`.
+
   Then check the fan-art grep above prints `0`, and that the bundle is signed with the upload key, not the debug key (the SHA-256 must differ from the debug key's (`FA:15:10:EF:...:00:53:90` in `keytool` format; `apksigner` prints it as `fa1510ef...5390`), and match the one Cesar noted when he made the key):
   ```bash
   keytool -printcert -jarfile build/app/outputs/bundle/storeRelease/app-store-release.aab | grep SHA256
   ```
   To check an APK's signer, use `apksigner verify --print-certs <apk>` (from `~/Library/Android/sdk/build-tools/<version>/`); `keytool -jarfile` can't read modern APK signatures.
 - **`Unresolved reference` in a plugin's Kotlin during the first flavor build** is a stale build cache, not a code error. Run `flutter clean` (it only removes `build/`) and build again.
+- **Never install a local store build on a phone that has (or will get) the Play build.** The two are signed with different keys, so the install fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, and if `flutter run` offers to uninstall first, answer no: that erases the store app's progress. Test Play builds through the internal track.
 - iPhone builds have no flavor and carry the sideload content.
 
 ## Install on an iPhone
@@ -143,7 +147,7 @@ One time, Cesar's steps:
    ```
    All four lines are required. Use a password with ASCII characters only and no backslash (`\`): this file treats a backslash as an escape and the build would say the password is wrong.
 4. **Back up both the `.jks` and the passwords in two places** outside the Mac (for example an encrypted drive and a password manager attachment). Tell the agent when done.
-5. Play App Signing is turned on when you create the app in Play Console and upload the first bundle (PAP-51). Google then holds the app signing key; this upload key only proves uploads come from you.
+5. Play App Signing is turned on when you create the app in Play Console and upload the first bundle (PAP-51). Keep the default "Google-generated app signing key"; never pick "use the same key as upload" or export a key. Google then holds the app signing key; this upload key only proves uploads come from you.
 
 - Never commit or paste the keystore, `key.properties` or the passwords. Both are git-ignored; a `gitleaks` scan must stay clean.
 - If the upload key is lost, the app is not lost: ask Play Console support to reset the upload key. Back it up anyway; the reset takes days.
