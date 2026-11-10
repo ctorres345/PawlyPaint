@@ -6,10 +6,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Upload key settings; null when the file is missing (e.g. CI, a fresh clone).
-val keyProperties: Properties? =
-    rootProject.file("key.properties").takeIf { it.exists() }?.let { file ->
-        Properties().apply { file.inputStream().use { load(it) } }
+// Upload key settings; empty when the file is missing (e.g. CI, a fresh clone).
+val keyProperties: Properties =
+    Properties().apply {
+        val file = rootProject.file("key.properties")
+        if (file.exists()) file.inputStream().use { load(it) }
+        // Properties keeps trailing spaces, which would make a right password fail.
+        stringPropertyNames().forEach { setProperty(it, getProperty(it).trim()) }
+    }
+// Keys that are absent or blank. Any entry stops a store release (below), but never a sideload build.
+val missingKeyProperties: List<String> =
+    listOf("storeFile", "storePassword", "keyAlias", "keyPassword").filter {
+        keyProperties.getProperty(it).isNullOrBlank()
     }
 
 android {
@@ -45,7 +53,7 @@ android {
     // updates signed by it). `store` signs with the upload key from the
     // git-ignored android/key.properties (docs/RUNBOOK.md, "Upload key").
     signingConfigs {
-        if (keyProperties != null) {
+        if (missingKeyProperties.isEmpty()) {
             create("upload") {
                 storeFile = rootProject.file(keyProperties.getProperty("storeFile"))
                 storePassword = keyProperties.getProperty("storePassword")
@@ -90,14 +98,18 @@ flutter {
 }
 
 // A store release without the upload key would ship unsigned; stop it early.
-if (keyProperties == null) {
+if (missingKeyProperties.isNotEmpty()) {
+    val missing = missingKeyProperties.joinToString()
     tasks.configureEach {
         if (name.contains("StoreRelease", ignoreCase = true) &&
             (name.startsWith("assemble") || name.startsWith("bundle") || name.startsWith("package") ||
                 name.startsWith("sign"))
         ) {
             doFirst {
-                throw GradleException("Store release needs android/key.properties; see docs/RUNBOOK.md, \"Upload key\".")
+                throw GradleException(
+                    "Store release needs android/key.properties with: $missing. " +
+                        "See docs/RUNBOOK.md, \"Upload key\"."
+                )
             }
         }
     }

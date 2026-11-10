@@ -86,7 +86,7 @@ Android has two flavors. Always pass `--flavor`: a build without it fails.
 ```bash
 flutter run --flavor sideload                 # or --flavor store
 flutter build apk --release --flavor sideload  # build/app/outputs/flutter-apk/app-sideload-release.apk
-flutter build apk --release --flavor store     # build/app/outputs/flutter-apk/app-store-release.apk
+flutter build apk --release --flavor store     # needs the upload key (below); build/app/outputs/flutter-apk/app-store-release.apk
 ```
 
 - **Why the ids differ.** Android treats the app id as the app's identity, and an update must come from the same signing key. Her app is signed with the Mac's debug key and must keep updating, so `sideload` keeps the old id. Google Play signs the store app with its own key (PAP-32), so it needs a different id. Both install side by side and keep separate progress.
@@ -102,7 +102,7 @@ flutter build apk --release --flavor store     # build/app/outputs/flutter-apk/a
   ```bash
   flutter build appbundle --release --flavor store   # build/app/outputs/bundle/storeRelease/app-store-release.aab
   ```
-  Then check the fan-art grep above prints `0`, and that the bundle is signed with the upload key, not the debug key (the SHA-256 must differ from the debug key's `fa1510ef...5390`, and match the one Cesar noted when he made the key):
+  Then check the fan-art grep above prints `0`, and that the bundle is signed with the upload key, not the debug key (the SHA-256 must differ from the debug key's (`FA:15:10:EF:...:00:53:90` in `keytool` format; `apksigner` prints it as `fa1510ef...5390`), and match the one Cesar noted when he made the key):
   ```bash
   keytool -printcert -jarfile build/app/outputs/bundle/storeRelease/app-store-release.aab | grep SHA256
   ```
@@ -125,7 +125,7 @@ xcrun devicectl device install app --device <identifier> build/ios/iphoneos/Runn
 
 ## Upload key (store build)
 
-The `store` flavor is signed with an upload key that only Cesar creates and holds. Agents never run `keytool`, and never read, print or move the keystore or `key.properties`.
+The `store` flavor is signed with an upload key that only Cesar creates and holds. Agents never run `keytool` against the keystore (no `-genkey`, no `-list` on the `.jks`), and never read, print or move the keystore or `key.properties`.
 
 One time, Cesar's steps:
 
@@ -141,6 +141,7 @@ One time, Cesar's steps:
    keyAlias=upload
    storeFile=/Users/<you>/.android/pawlypaint-upload.jks
    ```
+   All four lines are required. Use a password with ASCII characters only and no backslash (`\`): this file treats a backslash as an escape and the build would say the password is wrong.
 4. **Back up both the `.jks` and the passwords in two places** outside the Mac (for example an encrypted drive and a password manager attachment). Tell the agent when done.
 5. Play App Signing is turned on when you create the app in Play Console and upload the first bundle (PAP-51). Google then holds the app signing key; this upload key only proves uploads come from you.
 
