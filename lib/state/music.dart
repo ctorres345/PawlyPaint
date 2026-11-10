@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:audio_session/audio_session.dart' as session;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/widgets.dart';
+import 'package:just_audio/just_audio.dart' as ja;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The three in-game themes, Dr. Mario style.
@@ -29,12 +31,6 @@ const _menuAsset = 'music/menu.m4a';
 /// Respect the iPhone's silent switch and mix politely with other audio.
 final _iosContext = AudioContextIOS(category: AVAudioSessionCategory.ambient);
 
-/// The music asks Android for audio focus, so calls and other apps pause it.
-final musicAudioContext = AudioContext(
-  iOS: _iosContext,
-  android: const AudioContextAndroid(usageType: AndroidUsageType.game, contentType: AndroidContentType.music),
-);
-
 /// Sound effects mix in without asking for focus. With the default (gain) each
 /// effect took focus from the music player, which Android reported as a
 /// permanent loss, so the music paused for good (PAP-53).
@@ -45,6 +41,17 @@ final sfxAudioContext = AudioContext(
     contentType: AndroidContentType.music,
     audioFocus: AndroidAudioFocus.none,
   ),
+);
+
+/// The music asks Android for audio focus (calls and other apps pause it) and
+/// respects the iPhone's silent switch.
+const musicSession = session.AudioSessionConfiguration(
+  avAudioSessionCategory: session.AVAudioSessionCategory.ambient,
+  androidAudioAttributes: session.AndroidAudioAttributes(
+    contentType: session.AndroidAudioContentType.music,
+    usage: session.AndroidAudioUsage.game,
+  ),
+  androidAudioFocusGainType: session.AndroidAudioFocusGainType.gain,
 );
 
 /// Short sound effects, composed by tool/compose_sfx.py.
@@ -120,7 +127,7 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   final SharedPreferences? _prefs;
-  final _player = _quietPlayer();
+  final _player = ja.AudioPlayer();
   final _rng = math.Random();
 
   bool muted;
@@ -263,14 +270,18 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
         // Once, and never blocking the music: if this fails the music still plays.
         _musicContextSet = true;
         try {
-          await _player.setAudioContext(musicAudioContext);
+          await (await session.AudioSession.instance).configure(musicSession);
         } catch (e) {
-          debugPrint('Music audio context failed: $e');
+          debugPrint('Music audio session failed: $e');
         }
         if (generation != _generation) return;
       }
-      await _player.setReleaseMode(ReleaseMode.loop);
-      await _player.play(AssetSource(_inGame ? current!.asset : _menuAsset), volume: musicVolume);
+      await _player.setAsset('assets/${_inGame ? current!.asset : _menuAsset}');
+      if (generation != _generation) return;
+      await _player.setLoopMode(ja.LoopMode.one);
+      await _player.setVolume(musicVolume);
+      // play() only finishes when playback ends, which a loop never does.
+      unawaited(_player.play());
       // The app may have gone to the background while the track loaded.
       if (!_appActive) await _player.pause();
     } catch (e) {
@@ -287,8 +298,8 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
     if (active) {
       // Pick up where the song left off (pulling down Control Center or a
       // notification shouldn't restart it); start fresh only if it stopped.
-      if (_player.state == PlayerState.paused && !muted) {
-        unawaited(_player.resume());
+      if (_player.processingState == ja.ProcessingState.ready && !_player.playing && !muted) {
+        unawaited(_player.play());
       } else {
         _start();
       }
