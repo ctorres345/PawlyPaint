@@ -29,6 +29,20 @@ android {
         versionName = flutter.versionName
     }
 
+    // `sideload` is her current app and keeps its id so it keeps updating.
+    // `store` is the Google Play build: its own id, so both install side by
+    // side, and no fan art or private course (the Dart side reads the flavor).
+    flavorDimensions += "dist"
+    productFlavors {
+        create("sideload") {
+            dimension = "dist"
+        }
+        create("store") {
+            dimension = "dist"
+            applicationIdSuffix = ".store"
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

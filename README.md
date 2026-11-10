@@ -57,8 +57,8 @@ From the Mac, with the phone plugged in by USB (USB debugging turned on in the p
 
 ```bash
 cd ~/Projects/pawlypaint
-flutter build apk --release
-adb install -r build/app/outputs/flutter-apk/app-release.apk
+flutter build apk --release --flavor sideload
+adb install -r build/app/outputs/flutter-apk/app-sideload-release.apk
 ```
 
 `-r` updates the installed app and keeps its progress.
@@ -111,7 +111,7 @@ Apps signed with a free Apple ID stop opening after 7 days. Plug the phone in an
 
 ```bash
 flutter pub get
-flutter run          # on a connected phone or emulator
+flutter run --flavor sideload   # on a connected phone or emulator (Android; iPhone has no flavor)
 flutter test         # rules, scoring, sort solvability, progress, badges
 flutter analyze
 ```
