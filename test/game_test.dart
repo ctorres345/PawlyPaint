@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show Color, Offset, Size;
 
+import 'package:audioplayers/audioplayers.dart' show AVAudioSessionCategory, AndroidAudioFocus;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/data/simplify.dart';
@@ -218,6 +219,16 @@ void main() {
         last = next;
       }
       expect(seen, MusicTheme.values.toSet());
+    });
+
+    test('sound effects mix in without taking Android audio focus; music keeps it', () {
+      expect(sfxAudioContext.android.audioFocus, AndroidAudioFocus.none);
+      expect(musicAudioContext.android.audioFocus, AndroidAudioFocus.gain);
+    });
+
+    test('both contexts keep the iPhone ambient session', () {
+      expect(sfxAudioContext.iOS.category, AVAudioSessionCategory.ambient);
+      expect(musicAudioContext.iOS.category, AVAudioSessionCategory.ambient);
     });
   });
 
