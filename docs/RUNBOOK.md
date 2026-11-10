@@ -97,7 +97,16 @@ flutter build apk --release --flavor store     # build/app/outputs/flutter-apk/a
   ```
 - Play takes an `.aab`, not an APK. For a bundle, run the same check on its `base/lib/arm64-v8a/libapp.so` (`unzip -p <file>.aab base/lib/arm64-v8a/libapp.so | strings -a | grep -ciE '...'`). The filter only applies to `--flavor store`: any other flavor name, or a build without `--flavor`, ships the fan art.
 - **Both flavors show the same name and icon** (the store name is PAP-33's call). On a phone that has both, tell them apart in Settings → Apps → PawlyPaint → App info (the package name ends in `.store`), and never uninstall the sideload one: that erases her progress.
-- **Signing** of the store build is not set up yet (PAP-32); today both flavors use the debug key.
+- **Signing.** `sideload` is signed with the Mac's debug key ("Signing keystore" below). `store` is signed with the upload key from `android/key.properties` ("Upload key (store build)" below). A store release build without that file fails with a message; it never falls back to the debug key.
+- **Build the store bundle** (needs the upload key set up first):
+  ```bash
+  flutter build appbundle --release --flavor store   # build/app/outputs/bundle/storeRelease/app-store-release.aab
+  ```
+  Then check the fan-art grep above prints `0`, and that the bundle is signed with the upload key, not the debug key (the SHA-256 must differ from the debug key's `fa1510ef...5390`, and match the one Cesar noted when he made the key):
+  ```bash
+  keytool -printcert -jarfile build/app/outputs/bundle/storeRelease/app-store-release.aab | grep SHA256
+  ```
+  To check an APK's signer, use `apksigner verify --print-certs <apk>` (from `~/Library/Android/sdk/build-tools/<version>/`); `keytool -jarfile` can't read modern APK signatures.
 - **`Unresolved reference` in a plugin's Kotlin during the first flavor build** is a stale build cache, not a code error. Run `flutter clean` (it only removes `build/`) and build again.
 - iPhone builds have no flavor and carry the sideload content.
 
@@ -114,9 +123,34 @@ xcrun devicectl device install app --device <identifier> build/ios/iphoneos/Runn
 - `devicectl device install` updates in place and keeps progress. Never use `flutter install` for an update: it uninstalls first and erases progress.
 - A free Apple ID signature expires after 7 days. Re-run the build and install; progress is kept.
 
+## Upload key (store build)
+
+The `store` flavor is signed with an upload key that only Cesar creates and holds. Agents never run `keytool`, and never read, print or move the keystore or `key.properties`.
+
+One time, Cesar's steps:
+
+1. Create the key (pick a strong password; `keytool` asks for it twice). Keep the file outside the repo:
+   ```bash
+   keytool -genkey -v -keystore ~/.android/pawlypaint-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   ```
+2. Note the certificate fingerprint for later checks: `keytool -list -v -keystore ~/.android/pawlypaint-upload.jks -alias upload | grep SHA256`.
+3. Create `android/key.properties` (git-ignored) with your values:
+   ```properties
+   storePassword=<password>
+   keyPassword=<password>
+   keyAlias=upload
+   storeFile=/Users/<you>/.android/pawlypaint-upload.jks
+   ```
+4. **Back up both the `.jks` and the passwords in two places** outside the Mac (for example an encrypted drive and a password manager attachment). Tell the agent when done.
+5. Play App Signing is turned on when you create the app in Play Console and upload the first bundle (PAP-51). Google then holds the app signing key; this upload key only proves uploads come from you.
+
+- Never commit or paste the keystore, `key.properties` or the passwords. Both are git-ignored; a `gitleaks` scan must stay clean.
+- If the upload key is lost, the app is not lost: ask Play Console support to reset the upload key. Back it up anyway; the reset takes days.
+- On a new Mac, copy the `.jks` back to the same path and recreate `android/key.properties` before building the store bundle.
+
 ## Signing keystore (Android)
 
-Release APKs are signed with the Mac's Android debug keystore (`~/.android/debug.keystore`). An APK signed with a different key cannot update the installed app, so losing it means uninstalling and losing progress.
+Release APKs of the `sideload` flavor are signed with the Mac's Android debug keystore (`~/.android/debug.keystore`). An APK signed with a different key cannot update the installed app, so losing it means uninstalling and losing progress.
 
 - Keep a backup of that file outside the Mac (an encrypted drive or password manager attachment).
 - Never commit it or paste it anywhere. On a new Mac, Cesar copies it back to the same path **before the first Flutter build**: a build without it silently creates a new keystore. An agent that finds no `~/.android/debug.keystore` stops and tells him before any build.
