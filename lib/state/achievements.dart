@@ -1,3 +1,4 @@
+import '../data/build_flavor.dart';
 import '../models/puzzle.dart';
 import 'progress_store.dart';
 
@@ -58,7 +59,7 @@ class ProgressFacts {
   final int timeAttackWins;
 }
 
-final achievements = <Achievement>[
+final _allAchievements = <Achievement>[
   Achievement('first', 'First sparkle', 'Finish your first picture', (f) => f.finished >= 1),
   Achievement('hard', 'Big canvas', 'Finish a Hard picture', (f) => f.hardFinished >= 1),
   Achievement('extreme', 'Fearless', 'Finish an Extreme picture', (f) => f.extremeFinished >= 1),
@@ -76,6 +77,16 @@ final achievements = <Achievement>[
   Achievement('half', 'Halfway there', 'Finish half of all pictures', (f) => f.finished * 2 >= f.total),
   Achievement('all', 'Full gallery', 'Finish every picture', (f) => f.finished == f.total),
 ];
+
+/// Badges for a build. The store build has no special collections, so it
+/// leaves out the one that asks for them.
+List<Achievement> achievementsFor({required bool store}) => [
+      for (final a in _allAchievements)
+        if (!(store && a.id == 'fan')) a
+    ];
+
+/// The badges this build offers.
+final achievements = achievementsFor(store: isStoreBuild);
 
 /// IDs of every badge earned so far.
 Set<String> earnedAchievements(List<Course> courses, ProgressStore store) {

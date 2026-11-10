@@ -33,8 +33,8 @@ CHANGELOG entry ─► bump version ─► build APK ─► pre-release on GitHu
 4. Commit and push to `main`. This release commit is the one allowed direct push to `main`, and only after Cesar's go-ahead; all other work goes through a `cesar/PAP-<n>` PR.
 5. Build and name the APK:
    ```bash
-   flutter build apk --release
-   cp build/app/outputs/flutter-apk/app-release.apk build/PawlyPaint-x.y.z.apk
+   flutter build apk --release --flavor sideload
+   cp build/app/outputs/flutter-apk/app-sideload-release.apk build/PawlyPaint-x.y.z.apk
    ```
 6. Check the signing key matches the last release. An APK signed with another key can't update the phones, and their only way out is an uninstall that erases progress.
    ```bash
@@ -65,14 +65,41 @@ From the phone: open the newest release on the GitHub Releases page, download `P
 From the Mac, phone plugged in with USB debugging on:
 
 ```bash
-flutter build apk --release
-adb install -r build/app/outputs/flutter-apk/app-release.apk
+flutter build apk --release --flavor sideload
+adb install -r build/app/outputs/flutter-apk/app-sideload-release.apk
 ```
 
 `-r` updates in place and keeps progress. If adb reports any `INSTALL_FAILED_*` error, stop and tell Cesar with the full message. Never run `adb uninstall` (it erases progress), and don't touch the keystore. The usual causes:
 
 - `INSTALL_FAILED_UPDATE_INCOMPATIBLE`: the APK was signed with another key (see "Signing keystore" below; restoring it is Cesar's step).
 - `INSTALL_FAILED_VERSION_DOWNGRADE`: the phone has a higher build number than this APK.
+
+## Build flavors (Android)
+
+Android has two flavors. Always pass `--flavor`: a build without it fails.
+
+| Flavor | App id | Content | For |
+| --- | --- | --- | --- |
+| `sideload` | `com.pawlypaint.pawlypaint` | Everything: fan-art courses and, later, For You | Her phone and yours, from GitHub Releases |
+| `store` | `com.pawlypaint.pawlypaint.store` | Shared courses only | Google Play (internal, closed and production tracks) |
+
+```bash
+flutter run --flavor sideload                 # or --flavor store
+flutter build apk --release --flavor sideload  # build/app/outputs/flutter-apk/app-sideload-release.apk
+flutter build apk --release --flavor store     # build/app/outputs/flutter-apk/app-store-release.apk
+```
+
+- **Why the ids differ.** Android treats the app id as the app's identity, and an update must come from the same signing key. Her app is signed with the Mac's debug key and must keep updating, so `sideload` keeps the old id. Google Play signs the store app with its own key (PAP-32), so it needs a different id. Both install side by side and keep separate progress.
+- **What `--flavor store` changes in Dart.** Flutter passes the flavor to the app (`appFlavor`, read in `lib/data/build_flavor.dart`). The store build lists no course in `sideloadOnlyCourseIds` (`lib/data/sideload_courses.dart`) and the compiler drops its art. Picture ids and saved-progress keys are the same in both builds.
+- **Check a store build before it goes anywhere** (the grep must print `0`; the same grep on the sideload build prints more than `0`):
+  ```bash
+  unzip -p build/app/outputs/flutter-apk/app-store-release.apk lib/arm64-v8a/libapp.so | strings -a | grep -ciE 'minecraft|vocaloid|kpop|Blocky World|Virtual Stage|K-Pop Stage'
+  ```
+- Play takes an `.aab`, not an APK. For a bundle, run the same check on its `base/lib/arm64-v8a/libapp.so` (`unzip -p <file>.aab base/lib/arm64-v8a/libapp.so | strings -a | grep -ciE '...'`). The filter only applies to `--flavor store`: any other flavor name, or a build without `--flavor`, ships the fan art.
+- **Both flavors show the same name and icon** (the store name is PAP-33's call). On a phone that has both, tell them apart in Settings → Apps → PawlyPaint → App info (the package name ends in `.store`), and never uninstall the sideload one: that erases her progress.
+- **Signing** of the store build is not set up yet (PAP-32); today both flavors use the debug key.
+- **`Unresolved reference` in a plugin's Kotlin during the first flavor build** is a stale build cache, not a code error. Run `flutter clean` (it only removes `build/`) and build again.
+- iPhone builds have no flavor and carry the sideload content.
 
 ## Install on an iPhone
 
