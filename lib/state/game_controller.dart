@@ -4,32 +4,39 @@ import 'package:flutter/foundation.dart';
 
 import '../logic/scoring.dart';
 import '../models/puzzle.dart';
+import 'play_session.dart';
 import 'progress_store.dart';
 
 enum PlaceResult { placed, colorComplete, puzzleComplete, wrong, ignored }
 
 /// Live state of one picture being filled in.
-class GameController extends ChangeNotifier {
+class GameController extends ChangeNotifier implements PlayStats {
   GameController(this.puzzle, {SavedGame? resume, DateTime Function()? clock})
       : _clock = clock ?? DateTime.now,
         placed = Uint8List(puzzle.cellCount),
         remaining = List<int>.of(puzzle.counts) {
-    if (resume != null && resume.signature == puzzle.signature && resume.placed.length == puzzle.cellCount) {
+    final saved = resume != null && resume.signature == puzzle.signature && resume.placed.length == puzzle.cellCount
+        ? resume
+        : null;
+    _session = PlaySession(
+      clock: _clock,
+      baseSeconds: saved?.seconds ?? 0,
+      excusedMistakes: saved?.excusedMistakes ?? false,
+    );
+    if (saved != null) {
       for (var i = 0; i < puzzle.cellCount; i++) {
-        if (resume.placed.codeUnitAt(i) == 0x31) {
+        if (saved.placed.codeUnitAt(i) == 0x31) {
           placed[i] = 1;
           remaining[puzzle.cells[i]]--;
           _placedCount++;
         }
       }
-      score = resume.score;
-      combo = resume.combo;
-      mistakes = resume.mistakes;
-      _baseSeconds = resume.seconds;
-      excusedMistakes = resume.excusedMistakes;
+      score = saved.score;
+      combo = saved.combo;
+      mistakes = saved.mistakes;
       // Older saves have no order; their drills replay first, color by color.
       final seen = <int>{};
-      for (final c in resume.order) {
+      for (final c in saved.order) {
         if (c >= 0 && c < puzzle.cellCount && placed[c] == 1 && seen.add(c)) order.add(c);
       }
       if (order.length < _placedCount) {
@@ -39,7 +46,7 @@ class GameController extends ChangeNotifier {
               if (placed[c] == 1 && !seen.contains(c)) c,
         ]);
       }
-      final b = resume.brushColor;
+      final b = saved.brushColor;
       if (b != null && b < remaining.length && remaining[b] > 0) brushColor = b;
     }
     selected = firstIncompleteColor() ?? 0;
@@ -56,19 +63,21 @@ class GameController extends ChangeNotifier {
 
   int selected = 0;
 
+  late final PlaySession _session;
+
   /// Relaxed mode: wrong taps still show a cross but aren't counted.
-  bool relaxed = false;
+  bool get relaxed => _session.relaxed;
+  set relaxed(bool v) => _session.relaxed = v;
 
   /// Set once Relaxed mode lets a wrong tap go uncounted; the finish then
   /// counts as relaxed even if the setting was switched off later.
-  bool excusedMistakes = false;
+  bool get excusedMistakes => _session.excusedMistakes;
+  set excusedMistakes(bool v) => _session.excusedMistakes = v;
   int score = 0;
   int combo = 0;
+  @override
   int mistakes = 0;
   int _placedCount = 0;
-
-  int _baseSeconds = 0;
-  DateTime? _runningSince;
 
   /// Cells in the order their drills went down, for the finished replay.
   final List<int> order = [];
@@ -85,27 +94,20 @@ class GameController extends ChangeNotifier {
   int boardVersion = 0;
 
   int get placedCount => _placedCount;
+  @override
   bool get isComplete => _placedCount == puzzle.cellCount;
   double get progress => _placedCount / puzzle.cellCount;
   bool isColorDone(int color) => remaining[color] == 0;
 
-  int get seconds {
-    final since = _runningSince;
-    if (since == null) return _baseSeconds;
-    return _baseSeconds + _clock().difference(since).inSeconds;
-  }
+  @override
+  int get seconds => _session.seconds;
 
   void resume() {
     if (isComplete) return;
-    _runningSince ??= _clock();
+    _session.start();
   }
 
-  void pause() {
-    final since = _runningSince;
-    if (since == null) return;
-    _baseSeconds += _clock().difference(since).inSeconds;
-    _runningSince = null;
-  }
+  void pause() => _session.pause();
 
   void select(int color) {
     if (color == selected) return;
@@ -246,6 +248,7 @@ class GameController extends ChangeNotifier {
   /// Changes whenever anything worth saving changes (drills or counted mistakes).
   int get saveVersion => boardVersion + mistakes + (brushColor == null ? 0 : 1 << 20);
 
+  @override
   int get stars => Scoring.stars(mistakes: mistakes, cells: puzzle.cellCount);
 
   /// The next color that still needs drills, preferring the lowest number.

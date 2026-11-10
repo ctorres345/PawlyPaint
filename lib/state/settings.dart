@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../ui/gem_style.dart' show GemShape, gemShape;
+import '../ui/gem_style.dart' show GemShape;
 
 /// The table the canvas sits on, and the sheet itself.
 enum CanvasTheme {
@@ -23,15 +23,11 @@ enum CanvasTheme {
 /// The canvas theme everything is drawn with; set from the player's settings.
 CanvasTheme canvasTheme = CanvasTheme.linen;
 
-/// Look of the canvas right now, for painters' caches and repaints.
-Object currentLook() => (canvasTheme, gemShape);
-
 /// Player preferences that change how the game looks and feels.
 class AppSettings extends ChangeNotifier {
   AppSettings._(this._prefs,
       {required this.relaxed, required this.haptics, required this.theme, required GemShape shape})
       : _shape = shape {
-    gemShape = shape;
     canvasTheme = theme;
   }
 
@@ -79,7 +75,6 @@ class AppSettings extends ChangeNotifier {
       }, (p) => p.setString(_themeKey, v.name));
   Future<void> setShape(GemShape v) => _set(() {
         _shape = v;
-        gemShape = v;
       }, (p) => p.setString(_shapeKey, v.name));
 
   Future<void> _set(VoidCallback change, Future<bool> Function(SharedPreferences) save) async {

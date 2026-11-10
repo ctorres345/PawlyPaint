@@ -45,7 +45,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   AppSettings get _settings => SettingsScope.read(context);
 
   late final GameController game;
-  late final List<GemPaints> paints;
+  late List<GemPaints> paints;
   final view = BoardView();
   late final IdleShimmer _shimmer;
   bool _animate = true;
@@ -92,7 +92,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   void initState() {
     super.initState();
     game = GameController(widget.puzzle, resume: widget.tutorial ? null : widget.store.savedFor(widget.puzzle));
-    paints = GemPaints.forPuzzle(widget.puzzle);
+    paints = GemPaints.forPuzzle(widget.puzzle, _settings.shape);
     _shimmer = IdleShimmer(this)..poke();
     clock.value = game.seconds;
     // Only the clock text listens to this, so the canvas never rebuilds for it.
@@ -106,6 +106,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   void didChangeDependencies() {
     super.didChangeDependencies();
     game.relaxed = SettingsScope.of(context).relaxed;
+    final shape = SettingsScope.of(context).shape;
+    if (paints.first.shape != shape) paints = GemPaints.forPuzzle(widget.puzzle, shape);
     if (_music == null) {
       _music = MusicScope.read(context);
       _music!.enterGame();

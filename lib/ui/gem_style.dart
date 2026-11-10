@@ -8,7 +8,7 @@ import '../models/puzzle.dart';
 
 /// Pre-built paints for one drill color, so painting a frame allocates nothing.
 class GemPaints {
-  GemPaints(this.color)
+  GemPaints(this.color, {required this.shape})
       : base = Paint()..color = color,
         light = Paint()..color = Color.lerp(color, Colors.white, 0.38)!,
         dark = Paint()..color = Color.lerp(color, Colors.black, 0.28)!,
@@ -19,6 +19,9 @@ class GemPaints {
         onColor = color.computeLuminance() > 0.5 ? const Color(0xFF3B2F36) : Colors.white;
 
   final Color color;
+
+  /// The drill shape these paints are drawn in; a new shape needs new paints.
+  final GemShape shape;
   final Paint base;
   final Paint light;
   final Paint dark;
@@ -37,7 +40,7 @@ class GemPaints {
   /// Ink that reads on top of [fill] (one of this color's spot paints).
   static Color inkOn(Paint fill) => fill.color.computeLuminance() > 0.4 ? const Color(0xFF3B2F36) : Colors.white;
 
-  static List<GemPaints> forPuzzle(Puzzle p) => [for (final c in p.palette) GemPaints(c)];
+  static List<GemPaints> forPuzzle(Puzzle p, GemShape shape) => [for (final c in p.palette) GemPaints(c, shape: shape)];
 }
 
 final _facetPaint = Paint()
@@ -59,15 +62,14 @@ enum GemShape {
   final String label;
 }
 
-/// The drill shape everything is drawn with; set from the player's settings.
-GemShape gemShape = GemShape.square;
-
-/// Outer rect and corner radius of a drill inside [cell].
-(Rect, Radius) _gemBounds(Rect cell, double pop) {
+/// Outer rect of a drill inside [cell].
+Rect _gemRect(Rect cell, double pop) {
   var r = cell.deflate(cell.width * 0.05);
   if (pop > 0) r = Rect.fromCenter(center: r.center, width: r.width * (1 + pop), height: r.height * (1 + pop));
-  return (r, Radius.circular(r.width * (gemShape == GemShape.round ? 0.5 : 0.2)));
+  return r;
 }
+
+Radius _gemRadius(Rect r, GemShape shape) => Radius.circular(r.width * (shape == GemShape.round ? 0.5 : 0.2));
 
 /// A round, domed bead: dark rim, lit upper-left, body, and a soft gloss.
 void _drawRound(Canvas canvas, Rect r, GemPaints g, double w) {
@@ -86,9 +88,10 @@ void _drawRound(Canvas canvas, Rect r, GemPaints g, double w) {
 /// right after it lands.
 void drawGem(Canvas canvas, Rect cell, GemPaints g, {double pop = 0}) {
   final w = cell.width;
-  final (r, radius) = _gemBounds(cell, pop);
+  final r = _gemRect(cell, pop);
+  final radius = _gemRadius(r, g.shape);
   final rw = r.width;
-  if (gemShape == GemShape.round) {
+  if (g.shape == GemShape.round) {
     _drawRound(canvas, r, g, w);
     return;
   }
@@ -119,15 +122,15 @@ void drawGem(Canvas canvas, Rect cell, GemPaints g, {double pop = 0}) {
 }
 
 /// Brightens a placed drill as the shimmer band passes; [amount] is 0..1.
-void drawGemShine(Canvas canvas, Rect cell, double amount) {
-  final (r, radius) = _gemBounds(cell, 0);
+void drawGemShine(Canvas canvas, Rect cell, double amount, GemShape shape) {
+  final r = _gemRect(cell, 0);
   _shinePaint.color = Colors.white.withValues(alpha: 0.5 * amount);
-  canvas.drawRRect(RRect.fromRectAndRadius(r, radius), _shinePaint);
+  canvas.drawRRect(RRect.fromRectAndRadius(r, _gemRadius(r, shape)), _shinePaint);
 }
 
 /// A four-point twinkle on a placed drill; [amount] is 0..1.
 void drawGemSparkle(Canvas canvas, Rect cell, double amount) {
-  final (r, _) = _gemBounds(cell, 0);
+  final r = _gemRect(cell, 0);
   final rw = r.width;
   final c = Offset(r.left + rw * 0.32, r.top + rw * 0.3);
   final len = rw * 0.45 * amount;

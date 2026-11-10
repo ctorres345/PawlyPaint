@@ -6,6 +6,7 @@ import '../logic/scoring.dart';
 import '../logic/sort_game.dart';
 import '../logic/time_attack.dart';
 import '../models/puzzle.dart';
+import 'play_session.dart';
 
 /// A bead in the air: from a board cell or tray slot to a board cell or tray
 /// slot (exactly one of each pair is set).
@@ -38,18 +39,21 @@ typedef _Snapshot = ({Int16List board, List<int> tray, int placed, int comboBonu
 
 /// Live state of one picture in Sort mode (or a Time Attack run): the rules
 /// plus timing, combos, animation bookkeeping and saving.
-class SortController extends ChangeNotifier {
+class SortController extends ChangeNotifier implements PlayStats {
   SortController(Puzzle puzzle, {Map<String, dynamic>? resume, DateTime Function()? clock})
       : this._resumed(puzzle, _restore(puzzle, resume), resume, clock);
 
   SortController._resumed(this.puzzle, SortGame? saved, Map<String, dynamic>? resume, DateTime Function()? clock)
       : _clock = clock ?? DateTime.now,
         timeLimit = null,
-        game = saved ?? _fresh(puzzle) {
+        game = saved ?? _fresh(puzzle),
+        _session = PlaySession(
+          clock: clock,
+          baseSeconds: saved != null ? resume!['seconds'] as int? ?? 0 : 0,
+          excusedMistakes: saved != null && resume!['relaxed'] == true,
+        ) {
     if (saved != null) {
-      _baseSeconds = resume!['seconds'] as int? ?? 0;
-      excusedMistakes = resume['relaxed'] == true;
-      bestCombo = resume['bestCombo'] as int? ?? 0;
+      bestCombo = resume!['bestCombo'] as int? ?? 0;
       comboBonus = resume['comboBonus'] as int? ?? 0;
     }
   }
@@ -60,6 +64,7 @@ class SortController extends ChangeNotifier {
 
   SortController._timed(this.puzzle, this.game, DateTime Function()? clock)
       : _clock = clock ?? DateTime.now,
+        _session = PlaySession(clock: clock),
         timeLimit = TimeAttack.timeLimit(game);
 
   /// Scramble amount and tray size (full rows of 12) by canvas size: harder
@@ -142,12 +147,16 @@ class SortController extends ChangeNotifier {
   /// Cells waiting for a flying bead; drawn empty until it lands.
   final Map<int, DateTime> arriving = {};
 
+  final PlaySession _session;
+
   /// Relaxed mode: taps on beads that were already right aren't counted.
-  bool relaxed = false;
+  bool get relaxed => _session.relaxed;
+  set relaxed(bool v) => _session.relaxed = v;
 
   /// Set once Relaxed mode lets a wrong tap go uncounted; the finish then
   /// counts as relaxed even if the setting was switched off later.
-  bool excusedMistakes = false;
+  bool get excusedMistakes => _session.excusedMistakes;
+  set excusedMistakes(bool v) => _session.excusedMistakes = v;
 
   /// Good drops in a row, each within [Scoring.comboWindow] of the last.
   int combo = 0;
@@ -165,19 +174,15 @@ class SortController extends ChangeNotifier {
   /// Bumped whenever the board changes, so the canvas re-records its cache.
   int boardVersion = 0;
 
-  int _baseSeconds = 0;
-  DateTime? _runningSince;
-
   int get correctCount => puzzle.cellCount - game.wrongCount;
   double get progress => correctCount / puzzle.cellCount;
+  @override
   bool get isComplete => game.isComplete;
   bool get animating => flights.isNotEmpty;
   SortSelection? get selection => game.selection;
 
-  int get seconds {
-    final since = _runningSince;
-    return since == null ? _baseSeconds : _baseSeconds + _clock().difference(since).inSeconds;
-  }
+  @override
+  int get seconds => _session.seconds;
 
   /// Seconds left in a Time Attack run (0 in regular Sort).
   int get timeLeft => timed ? (timeLimit! + bonusSeconds - penaltySeconds - seconds).clamp(0, 1 << 30) : 0;
@@ -193,6 +198,10 @@ class SortController extends ChangeNotifier {
   /// Changes whenever anything worth saving changes (board or counted mistakes).
   int get saveVersion => boardVersion + game.mistakes;
 
+  @override
+  int get mistakes => game.mistakes;
+
+  @override
   int get stars => Scoring.sortStars(shakes: game.shakes, mistakes: game.mistakes);
   int get score => timed
       ? TimeAttack.score(
@@ -204,15 +213,10 @@ class SortController extends ChangeNotifier {
       : Scoring.sortScore(placed: game.placed, shakes: game.shakes, mistakes: game.mistakes, comboBonus: comboBonus);
 
   void resume() {
-    if (!isComplete) _runningSince ??= _clock();
+    if (!isComplete) _session.start();
   }
 
-  void pause() {
-    final since = _runningSince;
-    if (since == null) return;
-    _baseSeconds += _clock().difference(since).inSeconds;
-    _runningSince = null;
-  }
+  void pause() => _session.pause();
 
   bool get _locked => isComplete || timeUp;
 

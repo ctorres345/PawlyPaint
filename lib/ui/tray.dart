@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../state/game_controller.dart';
-import '../state/settings.dart' show currentLook;
+import '../state/settings.dart' show CanvasTheme, canvasTheme;
 import 'gem_style.dart';
 
 enum TraySort { number, remaining }
@@ -313,7 +313,8 @@ class _ChipGemPainter extends CustomPainter {
   final GemPaints paints;
   final double progress;
   final Color track;
-  final Object look = currentLook();
+  final CanvasTheme _theme = canvasTheme;
+  Object get look => (_theme, paints.shape);
 
   static final _ring = Paint()
     ..style = PaintingStyle.stroke

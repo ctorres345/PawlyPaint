@@ -177,7 +177,7 @@ class _SortBoardPainter extends CustomPainter {
   }
 
   void _record() {
-    final key = (game.boardVersion, showWrong, peek, currentLook());
+    final key = (game.boardVersion, showWrong, peek, look);
     _sheet.color = canvasTheme.sheet;
     if (cache.key == key && cache.picture != null) return;
     cache.dispose();
@@ -245,7 +245,7 @@ class _SortBoardPainter extends CustomPainter {
       for (var x = math.max(0, s - p.height + 1); x <= math.min(p.width - 1, s); x++) {
         final i = (s - x) * p.width + x;
         final placed = game.game.current[i] >= 0 && !game.arriving.containsKey(i);
-        if (placed) drawGemShine(canvas, _cell(i).deflate(kCell * 0.07), shine);
+        if (placed) drawGemShine(canvas, _cell(i).deflate(kCell * 0.07), shine, paints.first.shape);
       }
     }
     drawSweep(canvas, sweepAt, Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell), now);
@@ -310,7 +310,8 @@ class _SortBoardPainter extends CustomPainter {
     canvas.restore();
   }
 
-  final Object look = currentLook();
+  final CanvasTheme _theme = canvasTheme;
+  Object get look => (_theme, paints.first.shape);
 
   @override
   bool shouldRepaint(_SortBoardPainter old) =>

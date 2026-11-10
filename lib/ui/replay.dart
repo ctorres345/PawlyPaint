@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../models/puzzle.dart';
+import '../state/settings.dart' show SettingsScope;
 import 'gem_style.dart';
 import 'picture_export.dart';
 
@@ -30,7 +31,7 @@ class _Replay extends StatefulWidget {
 }
 
 class _ReplayState extends State<_Replay> with SingleTickerProviderStateMixin {
-  late final paints = GemPaints.forPuzzle(widget.puzzle);
+  late final paints = GemPaints.forPuzzle(widget.puzzle, SettingsScope.read(context).shape);
   late final _cache = _ChunkCache();
 
   // About 4ms a drill, kept between 3 and 8 seconds.
