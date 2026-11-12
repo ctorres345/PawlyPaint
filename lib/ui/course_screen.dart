@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../data/courses.dart' show unlockAfter;
 import '../data/tutorial.dart';
+import '../logic/unlocks.dart';
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import 'game_screen.dart';
 import 'coach.dart';
 import 'gem_style.dart';
 import 'sort_screen.dart';
+import 'unlock_ui.dart';
 
 class CourseScreen extends StatefulWidget {
   const CourseScreen({super.key, required this.course});
@@ -38,6 +40,9 @@ class _CourseScreenState extends State<CourseScreen> {
   @override
   Widget build(BuildContext context) {
     final store = ProgressScope.of(context);
+    final sortOpen = store.currentUnlocks.isModeOpen(UnlockTables.modeSort);
+    // Sort may still be locked when it was remembered from before; show Paint then.
+    final shown = !sortOpen && mode == PlayMode.sort ? PlayMode.paint : mode;
     return Scaffold(
       appBar: AppBar(title: Text(course.title)),
       body: CustomScrollView(
@@ -49,16 +54,26 @@ class _CourseScreenState extends State<CourseScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SegmentedButton<PlayMode>(
-                    segments: const [
-                      ButtonSegment(value: PlayMode.paint, icon: Icon(Icons.brush_rounded), label: Text('Paint')),
-                      ButtonSegment(value: PlayMode.sort, icon: Icon(Icons.swap_horiz_rounded), label: Text('Sort')),
+                    segments: [
+                      const ButtonSegment(value: PlayMode.paint, icon: Icon(Icons.brush_rounded), label: Text('Paint')),
+                      ButtonSegment(
+                        value: PlayMode.sort,
+                        icon: Icon(sortOpen ? Icons.swap_horiz_rounded : Icons.lock_rounded),
+                        label: const Text('Sort'),
+                      ),
                     ],
-                    selected: {mode},
-                    onSelectionChanged: (s) => setState(() => mode = _lastMode = s.first),
+                    selected: {shown},
+                    onSelectionChanged: (s) {
+                      if (s.first == PlayMode.sort && !sortOpen) {
+                        showLockedHint(context, unlockCondition(UnlockTables.modeSort));
+                        return;
+                      }
+                      setState(() => mode = _lastMode = s.first);
+                    },
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    mode == PlayMode.paint
+                    shown == PlayMode.paint
                         ? 'Fill each numbered spot with its matching drill.'
                         : 'The picture starts scrambled. Pick up misplaced beads and drop them where they belong.',
                     style: Theme.of(context).textTheme.bodySmall,
@@ -73,8 +88,8 @@ class _CourseScreenState extends State<CourseScreen> {
               child: _LevelHeader(
                 course: course,
                 level: course.levels[l],
-                completed: store.completedIn(course.levels[l].puzzles, mode),
-                unlocked: store.isLevelUnlocked(course, l, mode),
+                completed: store.completedIn(course.levels[l].puzzles, shown),
+                unlocked: store.isLevelUnlocked(course, l, shown),
                 previous: l == 0 ? null : course.levels[l - 1],
               ),
             ),
@@ -91,24 +106,24 @@ class _CourseScreenState extends State<CourseScreen> {
                 itemBuilder: (context, i) {
                   final level = course.levels[l];
                   final puzzle = level.puzzles[i];
-                  final levelOpen = store.isLevelUnlocked(course, l, mode);
-                  final sorting = mode == PlayMode.sort;
+                  final levelOpen = store.isLevelUnlocked(course, l, shown);
+                  final sorting = shown == PlayMode.sort;
                   return _PuzzleTile(
                     index: i,
                     puzzle: puzzle,
                     // A picture already played (say, as the daily picture) stays open.
-                    unlocked:
-                        (levelOpen && store.isPuzzleUnlocked(level, i, mode)) || store.isCompleted(mode.key(puzzle.id)),
+                    unlocked: (levelOpen && store.isPuzzleUnlocked(level, i, shown)) ||
+                        store.isCompleted(shown.key(puzzle.id)),
                     lockedHint: levelOpen
                         ? 'Finish the picture before this one to unlock it.'
                         : 'Finish $unlockAfter ${course.levels[l - 1].difficulty.label} pictures to unlock '
                             '${level.difficulty.label}.',
-                    record: store.record(mode.key(puzzle.id)),
+                    record: store.record(shown.key(puzzle.id)),
                     saved: sorting ? null : store.savedFor(puzzle),
                     sortProgress: sorting ? _sortProgress(store.sortSaved(puzzle.id), puzzle) : null,
                     onOpen: () => openWithTutorial(
                       context,
-                      mode: mode,
+                      mode: shown,
                       store: store,
                       tutorial: () => sorting
                           ? SortScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true)
@@ -171,7 +186,7 @@ class _LevelHeader extends StatelessWidget {
             if (unlocked)
               Text('$completed/${level.puzzles.length}', style: text.titleSmall)
             else
-              Icon(Icons.lock_rounded, color: scheme.outline, semanticLabel: 'Locked'),
+              Icon(Icons.lock_rounded, color: scheme.onSurfaceVariant, semanticLabel: 'Locked'),
           ],
         ),
       ),

@@ -7,6 +7,7 @@ import '../data/courses.dart' show allCourses;
 import '../logic/boosters.dart';
 import '../logic/patches.dart';
 import '../logic/scoring.dart';
+import '../logic/unlocks.dart';
 import '../models/puzzle.dart';
 import '../state/achievements.dart';
 import '../state/game_controller.dart';
@@ -24,6 +25,7 @@ import 'idle_shimmer.dart';
 import 'mini_map.dart';
 import 'music_sheet.dart';
 import 'tray.dart';
+import 'unlock_ui.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key, required this.puzzle, required this.store, this.daily = false, this.tutorial = false});
@@ -98,6 +100,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     // Only the clock text listens to this, so the canvas never rebuilds for it.
     _clockTick = Timer.periodic(const Duration(seconds: 1), (_) => clock.value = game.seconds);
     WidgetsBinding.instance.addObserver(this);
+    if (!widget.tutorial) WidgetsBinding.instance.addPostFrameCallback((_) => _introduceBoosters());
+  }
+
+  /// The first time a booster is open in a game, Mochi says what it does and
+  /// gives one free use. A save that already had it open is never told.
+  Future<void> _introduceBoosters() async {
+    final store = widget.store;
+    final unlocks = store.currentUnlocks;
+    for (final b in Booster.values) {
+      final id = UnlockTables.boosterId(b);
+      if (!mounted || store.isReadOnly || store.introduced.contains(id)) continue;
+      if (!unlocks.isBoosterOpen(b)) continue;
+      await showMochiDialog(
+        context,
+        title: 'New: ${b.label}!',
+        message: '${b.help} Here is one to try, on me.',
+      );
+      await store.markIntroduced(id);
+    }
   }
 
   MusicController? _music;
@@ -292,6 +313,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       isBest: isBest,
       relaxed: relaxed,
       badges: badges,
+      unlocked: takeNewUnlocks(widget.store, allCourses),
       boosters: reward,
       replayOrder: game.order,
     );
@@ -557,6 +579,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                           axis: landscape ? Axis.vertical : Axis.horizontal,
                           count: widget.store.boosters,
                           active: _boosterActive,
+                          isOpen: widget.store.currentUnlocks.isBoosterOpen,
                           onTap: _onBooster,
                         ),
                       ),

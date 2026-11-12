@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../logic/unlocks.dart';
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import '../data/tutorial.dart';
@@ -14,15 +15,66 @@ import 'sort_screen.dart';
 import 'music_sheet.dart';
 import 'settings_screen.dart';
 import 'time_attack_screen.dart';
+import 'unlock_ui.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.courses});
 
   final List<Course> courses;
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<Course> get courses => widget.courses;
+
+  /// Courses that were open at the last build, to spot one that just opened.
+  Set<String>? _open;
+  final Set<String> _justOpened = {};
+  bool _caughtUp = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_caughtUp) return;
+    _caughtUp = true;
+    // One summary for everything open and never celebrated, after the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final store = ProgressScope.of(context);
+      final ids = store.unlockState(courses).summary;
+      if (ids.isNotEmpty) await showCatchUp(context, store, ids);
+    });
+  }
+
+  Future<void> _openTimeAttack(ProgressStore store) async {
+    final nav = Navigator.of(context);
+    if (!store.introduced.contains(UnlockTables.modeTimeAttack)) {
+      await showMochiDialog(
+        context,
+        title: 'Time Attack!',
+        message: 'Race the clock: finish a picture before time runs out. Every second counts, so be speedy!',
+        button: "I'm ready",
+      );
+      await store.markIntroduced(UnlockTables.modeTimeAttack);
+    }
+    if (!mounted) return;
+    await nav.push(MaterialPageRoute(builder: (_) => TimeAttackScreen(courses: courses)));
+  }
+
+  @override
   Widget build(BuildContext context) {
     final store = ProgressScope.of(context);
+    final unlocks = store.unlockState(courses);
+    final gateStars = unlocks.gateStars;
+    final openNow = {
+      for (final c in courses)
+        if (unlocks.isCourseOpen(c.id)) c.id,
+    };
+    _justOpened.addAll(openNow.difference(_open ?? openNow));
+    _open = openNow;
+    final taOpen = unlocks.isModeOpen(UnlockTables.modeTimeAttack);
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final totalStars = courses.fold(0, (s, c) => s + store.starsIn(c.puzzles));
@@ -59,9 +111,13 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                MascotBubble(text: _greeting(store, courses)),
+                if (store.isReadOnly) ...[
+                  const _ReadOnlyBanner(),
+                  const SizedBox(height: 12),
+                ],
+                MascotBubble(text: _withTeaser(_greeting(store, courses), unlocks, courses)),
                 const SizedBox(height: 16),
-                _DailyCard(courses: courses, store: store),
+                _DailyCard(courses: courses, store: store, unlocks: unlocks),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -85,16 +141,34 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => TimeAttackScreen(courses: courses)),
+                if (taOpen)
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    onPressed: () => _openTimeAttack(store),
+                    icon: const Icon(Icons.timer_rounded),
+                    label: const Text('Time Attack'),
+                  )
+                else
+                  FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                      side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                    ),
+                    onPressed: () => showLockedHint(context, unlockCondition(UnlockTables.modeTimeAttack)),
+                    icon: const Icon(Icons.lock_rounded),
+                    label: const Text('Time Attack'),
                   ),
-                  icon: const Icon(Icons.timer_rounded),
-                  label: const Text('Time Attack'),
-                ),
                 const SizedBox(height: 24),
                 for (final course in courses.where((c) => !c.special)) ...[
-                  _CourseCard(course: course, store: store),
+                  _CourseCard(
+                    course: course,
+                    store: store,
+                    open: unlocks.isCourseOpen(course.id),
+                    gateStars: gateStars,
+                    celebrate: _justOpened.contains(course.id),
+                  ),
                   const SizedBox(height: 16),
                 ],
                 if (courses.any((c) => c.special)) ...[
@@ -105,13 +179,19 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         Icon(Icons.auto_awesome_rounded, color: scheme.primary),
                         const SizedBox(width: 8),
-                        Text('Special collections', style: text.titleLarge),
+                        Flexible(child: Text('Special collections', style: text.titleLarge)),
                       ],
                     ),
                   ),
                   const SizedBox(height: 12),
                   for (final course in courses.where((c) => c.special)) ...[
-                    _CourseCard(course: course, store: store),
+                    _CourseCard(
+                      course: course,
+                      store: store,
+                      open: unlocks.isCourseOpen(course.id),
+                      gateStars: gateStars,
+                      celebrate: _justOpened.contains(course.id),
+                    ),
                     const SizedBox(height: 16),
                   ],
                 ],
@@ -122,6 +202,47 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A save from a newer build is shown but never written over.
+class _ReadOnlyBanner extends StatelessWidget {
+  const _ReadOnlyBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      liveRegion: true,
+      child: Card(
+        color: scheme.secondaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(Icons.info_rounded, color: scheme.onSecondaryContainer),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'This progress comes from a newer PawlyPaint, so changes are not saved. '
+                  'Update the app to keep your progress safe.',
+                  style: TextStyle(color: scheme.onSecondaryContainer),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The nearest course to open, as a line for Mochi. Nothing when none is next.
+String _withTeaser(String greeting, UnlockState unlocks, List<Course> courses) {
+  final next = unlocks.nextCourse;
+  if (next == null || next.remaining <= 0) return greeting;
+  final name = unlockLabel(next.id, courses);
+  final n = next.remaining;
+  return "$greeting $n more ${n == 1 ? 'star' : 'stars'} to open $name!";
 }
 
 /// What the mascot says on the home screen: the next thing worth doing.
@@ -148,19 +269,31 @@ String _greeting(ProgressStore store, List<Course> courses) {
 }
 
 class _CourseCard extends StatelessWidget {
-  const _CourseCard({required this.course, required this.store});
+  const _CourseCard({
+    required this.course,
+    required this.store,
+    required this.open,
+    required this.gateStars,
+    required this.celebrate,
+  });
 
   final Course course;
   final ProgressStore store;
+  final bool open;
+  final int gateStars;
+
+  /// True when the course opened while she was playing: the card pops in once.
+  final bool celebrate;
 
   @override
   Widget build(BuildContext context) {
+    if (!open) return _LockedCourseCard(course: course, have: gateStars);
     final text = Theme.of(context).textTheme;
     final total = course.puzzles.length;
     final painted = store.completedIn(course.puzzles, PlayMode.paint);
     final sorted = store.completedIn(course.puzzles, PlayMode.sort);
     final stars = store.starsIn(course.puzzles);
-    return Semantics(
+    final card = Semantics(
       button: true,
       label: '${course.title}, $painted of $total painted, $sorted of $total sorted, $stars stars',
       excludeSemantics: true,
@@ -216,6 +349,67 @@ class _CourseCard extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: celebrate ? 0 : 1, end: 1),
+      duration: const Duration(milliseconds: 700),
+      curve: Curves.easeOutBack,
+      builder: (context, v, child) => Opacity(
+        opacity: v.clamp(0.0, 1.0),
+        child: Transform.scale(scale: 0.9 + 0.1 * v, child: child),
+      ),
+      child: card,
+    );
+  }
+}
+
+/// A course that is not open yet: dimmed, with its star progress and what it needs.
+class _LockedCourseCard extends StatelessWidget {
+  const _LockedCourseCard({required this.course, required this.have});
+
+  final Course course;
+  final int have;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final id = UnlockTables.courseId(course.id);
+    final need = UnlockTables.courseStars[course.id] ?? 0;
+    final left = (need - have).clamp(0, need);
+    final condition = unlockCondition(id, starsLeft: left);
+    return Semantics(
+      button: true,
+      label: '${course.title}, locked. $have of $need stars. $condition',
+      excludeSemantics: true,
+      child: LockedSurface(
+        child: InkWell(
+          onTap: () => showLockedHint(context, '$condition ${course.title}'),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Icon(Icons.lock_rounded, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(course.title, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text(
+                        '\u2605 ${have.clamp(0, need)} / $need',
+                        style: text.titleSmall?.copyWith(color: scheme.onSurface),
+                      ),
+                      Text(condition, style: text.bodySmall),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -284,10 +478,11 @@ class _ModeProgress extends StatelessWidget {
 
 /// Today's surprise picture and the daily streak.
 class _DailyCard extends StatelessWidget {
-  const _DailyCard({required this.courses, required this.store});
+  const _DailyCard({required this.courses, required this.store, required this.unlocks});
 
   final List<Course> courses;
   final ProgressStore store;
+  final UnlockState unlocks;
 
   @override
   Widget build(BuildContext context) {
@@ -299,6 +494,38 @@ class _DailyCard extends StatelessWidget {
     final puzzle = all.firstWhere((p) => p.id == id);
     final done = store.dailyDoneToday(today);
     final streak = store.streak(today);
+    final open = unlocks.isModeOpen(UnlockTables.modeDaily);
+    if (!open) {
+      final condition = unlockCondition(UnlockTables.modeDaily);
+      return Semantics(
+        button: true,
+        label: "Today's picture, locked. $condition",
+        excludeSemantics: true,
+        child: LockedSurface(
+          child: InkWell(
+            onTap: () => showLockedHint(context, condition),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.lock_rounded, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Today's picture", style: text.titleMedium),
+                        Text(condition, style: text.bodySmall)
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Semantics(
       button: true,
       label: done ? "Today's picture is done. Streak: $streak days" : "Today's surprise picture. Streak: $streak days",
@@ -310,7 +537,7 @@ class _DailyCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: () => _pickDailyMode(context, store, puzzle),
+            onTap: () => _pickDailyMode(context, store, puzzle, sortOpen: unlocks.isModeOpen(UnlockTables.modeSort)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -375,7 +602,7 @@ class _DailyCard extends StatelessWidget {
 }
 
 /// Asks whether to play today's picture in Paint or Sort mode.
-void _pickDailyMode(BuildContext context, ProgressStore store, Puzzle puzzle) {
+void _pickDailyMode(BuildContext context, ProgressStore store, Puzzle puzzle, {required bool sortOpen}) {
   void play(PlayMode mode) => openWithTutorial(
         context,
         mode: mode,
@@ -408,12 +635,18 @@ void _pickDailyMode(BuildContext context, ProgressStore store, Puzzle puzzle) {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.swap_horiz_rounded),
+            leading: Icon(sortOpen ? Icons.swap_horiz_rounded : Icons.lock_rounded),
             title: const Text('Sort'),
-            subtitle: const Text('Unscramble the picture using the tray'),
+            subtitle: Text(
+              sortOpen ? 'Unscramble the picture using the tray' : unlockCondition(UnlockTables.modeSort),
+            ),
             onTap: () {
               Navigator.pop(sheet);
-              play(PlayMode.sort);
+              if (sortOpen) {
+                play(PlayMode.sort);
+              } else {
+                showLockedHint(context, unlockCondition(UnlockTables.modeSort));
+              }
             },
           ),
           const SizedBox(height: 8),

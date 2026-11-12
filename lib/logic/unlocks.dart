@@ -48,10 +48,9 @@ abstract final class UnlockTables {
   /// Gated courses that don't exist yet. A test checks every other gated id is a real course.
   static const futureCourseIds = {'sea_world', 'jungle', 'retro'};
 
-  /// False until PAP-41 makes the UI follow the gates. While it is false the game
-  /// still shows everything, so every save written keeps the legacy gates in
-  /// `keptOpen`: what she could play then stays open once PAP-41 flips this.
-  static const gatesEnforced = false;
+  /// The UI follows the gates (PAP-41). Builds before it showed everything, so
+  /// every save they wrote keeps the legacy gates in `keptOpen` and stays fully open.
+  static const gatesEnforced = true;
 
   static const sortAfterPaint = 1;
   static const timeAttackAfterSort = 3;
@@ -146,13 +145,16 @@ class NextUnlock {
 }
 
 class UnlockState {
-  const UnlockState._(this.unlocked, this.nextReward, this.nextCourse, this.celebrated);
+  const UnlockState._(this.unlocked, this.nextReward, this.nextCourse, this.celebrated, this.gateStars);
 
   /// Gated items that are open. Items that are always open never appear here.
   final Set<String> unlocked;
   final NextUnlock? nextReward;
   final NextUnlock? nextCourse;
   final Set<String> celebrated;
+
+  /// Stars toward the course gates (best of Paint and Sort per picture, added up).
+  final int gateStars;
 
   bool isUnlocked(String id) => unlocked.contains(id);
 
@@ -166,6 +168,16 @@ class UnlockState {
   /// Unlocked but never celebrated: the end-of-picture screen and the one
   /// catch-up summary both read this, then mark the ids celebrated.
   Set<String> get catchUp => unlocked.difference(celebrated);
+
+  /// What the catch-up summary and the "New!" lines name: [catchUp] without
+  /// rewards, which the Unlocks screen owns (PAP-38), and without courses that
+  /// are not in the game yet, so they are announced when they ship.
+  Set<String> get summary => {
+        for (final id in catchUp)
+          if (!id.startsWith('reward.') && !_isFutureCourse(id)) id,
+      };
+
+  static bool _isFutureCourse(String id) => UnlockTables.futureCourseIds.any((c) => id == UnlockTables.courseId(c));
 }
 
 abstract final class Unlocks {
@@ -206,6 +218,6 @@ abstract final class Unlocks {
         nextCourse = NextUnlock(UnlockTables.courseId(e.key), left);
       }
     }
-    return UnlockState._(unlocked, nextReward, nextCourse, i.celebrated);
+    return UnlockState._(unlocked, nextReward, nextCourse, i.celebrated, i.gateStars);
   }
 }

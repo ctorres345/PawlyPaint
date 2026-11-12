@@ -25,6 +25,7 @@ import 'idle_shimmer.dart';
 import 'layer_raster.dart';
 import 'mini_map.dart';
 import 'music_sheet.dart';
+import 'unlock_ui.dart';
 
 part 'sort/sort_state.dart';
 part 'sort/sort_flow.dart';
