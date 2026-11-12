@@ -27,7 +27,8 @@ const unlockAfter = 3;
 /// don't swap it for `buildCourses(...)`.
 final List<Course> allCourses = [...sharedCourses(), if (!isStoreBuild) ...sideloadOnlyCourses()];
 
-/// The courses both builds ship. All of them are open from the start.
+/// The courses both builds ship. The game shows them all today; the star gates
+/// in `lib/logic/unlocks.dart` (PAP-15) are rules only until PAP-41 uses them.
 List<Course> sharedCourses() => [
       buildCourse(
         'classics',
