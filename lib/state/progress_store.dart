@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/courses.dart' show allCourses, unlockAfter;
 import '../logic/boosters.dart';
+import '../logic/unlocks.dart';
 import '../models/puzzle.dart';
 
 /// Best result for a finished picture.
@@ -145,23 +146,68 @@ Future<void> recordDailyIfToday(ProgressStore store, Puzzle p) async {
 
 /// Records, saved games and unlock rules, persisted on the device.
 class ProgressStore extends ChangeNotifier {
-  ProgressStore._(this._prefs, this._records, this._saved, [Map<String, Map<String, dynamic>>? sortSaved])
-      : _sortSaved = sortSaved ?? {};
+  ProgressStore._(
+    this._prefs,
+    this._records,
+    this._saved, [
+    Map<String, Map<String, dynamic>>? sortSaved,
+    int? pictureCount,
+  ])  : _sortSaved = sortSaved ?? {},
+        _pictureCount = pictureCount ?? _countPictures(allCourses);
+
+  static int _countPictures(List<Course> courses) => courses.fold(0, (n, c) => n + c.puzzles.length);
+
+  /// Pictures the running build ships, for scaling rewards when a picture is finished.
+  final int _pictureCount;
 
   static const _key = 'progress_v1';
   static const _backupKey = 'progress_v1_backup';
-  static const _version = 1;
 
-  static void _parseEach(Object? map, void Function(String, Map<String, dynamic>) add) {
-    if (map is! Map<String, dynamic>) return;
+  /// Raw copy of a save that could not be read at all.
+  static const _unreadableKey = 'progress_v1_unreadable';
+
+  /// Raw copy of a version-1 save, kept once before the first version-2 write.
+  static const _v1BackupKey = 'progress_v1_backup_v1';
+
+  /// Save format version. Any change to the shape of a record, saved game or
+  /// other entry must bump it: unknown keys survive only at the top level.
+  static const _version = 2;
+
+  /// Top-level keys this build reads. Any other key is kept as it is and written back.
+  static const _knownKeys = {
+    'version',
+    'seenTutorial',
+    'seenSortTutorial2',
+    'daily',
+    'badges',
+    'records',
+    'saved',
+    'sortSaved',
+    'timeAttack',
+    'bestCombo',
+    'dailyTimeAttack',
+    'boosters',
+    'secrets',
+    'celebrated',
+    'streakBonusPaid',
+    'keptOpen',
+  };
+
+  /// Parses each entry on its own and returns how many were skipped.
+  static int _parseEach(Object? map, void Function(String, Map<String, dynamic>) add) {
+    if (map is! Map<String, dynamic>) return map == null ? 0 : 1; // A whole section of the wrong type is skipped too.
+    var skipped = 0;
     map.forEach((k, v) {
       try {
         add(k, v as Map<String, dynamic>);
       } catch (_) {
-        // Skip the broken entry.
+        skipped++; // Skip the broken entry.
       }
     });
+    return skipped;
   }
+
+  static Set<String> _stringSet(Object? list) => list is List ? list.whereType<String>().toSet() : <String>{};
 
   final SharedPreferences? _prefs;
   final Map<String, PuzzleRecord> _records;
@@ -170,14 +216,89 @@ class ProgressStore extends ChangeNotifier {
   /// Sort-mode boards in progress, as the JSON the sort screen saved.
   final Map<String, Map<String, dynamic>> _sortSaved;
 
-  static Future<ProgressStore> load() async {
+  // ---- Unlocks ------------------------------------------------------------
+
+  /// True when the save came from a newer build (or its version can't be read).
+  /// It is shown as far as we understand it and never written over.
+  bool _readOnly = false;
+  bool get isReadOnly => _readOnly;
+
+  /// Top-level keys from a newer build, written back as they were.
+  final Map<String, dynamic> _extra = {};
+
+  final Set<String> _secrets = {};
+  final Set<String> _celebrated = {};
+  final Set<String> _keptOpen = {};
+  int _streakBonusPaid = 0;
+
+  Set<String> get secrets => Set.unmodifiable(_secrets);
+  Set<String> get celebrated => Set.unmodifiable(_celebrated);
+
+  /// Days of the 7-day booster bonus already paid (PAP-49).
+  int get streakBonusPaid => _streakBonusPaid;
+
+  Future<void> addSecret(String id) {
+    if (!_secrets.add(id)) return Future.value();
+    notifyListeners();
+    return _persist();
+  }
+
+  Future<void> markCelebrated(Iterable<String> ids) {
+    final before = _celebrated.length;
+    _celebrated.addAll(ids);
+    if (_celebrated.length == before) return Future.value();
+    notifyListeners();
+    return _persist();
+  }
+
+  Future<void> setStreakBonusPaid(int value) {
+    if (value == _streakBonusPaid) return Future.value();
+    _streakBonusPaid = value;
+    notifyListeners();
+    return _persist();
+  }
+
+  /// What is unlocked for a build that ships [courses]. Pass the build's full
+  /// course list: rewards scale with its picture count. Every record counts,
+  /// hidden courses included, so this reads the records and not the course lists.
+  UnlockState unlockState(List<Course> courses) => _evaluate(_countPictures(courses));
+
+  UnlockState _evaluate(int pictureCount) {
+    final threeStar = <String>{};
+    final bestStars = <String, int>{};
+    final finished = <String>{};
+    var paint = 0, sort = 0;
+    _records.forEach((key, r) {
+      final isSort = key.startsWith('sort:');
+      final id = isSort ? key.substring(5) : key;
+      isSort ? sort++ : paint++;
+      finished.add(id);
+      if (r.bestStars >= 3) threeStar.add(id);
+      if (r.bestStars > (bestStars[id] ?? 0)) bestStars[id] = r.bestStars;
+    });
+    return Unlocks.evaluate(UnlockInput(
+      threeStarPictures: threeStar,
+      finishedPaint: paint,
+      finishedSort: sort,
+      finishedAny: finished.length,
+      gateStars: bestStars.values.fold(0, (a, b) => a + b),
+      pictureCount: pictureCount,
+      keptOpen: _keptOpen,
+      celebrated: _celebrated,
+    ));
+  }
+
+  static Future<ProgressStore> load({
+    int? pictureCount,
+    bool gatesEnforced = UnlockTables.gatesEnforced,
+  }) async {
     final SharedPreferences prefs;
     try {
       prefs = await SharedPreferences.getInstance();
     } catch (e) {
       // Without storage the game still runs; progress just isn't kept.
       debugPrint('Progress storage unavailable: $e');
-      return ProgressStore.memory();
+      return ProgressStore.memory(pictureCount: pictureCount);
     }
     final records = <String, PuzzleRecord>{};
     final saved = <String, SavedGame>{};
@@ -190,25 +311,75 @@ class ProgressStore extends ChangeNotifier {
     String? dailyTADate;
     var dailyTA = const TimeAttackRecord();
     Map<Booster, int>? boosters;
+    var readOnly = false;
+    var secrets = <String>{}, celebrated = <String>{}, keptOpen = <String>{};
+    var streakBonusPaid = 0;
+    final extra = <String, dynamic>{};
     final raw = prefs.getString(_key);
     if (raw != null) {
       Map<String, dynamic> j;
+      var readable = true;
       try {
         j = jsonDecode(raw) as Map<String, dynamic>;
       } catch (_) {
         // Keep the unreadable blob so it can be recovered by hand, then start fresh.
-        await prefs.setString(_backupKey, raw);
+        // If the copy can't be stored, nothing is written this session: the blob is all there is.
+        try {
+          if (!await prefs.setString(_unreadableKey, raw)) throw StateError('the write returned false');
+        } catch (e) {
+          debugPrint('Saving the unreadable progress failed: $e');
+          readOnly = true;
+        }
         j = const {};
+        readable = false;
+      }
+      // A save from a newer build (or with a version we can't read) is loaded
+      // as far as we understand it but never written over.
+      final version = j['version'];
+      if (readable && (version != null && (version is! int || version > _version))) {
+        readOnly = true;
+        // Nothing in the UI says so yet (PAP-41), so leave a trace.
+        debugPrint('Progress is from a newer build (version $version): shown, but not saved.');
       }
       // Entries are parsed one by one, so one bad entry never loses the rest.
-      _parseEach(j['records'], (k, v) => records[k] = PuzzleRecord.fromJson(v));
-      _parseEach(j['saved'], (k, v) => saved[k] = SavedGame.fromJson(v));
-      _parseEach(j['sortSaved'], (k, v) => sortSaved[k] = v);
+      final skipped = _parseEach(j['records'], (k, v) => records[k] = PuzzleRecord.fromJson(v)) +
+          _parseEach(j['saved'], (k, v) => saved[k] = SavedGame.fromJson(v)) +
+          _parseEach(j['sortSaved'], (k, v) => sortSaved[k] = v) +
+          _parseEach(j['timeAttack'], (k, v) => timeAttack[k] = TimeAttackRecord.fromJson(v));
+      if (skipped > 0 && prefs.getString(_backupKey) == null) {
+        // The next save would drop the broken entries for good, so keep a copy first.
+        try {
+          await prefs.setString(_backupKey, raw);
+        } catch (e) {
+          debugPrint('Saving the progress backup failed: $e');
+        }
+      }
+      if (readable && !readOnly && (version == null || (version is int && version <= 1))) {
+        // Version 1 had every gate open, so it keeps them open. Keep a raw copy
+        // first; without it the save stays untouched this session.
+        keptOpen = UnlockTables.legacyIds;
+        try {
+          // Always the latest version-1 save: after a downgrade it is the one worth keeping.
+          // Android reports a failed write (a full disk, say) as false, not as an error.
+          if (!await prefs.setString(_v1BackupKey, raw)) throw StateError('the write returned false');
+        } catch (e) {
+          debugPrint('Saving the version 1 backup failed: $e');
+          readOnly = true;
+        }
+      } else if (readable) {
+        // Also for a save we won't write over: its gates still count.
+        keptOpen = _stringSet(j['keptOpen']);
+      }
+      secrets = _stringSet(j['secrets']);
+      celebrated = _stringSet(j['celebrated']);
+      streakBonusPaid = j['streakBonusPaid'] is int ? j['streakBonusPaid'] as int : 0;
+      j.forEach((k, v) {
+        if (!_knownKeys.contains(k)) extra[k] = v;
+      });
       seenTutorial = j['seenTutorial'] == true;
       seenSortTutorial = j['seenSortTutorial2'] == true;
       daily = j['daily'] is Map<String, dynamic> ? j['daily'] as Map<String, dynamic> : null;
       if (j['badges'] is List) badges.addAll((j['badges'] as List).whereType<String>());
-      _parseEach(j['timeAttack'], (k, v) => timeAttack[k] = TimeAttackRecord.fromJson(v));
       bestCombo = j['bestCombo'] is int ? j['bestCombo'] as int : 0;
       if (j['dailyTimeAttack'] case final Map<String, dynamic> d) {
         try {
@@ -220,7 +391,9 @@ class ProgressStore extends ChangeNotifier {
         boosters = {for (final k in Booster.values) k: b[k.name] is int ? b[k.name] as int : 0};
       }
     }
-    return ProgressStore._(prefs, records, saved, sortSaved)
+    // Until the UI follows the gates everything is playable, so every save keeps it open.
+    if (!gatesEnforced && !readOnly) keptOpen = {...keptOpen, ...UnlockTables.legacyIds};
+    final store = ProgressStore._(prefs, records, saved, sortSaved, pictureCount)
       .._seenTutorial = seenTutorial
       .._seenSortTutorial = seenSortTutorial
       .._dailyDate = daily?['date'] as String?
@@ -233,11 +406,24 @@ class ProgressStore extends ChangeNotifier {
       .._bestCombo = bestCombo
       .._dailyTADate = dailyTADate
       .._dailyTA = dailyTA
-      .._boosters.addAll(boosters ?? Booster.starter);
+      .._boosters.addAll(boosters ?? Booster.starter)
+      .._readOnly = readOnly
+      .._secrets.addAll(secrets)
+      .._celebrated.addAll(celebrated)
+      .._keptOpen.addAll(keptOpen)
+      .._streakBonusPaid = streakBonusPaid
+      .._extra.addAll(extra);
+    // Rewards a save already qualifies for stay earned if the build grows before the next picture.
+    store._keepEarnedRewards();
+    return store;
   }
 
+  void _keepEarnedRewards() =>
+      _keptOpen.addAll(_evaluate(_pictureCount).unlocked.where((u) => u.startsWith('reward.')));
+
   /// In-memory store for tests.
-  factory ProgressStore.memory() => ProgressStore._(null, {}, {}).._boosters.addAll(Booster.starter);
+  factory ProgressStore.memory({int? pictureCount}) =>
+      ProgressStore._(null, {}, {}, null, pictureCount).._boosters.addAll(Booster.starter);
 
   PuzzleRecord? record(String id) => _records[id];
   SavedGame? saved(String id) => _saved[id];
@@ -461,6 +647,8 @@ class ProgressStore extends ChangeNotifier {
     );
     _saved.remove(id);
     _sortSaved.remove(id);
+    // Rewards scale with the build, so keep each one once earned: a bigger build must not take it back.
+    _keepEarnedRewards();
     notifyListeners();
     await _persist();
     return isBest;
@@ -502,15 +690,17 @@ class ProgressStore extends ChangeNotifier {
 
   Future<void> _writeOnce() async {
     final prefs = _prefs;
-    if (prefs == null) return;
+    if (prefs == null || _readOnly) return;
     writes++;
     try {
-      await prefs.setString(
+      final stored = await prefs.setString(
         _key,
         jsonEncode({
+          ..._extra,
           'version': _version,
           'seenTutorial': _seenTutorial,
-          // v2: Sort became tap to pick up and drop, so everyone sees the new tutorial once.
+          // The "2" in this key is the Sort tutorial: Sort became tap to pick up and drop,
+          // so everyone sees the new tutorial once. It is not the save format version.
           'seenSortTutorial2': _seenSortTutorial,
           'daily': {'date': _dailyDate, 'id': _dailyId, 'done': _dailyDone, 'streak': _streak, 'best': _bestStreak},
           'badges': _seenBadges.toList(),
@@ -521,8 +711,14 @@ class ProgressStore extends ChangeNotifier {
           'bestCombo': _bestCombo,
           'dailyTimeAttack': {'date': _dailyTADate, ..._dailyTA.toJson()},
           'boosters': {for (final b in Booster.values) b.name: boosters(b)},
+          'secrets': _secrets.toList(),
+          'celebrated': _celebrated.toList(),
+          'streakBonusPaid': _streakBonusPaid,
+          'keptOpen': _keptOpen.toList(),
         }),
       );
+      // Android reports a failed write (a full disk, say) as false, not as an error.
+      if (!stored) debugPrint('Saving progress failed: the write returned false');
     } catch (e) {
       // A failed write keeps the in-memory progress; the next save retries.
       debugPrint('Saving progress failed: $e');
