@@ -191,6 +191,7 @@ class ProgressStore extends ChangeNotifier {
     'celebrated',
     'streakBonusPaid',
     'keptOpen',
+    'introduced',
   };
 
   /// Parses each entry on its own and returns how many were skipped.
@@ -229,10 +230,29 @@ class ProgressStore extends ChangeNotifier {
   final Set<String> _secrets = {};
   final Set<String> _celebrated = {};
   final Set<String> _keptOpen = {};
+  final Set<String> _introduced = {};
   int _streakBonusPaid = 0;
 
   Set<String> get secrets => Set.unmodifiable(_secrets);
   Set<String> get celebrated => Set.unmodifiable(_celebrated);
+
+  /// Modes and boosters whose intro she has seen (PAP-41). A save without the key
+  /// starts with everything it already had open, so she never sees tips for those.
+  Set<String> get introduced => Set.unmodifiable(_introduced);
+
+  /// Marks [id] introduced. A booster also gets one free use, once.
+  Future<void> markIntroduced(String id) {
+    if (!_introduced.add(id)) return Future.value();
+    for (final b in Booster.values) {
+      if (UnlockTables.boosterId(b) == id) _boosters[b] = boosters(b) + 1;
+    }
+    notifyListeners();
+    return _persist();
+  }
+
+  void _seedIntroduced() => _introduced.addAll(
+        _evaluate(_pictureCount).unlocked.where((u) => u.startsWith('mode.') || u.startsWith('booster.')),
+      );
 
   /// Days of the 7-day booster bonus already paid (PAP-49).
   int get streakBonusPaid => _streakBonusPaid;
@@ -262,6 +282,9 @@ class ProgressStore extends ChangeNotifier {
   /// course list: rewards scale with its picture count. Every record counts,
   /// hidden courses included, so this reads the records and not the course lists.
   UnlockState unlockState(List<Course> courses) => _evaluate(_countPictures(courses));
+
+  /// What is unlocked for the build this store was made for.
+  UnlockState get currentUnlocks => _evaluate(_pictureCount);
 
   UnlockState _evaluate(int pictureCount) {
     final threeStar = <String>{};
@@ -313,6 +336,7 @@ class ProgressStore extends ChangeNotifier {
     Map<Booster, int>? boosters;
     var readOnly = false;
     var secrets = <String>{}, celebrated = <String>{}, keptOpen = <String>{};
+    Set<String>? introduced;
     var streakBonusPaid = 0;
     final extra = <String, dynamic>{};
     final raw = prefs.getString(_key);
@@ -372,6 +396,7 @@ class ProgressStore extends ChangeNotifier {
       }
       secrets = _stringSet(j['secrets']);
       celebrated = _stringSet(j['celebrated']);
+      if (j['introduced'] is List) introduced = _stringSet(j['introduced']);
       streakBonusPaid = j['streakBonusPaid'] is int ? j['streakBonusPaid'] as int : 0;
       j.forEach((k, v) {
         if (!_knownKeys.contains(k)) extra[k] = v;
@@ -415,6 +440,11 @@ class ProgressStore extends ChangeNotifier {
       .._extra.addAll(extra);
     // Rewards a save already qualifies for stay earned if the build grows before the next picture.
     store._keepEarnedRewards();
+    if (introduced != null) {
+      store._introduced.addAll(introduced);
+    } else {
+      store._seedIntroduced();
+    }
     return store;
   }
 
@@ -715,6 +745,7 @@ class ProgressStore extends ChangeNotifier {
           'celebrated': _celebrated.toList(),
           'streakBonusPaid': _streakBonusPaid,
           'keptOpen': _keptOpen.toList(),
+          'introduced': _introduced.toList(),
         }),
       );
       // Android reports a failed write (a full disk, say) as false, not as an error.

@@ -82,6 +82,7 @@ mixin _SortFlow on _SortStateBase {
       isBest: isBest,
       relaxed: relaxed,
       badges: badges,
+      unlocked: takeNewUnlocks(widget.store, allCourses),
       bestCombo: game.bestCombo,
       secondsLeft: difficulty == null ? null : secondsLeft,
       title: difficulty == null ? 'Masterpiece complete!' : 'You beat the clock!',

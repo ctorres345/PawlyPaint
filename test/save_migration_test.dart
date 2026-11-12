@@ -179,16 +179,50 @@ void main() {
       expect(prefs.getString('progress_v1_backup_v1'), isNull);
     });
 
-    test('while the UI shows everything, every save keeps it open for later', () async {
-      final prefs = await seed({});
-      expect(UnlockTables.gatesEnforced, isFalse, reason: 'PAP-41 flips this; then rewrite this test');
+    test('the gates are enforced by default, so a fresh install starts closed', () async {
+      await seed({});
+      expect(UnlockTables.gatesEnforced, isTrue);
       final store = await ProgressStore.load();
-      await store.markTutorialSeen();
-      expect(readSave(prefs)['keptOpen'], containsAll(UnlockTables.legacyIds));
-      // The gates it could play stay open when they are enforced later.
-      final later = await ProgressStore.load(gatesEnforced: true);
-      expect(later.unlockState(courses).isCourseOpen('catcafe'), isTrue);
-      expect(later.unlockState(courses).isModeOpen(UnlockTables.modeTimeAttack), isTrue);
+      final s = store.unlockState(courses);
+      expect(s.isModeOpen(UnlockTables.modeSort), isFalse);
+      expect(s.isCourseOpen('catcafe'), isFalse);
+      expect(s.summary, isEmpty);
+      expect(store.introduced, isEmpty);
+    });
+
+    test('a save from the build before the gates stays fully open and is not re-introduced', () async {
+      // That build wrote every old gate into keptOpen and had no introduced key.
+      final prefs = await seed({
+        'progress_v1': jsonEncode({'version': 2, 'keptOpen': UnlockTables.legacyIds.toList()}),
+      });
+      final store = await ProgressStore.load();
+      final s = store.unlockState(courses);
+      expect(s.isCourseOpen('catcafe'), isTrue);
+      expect(s.isModeOpen(UnlockTables.modeTimeAttack), isTrue);
+      for (final b in Booster.values) {
+        expect(s.isBoosterOpen(b), isTrue, reason: b.name);
+      }
+      // One summary for everything open and never celebrated; no tips, no free uses.
+      expect(s.summary, containsAll(UnlockTables.legacyIds));
+      expect(store.introduced, containsAll([UnlockTables.modeSort, UnlockTables.boosterId(Booster.bomb)]));
+      expect(store.boosters(Booster.bomb), Booster.starter[Booster.bomb]);
+      await store.markCelebrated(s.summary);
+      expect(store.unlockState(courses).summary, isEmpty);
+      expect(readSave(prefs)['introduced'], containsAll(store.introduced));
+    });
+
+    test('introducing a booster gives one free use, once', () async {
+      await seed({});
+      final store = await ProgressStore.load();
+      final id = UnlockTables.boosterId(Booster.wand);
+      final before = store.boosters(Booster.wand);
+      await store.markIntroduced(id);
+      await store.markIntroduced(id);
+      expect(store.boosters(Booster.wand), before + 1);
+      expect(store.introduced, {id});
+      final again = await ProgressStore.load();
+      expect(again.introduced, {id});
+      expect(again.boosters(Booster.wand), before + 1);
     });
 
     test('secrets, celebrated and the streak bonus survive a reload', () async {

@@ -16,8 +16,14 @@ class BoosterBar extends StatelessWidget {
     required this.count,
     required this.active,
     required this.onTap,
+    this.isOpen = _always,
     this.axis = Axis.vertical,
   });
+
+  static bool _always(Booster _) => true;
+
+  /// Boosters that are not open yet are left out of the bar.
+  final bool Function(Booster) isOpen;
 
   final int Function(Booster) count;
   final bool Function(Booster) active;
@@ -30,7 +36,7 @@ class BoosterBar extends StatelessWidget {
       direction: axis,
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final b in Booster.values)
+        for (final b in Booster.values.where(isOpen))
           Padding(
             padding: const EdgeInsets.all(4),
             child: _BoosterButton(booster: b, count: count(b), active: active(b), onTap: () => onTap(b)),

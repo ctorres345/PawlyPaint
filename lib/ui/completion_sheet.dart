@@ -20,6 +20,7 @@ Future<void> showCompletionSheet(
   required bool isBest,
   bool relaxed = false,
   List<Achievement> badges = const [],
+  List<String> unlocked = const [],
   Map<Booster, int> boosters = const {},
   int? bestCombo,
   int? secondsLeft,
@@ -115,6 +116,22 @@ Future<void> showCompletionSheet(
                         avatar: Icon(boosterIcon(b), size: 18, color: scheme.primary),
                         label: Text('+$n ${b.label}'),
                         backgroundColor: scheme.primaryContainer,
+                      ),
+                  ],
+                ),
+              ],
+              if (unlocked.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final name in unlocked)
+                      Chip(
+                        avatar: Icon(Icons.lock_open_rounded, size: 18, color: scheme.primary),
+                        label: Text('New! $name'),
+                        backgroundColor: scheme.secondaryContainer,
                       ),
                   ],
                 ),
