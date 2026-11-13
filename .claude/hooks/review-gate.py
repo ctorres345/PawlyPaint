@@ -357,6 +357,31 @@ def load_check(cwd, ref=None):
     return check
 
 
+TASKKILL_FAILED = ("; taskkill failed or is missing, so only the shell was stopped and its child processes "
+                   "may still run")
+
+
+def stop_tree(proc, posix):
+    """Stop a timed-out check and its children, not just the shell (NFX-115). POSIX kills the process group;
+    Windows runs `taskkill /T /F`. Returns a note for the failure message: "" or TASKKILL_FAILED when only
+    the shell could be killed."""
+    if posix:
+        try:
+            os.killpg(proc.pid, 9)
+        except OSError:
+            proc.kill()
+        return ""
+    try:
+        done = subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], stdin=subprocess.DEVNULL,
+                              capture_output=True, timeout=30)
+        if done.returncode == 0:
+            return ""
+    except (OSError, subprocess.SubprocessError):
+        pass
+    proc.kill()
+    return TASKKILL_FAILED
+
+
 def run_check(cwd, check, log_path=None):
     """Run the check command at the repo top level. Returns (ok, why). Output goes to log_path, or to our own
     stdout and stderr when there is none."""
@@ -365,21 +390,15 @@ def run_check(cwd, check, log_path=None):
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     posix = os.name == "posix"
 
-    def stop(proc):  # the shell's children too, not just the shell
-        try:
-            os.killpg(proc.pid, 9) if posix else proc.kill()
-        except OSError:
-            proc.kill()
-
     with open(log_path, "wb") if log_path else contextlib.nullcontext() as out:  # no log: show it (CI job log)
         proc = subprocess.Popen(check["command"], shell=True, cwd=root, env=env, stdin=subprocess.DEVNULL,
                                 stdout=out, stderr=subprocess.STDOUT if out else None, start_new_session=posix)
         try:
             code = proc.wait(timeout=check["timeout"])
         except subprocess.TimeoutExpired:
-            stop(proc)
+            note = stop_tree(proc, posix)
             proc.wait(timeout=30)
-            return False, f"did not finish within {check['timeout']} seconds"
+            return False, f"did not finish within {check['timeout']} seconds{note}"
         if posix:  # background children must not keep editing files after the tree hash is compared
             try:
                 os.killpg(proc.pid, 9)
