@@ -31,6 +31,7 @@ CD_COMMANDS = {"cd", "pushd", "popd", "chdir", "set-location", "sl", "pop-locati
 BRANCH_KEYWORDS = {"then", "elif", "else", "do"}
 ASSIGNMENT = re.compile(r"^\w+\+?=")
 SHELL_C_FLAG = re.compile(r"^(?:-[a-zA-Z]*c[a-zA-Z]*|-command)$", re.I)
+SHELL_VAR = re.compile(r"^\$\{?(?:SHELL|BASH)\b")  # `$SHELL`, `${SHELL}`, `${SHELL:-sh}`, `$BASH`; not `$BASH_VERSION`
 SHELL_S_FLAG = re.compile(r"^-[a-zA-Z]*s[a-zA-Z]*$")
 CD_MENTION = re.compile(r"\b(?:cd|pushd|popd|chdir|set-location|sl|pop-location)\b", re.I)
 HEREDOC_DELIM = re.compile(r"""'([^']*)'|"([^"]*)"|(\\?)([^\s;&|()<>]+)""")
@@ -572,17 +573,22 @@ def create_calls(command, cwd, ps=False):
 
     def unknown_args(program, args, i):
         """Whether the expansion args[i], run by an unknown program, may hold `pr create`. It does when the text
-        names gh or a shell, has pr and create or new (read unquoted), or the word runs a command. Otherwise a
+        names gh or a shell (also in an assignment or as $SHELL), has pr and create or new (read unquoted), or any
+        later word runs a command. Otherwise a
         plain word after it that is not a flag's value (`$ADB $DEV shell ...`) shows it is not `gh pr create`,
         which takes no such words; without one, it may be. A word that may vanish (`{,}`, `no*`) shows nothing."""
         if GH_WORD.search(bare) or (PR_WORDS.search(bare) and CREATE_WORDS.search(bare)):
             return True
         if SUBSTITUTION.search(program.text) or SUBSTITUTION.search(args[i].text):
             return True
-        if any(command_name(t) in SHELLS or SHELL_C_FLAG.match(t) for t in re.findall(r"[^\s;&|()<>]+", bare)):
-            return True  # `X="sh -c"; $X "$CMD" name`: the plain word may be $0
+        # `X="sh -c"; $X "$CMD" name`: the plain word may be $0. Split at `=` too, for `SH=bash` and `Y=-c`.
+        if any(command_name(t) in SHELLS or SHELL_C_FLAG.match(t) or SHELL_VAR.match(t)
+               for t in re.findall(r"[^\s;&|()<>=]+", bare)):
+            return True
         after_flag = False
         for w in args[i + 1:]:
+            if SUBSTITUTION.search(w.text):
+                return True  # a later `$(...)` runs a command, whatever plain word follows it
             if w.text.startswith("-"):
                 after_flag = "=" not in w.text
             elif after_flag:  # the flag's value
