@@ -34,6 +34,10 @@ SHELL_C_FLAG = re.compile(r"^(?:-[a-zA-Z]*c[a-zA-Z]*|-command)$", re.I)
 SHELL_S_FLAG = re.compile(r"^-[a-zA-Z]*s[a-zA-Z]*$")
 CD_MENTION = re.compile(r"\b(?:cd|pushd|popd|chdir|set-location|sl|pop-location)\b", re.I)
 HEREDOC_DELIM = re.compile(r"""'([^']*)'|"([^"]*)"|(\\?)([^\s;&|()<>]+)""")
+GH_WORD = re.compile(r"\bgh\b")
+PR_WORDS = re.compile(r"\bpr\b")
+CREATE_WORDS = re.compile(r"\b(?:create|new)\b")
+SUBSTITUTION = re.compile(r"\$\((?!\()|`|\$\{(?:[\s|]|$)")  # `$(...)`, a backtick, bash 5.3 `${ ...; }`; not `$((`
 TOPLEVEL = re.compile(r"\$\(\s*git rev-parse --show-toplevel\s*\)|`\s*git rev-parse --show-toplevel\s*`")
 
 
@@ -291,17 +295,18 @@ def command_name(text):
     return name[:-4] if name.endswith(".exe") else name
 
 
-def is_pr_create(args):
-    """Whether the arguments after `gh` mean `pr create`. An expansion could be anything, so it counts."""
+def is_pr_create(args, counts=None):
+    """Whether the arguments after `gh` mean `pr create`. An expansion could be anything, so it counts.
+    With counts given, an expansion before `pr` counts only when counts(args, its index) is true."""
     want = ["pr", {"create", "new"}]
     after_flag = False
-    for w in args:
+    for i, w in enumerate(args):
         if after_flag and w.dynamic:  # `-R "$REPO"`: the flag's value
             after_flag = False
         elif w.text.startswith("-"):  # also `--repo="$R"`
             after_flag = True
         elif w.dynamic:
-            return True
+            return counts is None or want[0] != "pr" or bool(counts(args, i))
         elif w.text == want[0] or (isinstance(want[0], set) and w.text in want[0]):
             want.pop(0)
             if not want:
@@ -345,8 +350,8 @@ def mentions_create(text):
     """Raw-text check, only for text run in a way the parser cannot follow (`$CMD`, piped into a shell)."""
     for part in re.split(r"[;&|\n]", text.replace("\\\n", " ")):
         at = 0
-        for word in (r"\bgh\b", r"\bpr\b", r"\b(?:create|new)\b"):
-            m = re.compile(word).search(part, at)
+        for word in (GH_WORD, PR_WORDS, CREATE_WORDS):
+            m = word.search(part, at)
             if not m:
                 break
             at = m.end()
@@ -457,6 +462,7 @@ def create_calls(command, cwd, ps=False):
     raw text mentions a create. args is API for a create through the GitHub API (`gh api`, curl, wget)."""
     found = []
     hidden = []  # directories of shell code the parser cannot read
+    bare = re.sub(r"[\"'\\`]", "", command)  # the text with quotes and escapes removed, for the word check
     read_mentions = [0]  # API mentions inside calls the parser read as API reads
 
     def opaque(cwd, args=None):
@@ -553,12 +559,37 @@ def create_calls(command, cwd, ps=False):
             if (api_create("gh", args[1:]) if args and args[0].text == "api"
                     else any(api_create(client, args) for client in REQUESTS)):
                 found.append((cwd, API))
-            if is_pr_create(args):
-                found.append((cwd, args))  # `$GH pr create`: the program is unknown, its args are not
+            # `$GH pr create`: the program is unknown, its args are not. `$S/inst.sh` names a file that is
+            # not gh. For `$ADB $DEV shell ...`, see unknown_args.
+            program = command_name(words[0].text)
+            if (program == "gh" or not re.fullmatch(r"[\w.+-]+", program)) and is_pr_create(
+                    args, counts=lambda a, i: unknown_args(words[0], a, i)):
+                found.append((cwd, args))
             carried_shell(args, cwd)
         elif name not in PRINTERS:
             carried_shell(args, cwd)
         return cwd
+
+    def unknown_args(program, args, i):
+        """Whether the expansion args[i], run by an unknown program, may hold `pr create`. It does when the text
+        names gh or a shell, has pr and create or new (read unquoted), or the word runs a command. Otherwise a
+        plain word after it that is not a flag's value (`$ADB $DEV shell ...`) shows it is not `gh pr create`,
+        which takes no such words; without one, it may be. A word that may vanish (`{,}`, `no*`) shows nothing."""
+        if GH_WORD.search(bare) or (PR_WORDS.search(bare) and CREATE_WORDS.search(bare)):
+            return True
+        if SUBSTITUTION.search(program.text) or SUBSTITUTION.search(args[i].text):
+            return True
+        if any(command_name(t) in SHELLS or SHELL_C_FLAG.match(t) for t in re.findall(r"[^\s;&|()<>]+", bare)):
+            return True  # `X="sh -c"; $X "$CMD" name`: the plain word may be $0
+        after_flag = False
+        for w in args[i + 1:]:
+            if w.text.startswith("-"):
+                after_flag = "=" not in w.text
+            elif after_flag:  # the flag's value
+                after_flag = False
+            elif not w.dynamic and w.text and not re.search(r"[*?\[{]", w.text):
+                return w.text in ("pr", "create", "new")
+        return True
 
     def carried_shell(args, cwd):
         """A runner this gate does not know, such as `docker exec c sh -c "..."`."""

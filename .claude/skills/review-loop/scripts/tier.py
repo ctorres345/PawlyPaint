@@ -3,14 +3,17 @@
 
 Python only, standard library only; runs the same on macOS and Windows.
 
-    python3 -B tier.py [--base HASH] [--labels fable-review,size-L] [--cwd DIR]
+    python3 -B tier.py [--base HASH] [--base-ref BRANCH] [--labels fable-review,size-L] [--cwd DIR]
 
-Prints one JSON object: {"tier", "reasons", "ui", "stats"}. Exits 2 (nothing on stdout) when the branch has no
+Prints one JSON object: {"tier", "reasons", "ui", "security", "stats"}. "security" lists the security skills the
+diff calls for (NFX-124): agentic-actions-auditor for a path under .github/workflows/, sharp-edges for a security
+keyword in a code file's path or changed lines. It is empty when none applies. Exits 2 (nothing on stdout) when the branch has no
 merge base with the default branch; any other error gives Tier 2 with the reason, never a lower tier.
 """
 import argparse
 import fnmatch
 import functools
+import importlib.util
 import json
 import os
 import re
@@ -39,7 +42,7 @@ CODE_EXTENSIONS = (".py", ".js", ".mjs", ".ts", ".kt", ".kts", ".java", ".swift"
 # Risk paths. A directory entry matches any file below a folder with that path; a name entry is a glob on the
 # file name. Both apply to every changed file, including lock files and docs.
 RISK_DIRS = (".github", ".githooks", "githooks", ".husky", "migrations")
-RISK_NAMES = (".gitattributes", "review-gate.py", "pr_create_parser.py", "*.gradle", "*.gradle.kts", "gradle.properties",
+RISK_NAMES = (".gitattributes", "review-gate.py", "pr_create_parser.py", "git_refs.py", "*.gradle", "*.gradle.kts", "gradle.properties",
               "libs.versions.toml", "package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
               "pubspec.yaml", "pubspec.lock", "Podfile*", "Package.swift", "Package.resolved", "pyproject.toml",
               "poetry.lock", "uv.lock", "requirements*.txt", "Cargo.toml", "Cargo.lock", "go.mod", "go.sum",
@@ -49,6 +52,11 @@ RISK_NAMES = (".gitattributes", "review-gate.py", "pr_create_parser.py", "*.grad
 RISK_KEYWORDS = frozenset("""auth oauth authorization authorize authentication authenticate login logout password
 passwd credential credentials token jwt crypto cryptography encrypt encryption decrypt keystore keychain secret
 secrets tokens passwords encrypted decrypted authenticated authorized authz authn payment payments billing migration migrations schema mutex semaphore atomic synchronized""".split())
+# NFX-124: whole-word keywords that call for the sharp-edges skill: the auth and crypto words of RISK_KEYWORDS (not
+# payment, schema or lock words, which stay Tier 3 only) plus session and web-security words.
+SECURITY_KEYWORDS = (RISK_KEYWORDS - frozenset("""payment payments billing migration migrations schema mutex semaphore
+atomic synchronized""".split())) | frozenset("session sessions cookie cookies csrf cors tls ssl".split())
+WORKFLOWS_DIR = ".github/workflows/"
 WORD = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+")
 MAX_KEYWORD_REASONS = 10
 
@@ -103,21 +111,34 @@ def risk_path_hit(path, project_paths):
     return any(project_path_match(p, name, norm(g)) for g in project_paths)
 
 
-def path_keyword(path):
-    """A risk keyword used as a whole word in a folder or file name, or None."""
+def path_keyword(path, keywords=RISK_KEYWORDS):
+    """A keyword (default: a risk keyword) used as a whole word in a folder or file name, or None."""
     for w in words(norm(path)):
-        if w in RISK_KEYWORDS:
+        if w in keywords:
             return w
     return None
 
 
-def line_keywords(lines):
+def line_keywords(lines, keywords=RISK_KEYWORDS):
     found = []
     for line in lines:
         for w in words(line):
-            if w in RISK_KEYWORDS and w not in found:
+            if w in keywords and w not in found:
                 found.append(w)
     return found
+
+
+def security_skills(files):
+    """Security skills the diff calls for (NFX-124), in a fixed order. Deleted and renamed workflows count: a path
+    in the diff is enough. sharp-edges reads code files only (docs and generated files are skipped)."""
+    skills = []
+    if any(norm(x["path"]).startswith(WORKFLOWS_DIR) for x in files):
+        skills.append("agentic-actions-auditor")
+    code = [x for x in files if not (is_ignored(x["path"]) or is_doc(x["path"]))]
+    if any(path_keyword(x["path"], SECURITY_KEYWORDS)
+           or line_keywords(x["added"] + x.get("removed_lines", []), SECURITY_KEYWORDS) for x in code):
+        skills.append("sharp-edges")
+    return skills
 
 
 def is_ui(path):
@@ -194,12 +215,13 @@ def classify(files, labels=(), project_paths=()):
     if ui_path and tier < 1:
         tier = 1
         reasons.append("Tier 1: UI change (%s)" % ui_path)
-    return {"tier": tier, "reasons": reasons, "ui": ui_path is not None, "stats": stats}
+    return {"tier": tier, "reasons": reasons, "ui": ui_path is not None, "security": security_skills(files),
+            "stats": stats}
 
 
 # ---- git layer -------------------------------------------------------------------------------------------------
-# The default-branch rule below is a copy of default_ref / exists_at / the `git show <ref>:<file>` read in
-# claude/hooks/review-gate.py (a skill cannot import the gate). Keep them in step.
+# default_ref is shared with the gate: claude/hooks/git_refs.py (NFX-108), loaded by path below. exists_at and the
+# `git show <ref>:<file>` read are still copies of claude/hooks/review-gate.py (a skill cannot import the gate).
 
 PROJECT_FILE = ".nousfx/project.toml"
 GIT_TIMEOUT = 60
@@ -257,8 +279,29 @@ def repo_top(cwd):
     return git(["rev-parse", "--show-toplevel"], cwd)
 
 
-def merge_base(top):
-    """The hash review-loop uses: `git merge-base origin/HEAD HEAD || git merge-base origin/main HEAD`."""
+@functools.lru_cache(maxsize=1)
+def load_git_refs():
+    """claude/hooks/git_refs.py, loaded by file path: next to this file (CI and the cloud copy are flat), else under
+    ../../../hooks of the real path (the repo layout; ~/.claude/skills links resolve into it). Never the current
+    folder or sys.path: tier.py runs inside the repo under review."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    real = os.path.dirname(os.path.realpath(__file__))
+    for folder in (here, os.path.join(real, "..", "..", "..", "hooks")):
+        path = os.path.join(folder, "git_refs.py")
+        if os.path.isfile(path):
+            spec = importlib.util.spec_from_file_location("git_refs", path)
+            module = importlib.util.module_from_spec(spec)
+            sys.dont_write_bytecode = True
+            spec.loader.exec_module(module)
+            return module
+    raise RuntimeError("git_refs.py not found next to tier.py or under ../../../hooks (re-run the sync)")
+
+
+def merge_base(top, base_ref=None):
+    """The hash review-loop uses: `git merge-base origin/HEAD HEAD || git merge-base origin/main HEAD`. With
+    base_ref (a branch name), only origin/<base_ref>: a missing one raises, it is never replaced."""
+    if base_ref:
+        return git(["merge-base", branch_ref(top, base_ref), "HEAD"], top)
     for ref in ("origin/HEAD", "origin/main"):
         try:
             return git(["merge-base", ref, "HEAD"], top)
@@ -269,27 +312,14 @@ def merge_base(top):
     raise NoMergeBase()
 
 
-def default_ref(top):
-    """origin/HEAD (only when it points at another refs/remotes/origin/ ref), else origin/main, else origin/master."""
-    candidates = []
-    try:
-        target = git(["symbolic-ref", "-q", "refs/remotes/origin/HEAD"], top)
-        if target.startswith("refs/remotes/origin/") and target != "refs/remotes/origin/HEAD":
-            candidates.append(target)
-    except GitUnavailable:
-        raise
-    except RuntimeError:
-        pass
-    candidates += ["refs/remotes/origin/main", "refs/remotes/origin/master"]
-    for ref in candidates:
-        try:
-            git(["rev-parse", "--verify", "--quiet", ref + "^{commit}"], top)
-            return ref
-        except GitUnavailable:
-            raise
-        except RuntimeError:
-            continue
-    return None
+# origin/HEAD (only when it points at another refs/remotes/origin/ ref), else origin/main, else origin/master.
+# An assignment, not a def: the one definition is git_refs.default_ref (NFX-108). `git` is looked up at call time, so a test can patch it.
+default_ref = lambda top: load_git_refs().default_ref(git, top, (GitUnavailable,))  # noqa: E731
+
+
+def branch_ref(top, branch):
+    """refs/remotes/origin/<branch>. ValueError for a bad name, RuntimeError when it is not a commit here."""
+    return load_git_refs().branch_ref(git, top, branch, (GitUnavailable,))
 
 
 def exists_at(top, ref, path):
@@ -303,11 +333,12 @@ def exists_at(top, ref, path):
         raise
 
 
-def load_project_risk_paths(top):
+def load_project_risk_paths(top, base_ref=None):
     """`[review] risk_paths` from .nousfx/project.toml. The default branch's file wins whenever it exists (even
     without a [review] table); only when it has no such file, or there is no default branch, does the working-tree
-    copy count. Raises on an unreadable file or a bad value."""
-    ref = default_ref(top)
+    copy count. With base_ref (CI passes the PR base) that branch is the default branch, and a missing one raises.
+    Raises on an unreadable file or a bad value."""
+    ref = branch_ref(top, base_ref) if base_ref else default_ref(top)
     if ref and exists_at(top, ref, PROJECT_FILE):
         text = git(["show", "%s:%s" % (ref, PROJECT_FILE)], top)
     else:
@@ -388,19 +419,21 @@ def fallback(reason, labels, base=None):
         reasons.append("Tier 3: label fable-review")
     else:
         tier = bump_size_l(2, reasons, labels)
-    return {"tier": tier, "reasons": reasons, "ui": False,
+    return {"tier": tier, "reasons": reasons, "ui": False, "security": [],
             "stats": {"lines": 0, "files": 0, "hunks": 0, "base": base}}
 
 
-def run(cwd, base, labels):
+def run(cwd, base, labels, base_ref=None):
     """The result dict for the repo at cwd. Raises NoMergeBase when there is no merge base."""
     try:
         top = repo_top(cwd)
     except Exception as e:
         return fallback("could not find the repo (%s)" % e, labels)
     try:
-        base = base or merge_base(top)
-    except GitUnavailable as e:
+        base = base or merge_base(top, base_ref)
+    except NoMergeBase:
+        raise
+    except Exception as e:  # git timed out, or --base-ref names no usable origin branch
         return fallback("could not find the merge base (%s)" % e, labels)
     try:
         files = collect(top, base)
@@ -408,7 +441,7 @@ def run(cwd, base, labels):
         return fallback("could not read the diff (%s)" % e, labels, base)
     project_error = None
     try:
-        project_paths = load_project_risk_paths(top)
+        project_paths = load_project_risk_paths(top, base_ref)
     except Exception as e:
         project_paths, project_error = [], e
     try:
@@ -425,12 +458,14 @@ def run(cwd, base, labels):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Pick the review tier for the current branch.")
     ap.add_argument("--base", help="merge base hash (default: merge base with origin/HEAD, else origin/main)")
+    ap.add_argument("--base-ref", help="branch name (CI: the PR base): risk_paths and the merge base come from "
+                    "origin/<name>, not origin/HEAD")
     ap.add_argument("--labels", default="", help="comma-separated Jira labels, for example fable-review,size-L")
     ap.add_argument("--cwd", default=".", help="folder inside the repo (default: current folder)")
     args = ap.parse_args(argv)
     labels = [x.strip() for x in args.labels.split(",") if x.strip()]
     try:
-        result = run(os.path.abspath(args.cwd), args.base, labels)
+        result = run(os.path.abspath(args.cwd), args.base, labels, args.base_ref)
     except NoMergeBase:
         print(NO_BASE_HINT, file=sys.stderr)
         return 2

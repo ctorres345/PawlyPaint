@@ -6,17 +6,23 @@ Hook mode (default): PreToolUse hook. Reads the hook JSON on stdin and, only for
 marker matches the code being submitted. Every other call exits 0, and so does a create run
 outside a git repo. An error while checking a create blocks.
 
-Detection lives in pr_create_parser.py next to this file (its docstring has the known limits).
+Detection lives in pr_create_parser.py next to this file (its docstring has the known limits). The default-branch
+rule lives in git_refs.py next to it, shared with tier.py.
 If that module is missing, any command mentioning `gh` and `pr` blocks.
 
 Body check (NFX-85): once the review check passes, a create also needs a `Review-Gate: <HEAD tree>` line in
 its PR body (--body, -b, --body-file, -F, a heredoc inside --body "$(cat <<EOF ...)", or the `body` field
 of a create-PR MCP tool). No body, --fill, a stale hash, a body built at run time or a file without the line
-blocks, and the message prints the exact lines to paste (the output of `attest`).
+blocks, and the message prints the exact lines to paste (the output of `attest`) and, when the repo has one,
+the path of its PR template (NFX-135).
 
-Branch check: the branch must be named cesar/<JIRA-KEY> (for example cesar/MOB-23). If the
-user approves another name for this PR, `review-gate.py --allow-branch "reason"` records an
+Branch check (NFX-119): the branch must be named <prefix>/<JIRA-KEY> (for example cesar/MOB-23). The prefix is
+`[branch] prefix` in ~/.config/nousfx/local.toml (the file sync reads; home from the user record, USERPROFILE on
+Windows; sync's --state-home is ignored). With no usable prefix (no file, unreadable, invalid, or no tomllib before
+Python 3.11) only the shape counts: lowercase letters, digits and dashes, a slash, a Jira key. A broken config never
+blocks. If the user approves another name for this PR, `review-gate.py --allow-branch "reason"` records an
 exception for the current branch (stored in the git dir, never committed).
+`check-branch NAME` (CI) checks the shape only: exit 0 when NAME fits, 1 with the expected form when it does not.
 
 Check mode: `review-gate.py check --cwd DIR --command "gh pr create"` asks the same question without
 a hook payload (pre-push hook, CI, other tools). Exit 0 allows, 2 blocks, and bad input blocks.
@@ -27,6 +33,11 @@ when a valid mark covers the current code, else exits 2. `verify-attestation --t
 (CI) exits 0 when F holds that line for tree H. An honor-system claim, see docs/review-gate.md.
 `verify-tier --tier-json J --text-file F --author-association A` (CI, NFX-70) exits 2 when a `Review-Tier:` line
 in F is below the tier in J (tier.py's JSON for the PR diff). Overrides count only for OWNER or MEMBER (NFX-95).
+`check-commits BRANCH --base REF` (CI, NFX-86) exits 1 when a non-merge commit in REF..HEAD does not name the
+branch's Jira key in its subject. The Claude hook also warns (never blocks) on a literal `git commit -m` subject.
+
+`--repo-copy PATH` (the project's cloud fallback hook, NFX-107) runs this gate from the default branch's copy and blocks a PR
+create when the repo's gate or parser at PATH differs from this one. A branch cannot pass itself by editing its copy.
 
 Mark mode: `review-gate.py --mark --findings N` or `--mark --skip "reason"` records that a
 review ran for the current working tree. /review-loop runs it as its last step.
@@ -57,6 +68,7 @@ import json
 import os
 import re
 import secrets
+import stat
 import subprocess
 import sys
 import tempfile
@@ -82,10 +94,12 @@ CHECK_FILE = ".nousfx/project.toml"
 CHECK_TIMEOUT = 1800
 CHECK_LOG = "claude-review-check.log"
 STAMP_FILE = "claude-review-check-pass"  # in the git dir, written only by `run-check --stamp` (NFX-97)
+PROOF_STAMP_FILE = "claude-proof-pass"  # in the git dir, written only by prove.py (NFX-105); the gate never reads it
 STAMP_KEY = "claude-review-stamp-key"
 GIT_ENV_VARS = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR")
 
-BRANCH_OK = re.compile(r"^cesar/[A-Z][A-Z0-9]+-\d+$")
+BRANCH_KEY = r"[A-Z][A-Z0-9]+-\d+"
+PREFIX_VALID = re.compile(r"[a-z0-9][a-z0-9-]*")  # fullmatch; the rule sync enforces (nousfx_prefix.VALID)
 MCP_PR_CREATE = re.compile(r"create_pull_request", re.I)
 GIT_REPO_VARS = re.compile(r"\bGIT_(?:DIR|WORK_TREE)\b", re.I)
 
@@ -225,16 +239,17 @@ Reinstall the gate and its parser together (re-run the sync: ./install.sh, or sc
 """
 
 BRANCH_BLOCK = """\
-Blocked: branch "{branch}" is not named cesar/<JIRA-KEY> (for example cesar/MOB-23).
-- Create or find the Jira ticket, then rename the branch: git branch -m cesar/<KEY>
+Blocked: branch "{branch}" is not named {prefix}/<JIRA-KEY> (for example {prefix}/MOB-23).
+- Create or find the Jira ticket, then rename the branch: git branch -m {prefix}/<KEY>
   (rename only an unpushed branch, or ask the user first). A rename leaves the review mark on the old name,
   so run the `review-loop` skill again after it.
 - Another name for this PR is the user's call: ask the user. Do not record an exception yourself.
 """
 
 
-def git(args, cwd, env=None):
-    """git's stdout. RuntimeError when git fails, GateTimeout when it does not answer in time."""
+def git(args, cwd, env=None, strip=True):
+    """git's stdout (stripped unless strip=False, for `-z` output whose first path may start with a space).
+    RuntimeError when git fails, GateTimeout when it does not answer in time."""
     timeout = 30
     if DEADLINE is not None:
         timeout = min(30, DEADLINE - time.monotonic())
@@ -247,7 +262,7 @@ def git(args, cwd, env=None):
         raise GateTimeout(TIMED_OUT) from None
     if r.returncode != 0:
         raise RuntimeError(r.stderr.strip())
-    return r.stdout.strip()
+    return r.stdout.strip() if strip else r.stdout
 
 
 def git_path(name, cwd):
@@ -291,27 +306,6 @@ def head_tree(cwd):
         return git(["rev-parse", "HEAD^{tree}"], cwd)
     except RuntimeError:
         return None
-
-
-def default_ref(cwd):
-    """The remote-tracking branch whose check command is trusted: origin/HEAD (only when it points at another
-    refs/remotes/origin/ ref), else origin/main, else origin/master, else None. Local state, never fetched: CI is
-    the real check."""
-    candidates = []
-    try:
-        target = git(["symbolic-ref", "-q", "refs/remotes/origin/HEAD"], cwd)
-        if target.startswith("refs/remotes/origin/") and target != "refs/remotes/origin/HEAD":
-            candidates.append(target)
-    except RuntimeError:
-        pass
-    candidates += ["refs/remotes/origin/main", "refs/remotes/origin/master"]
-    for ref in candidates:
-        try:
-            git(["rev-parse", "--verify", "--quiet", ref + "^{commit}"], cwd)
-            return ref
-        except RuntimeError:
-            continue
-    return None
 
 
 def parse_check(text):
@@ -398,7 +392,13 @@ def trusted_check(cwd):
     """(check, ref) for a local run: the default branch's CHECK_FILE whenever it exists, even without a usable
     [check] (then check is None). Only when that branch has no such file (the PR that adds it) or there is no
     default branch at all does the working-tree copy count. CI always reads the base branch."""
-    ref = default_ref(cwd)
+    try:
+        # Imported here, not at load: the hook and `check` (the agy adapter hashes only the gate and the parser) must
+        # never run a file nothing verified. Only --mark and run-check get here (NFX-108).
+        import git_refs
+    except Exception as e:
+        raise RuntimeError(f"cannot load git_refs.py next to {SCRIPT}: {e}. Re-run the NousFX sync (in a cloud session: merge the review-gate hook from project-setup's assets/settings.json again).")
+    ref = git_refs.default_ref(git, cwd)
     trusted = bool(ref) and exists_at(cwd, ref, CHECK_FILE)
     return load_check(cwd, ref if trusted else None), ref
 
@@ -440,22 +440,23 @@ def stamp_mac(key, fields):
     return hmac.new(key, body, hashlib.sha256).hexdigest()
 
 
-def remove_stamp(cwd):
+def remove_stamp(cwd, name=STAMP_FILE):
     with contextlib.suppress(FileNotFoundError):
-        os.remove(git_path(STAMP_FILE, cwd))
+        os.remove(git_path(name, cwd))
 
 
-def write_stamp(cwd, fields, key):
+def write_stamp(cwd, fields, key, name=STAMP_FILE):
     stamp = {**fields, "mac": stamp_mac(key, fields)}
-    with open(git_path(STAMP_FILE, cwd), "w", encoding="utf-8") as f:
+    with open(git_path(name, cwd), "w", encoding="utf-8") as f:
         json.dump(stamp, f)
 
 
-def valid_stamp(cwd, expected):
+def valid_stamp(cwd, expected, name=STAMP_FILE):
     """The stamp's fields when its MAC is right and it matches every key of `expected` (stamp_fields), else None.
-    A missing, unreadable or forged stamp is None, so the caller runs the check."""
+    A missing, unreadable or forged stamp is None, so the caller runs the check. `name` picks another stamp file
+    in the git dir (prove.py's proof stamp, NFX-105)."""
     try:
-        with open(git_path(STAMP_FILE, cwd), encoding="utf-8") as f:
+        with open(git_path(name, cwd), encoding="utf-8") as f:
             stamp = json.load(f)
         mac = stamp.pop("mac")
         if not isinstance(mac, str) or not hmac.compare_digest(mac, stamp_mac(stamp_key(cwd), stamp)):
@@ -614,6 +615,250 @@ def mark(argv):
     return 0
 
 
+def user_home():
+    """Home from the user record, not the HOME variable, as nousfx_sync.user_home finds it."""
+    try:
+        import pwd
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except ImportError:  # Windows has no pwd
+        return os.environ.get("USERPROFILE") or os.path.expanduser("~")
+
+
+def local_toml():
+    """The local.toml sync reads at its default state home (<home>/.config/nousfx)."""
+    return os.path.join(user_home(), ".config", "nousfx", "local.toml")
+
+
+def branch_prefix():
+    """`[branch] prefix` from local.toml, or None when it is unset, unreadable, invalid or tomllib is missing."""
+    if tomllib is None:
+        return None
+    try:
+        with open(local_toml(), encoding="utf-8") as f:
+            value = tomllib.loads(f.read()).get("branch", {}).get("prefix")
+    except Exception:  # any failure means no prefix (bad TOML, no passwd entry, deep nesting): never block
+        return None
+    return value if isinstance(value, str) and PREFIX_VALID.fullmatch(value) else None
+
+
+def branch_ok(branch, prefix):
+    """True when branch is <prefix>/<KEY>, or of that shape with any valid prefix when prefix is None."""
+    head = re.escape(prefix) if prefix else "[a-z0-9-]+"  # no prefix: any, for CI, cloud and fresh installs
+    return bool(re.fullmatch(rf"{head}/{BRANCH_KEY}", branch))
+
+
+def check_branch(argv):
+    """`check-branch NAME` (CI): the shape only, since CI cannot know whose prefix it is. 0 fits, 1 does not."""
+    if len(argv) != 3:
+        print("usage: review-gate.py check-branch NAME", file=sys.stderr)
+        return 1
+    if branch_ok(argv[2], None):
+        print(f'Branch "{argv[2]}" fits <prefix>/<JIRA-KEY>.')
+        return 0
+    print(f'Branch "{argv[2]}" is not named <prefix>/<JIRA-KEY>: a lowercase prefix (letters, digits, dashes), '
+          'a slash and a Jira key, for example ana/MOB-23. Rename the branch, or ask the repo owner for the '
+          '`branch-exception` label.', file=sys.stderr)
+    return 1
+
+
+LEADING_KEYS = re.compile(rf"({BRANCH_KEY}(?:,[ \t]*{BRANCH_KEY})*):")
+GENERATED_SUBJECT = re.compile(r"(?:Merge |Revert \"|fixup! |squash! |amend! )")  # git writes these, not the author
+
+
+def branch_key(branch):
+    """The Jira key of a `<prefix>/<KEY>` branch, or None."""
+    m = re.fullmatch(rf"[a-z0-9][a-z0-9-]*/({BRANCH_KEY})", branch)
+    return m.group(1) if m else None
+
+
+def commit_key_problem(subject, branch):
+    """NFX-86: why this commit subject does not name the branch's key, or None when it does or is not judged.
+    The subject must start with `KEY:` or `KEY, KEY:` and the branch key must be one of them. Not judged: a
+    branch with no key (the branch rule covers it) and subjects git generates (merge, revert, fixup)."""
+    key = branch_key(branch)
+    if key is None or GENERATED_SUBJECT.match(subject):
+        return None
+    m = LEADING_KEYS.match(subject)
+    if m is None:
+        return f'The subject "{subject}" does not start with a Jira key. Branch {branch} needs "{key}: ...".'
+    keys = re.findall(BRANCH_KEY, m.group(1))
+    if key in keys:
+        return None
+    return (f'The subject "{subject}" names {", ".join(keys)}, but branch {branch} is {key}. '
+            "Another session may have switched this checkout: check the branch, then amend or switch back.")
+
+
+def check_commits(argv):
+    """`check-commits BRANCH --base REF [--cwd DIR]` (CI, NFX-86): every non-merge commit in REF..HEAD must name the
+    branch's key in its subject. 0 when they do, 1 with one line per bad commit (or a usage or git error)."""
+    cwd = option(argv, "--cwd") or os.getcwd()
+    base = option(argv, "--base")
+    if len(argv) < 3 or argv[2].startswith("--") or not base:
+        print("usage: review-gate.py check-commits BRANCH --base REF [--cwd DIR]", file=sys.stderr)
+        return 1
+    branch = argv[2]
+    if branch_key(branch) is None:
+        print(f'Branch "{branch}" has no Jira key, so the commit subjects cannot be checked.', file=sys.stderr)
+        return 1
+    try:
+        log = git(["log", "--no-merges", "--format=%h%x09%s", f"{base}..HEAD", "--"], cwd)
+    except (RuntimeError, GateTimeout) as e:
+        print(f"Cannot list the commits after {base}: {e}", file=sys.stderr)
+        return 1
+    bad = []
+    for line in log.splitlines():
+        sha, _, subject = line.partition("\t")
+        why = commit_key_problem(subject, branch)
+        if why:
+            bad.append(f"{sha} {why}")
+    if bad:
+        print("\n".join(bad), file=sys.stderr)
+        print(f"{len(bad)} commit(s) do not name the key of {branch}. Amend or reword them (git rebase -i), "
+              "or ask the repo owner for the `branch-exception` label.", file=sys.stderr)
+        return 1
+    print("Commit keys checked.")
+    return 0
+
+
+SHOTS_MEDIA = {"png", "jpg", "jpeg", "gif", "webp", "mp4", "mov", "webm"}
+SHOTS_MAX_COMMITS = 100
+
+
+def shots_path_ok(path, key):
+    """True for shots/<KEY>/<name>.<media extension>, at any depth under the key, with no empty, `.` or `..` part."""
+    parts = path.split("/")
+    if len(parts) < 3 or parts[0] != "shots" or parts[1] != key or any(p in ("", ".", "..") for p in parts):
+        return False
+    stem, _, ext = parts[-1].rpartition(".")
+    return bool(stem) and ext.lower() in SHOTS_MEDIA
+
+
+def check_shots(argv):
+    """`check-shots BRANCH --head SHA [--base REF] [--cwd DIR]` (pre-push, NFX-143): 0 when BRANCH is
+    `<prefix>/<KEY>-shots` and every commit after the merge base with REF (with no REF or no merge base, its whole
+    history) adds, changes or deletes only media files under shots/<KEY>/, each left a regular file (mode 100644, so no
+    symlink or submodule), with no merge commit. Anything else, and any git error, is 1: the caller then runs the
+    normal check, which blocks. A screenshots branch never merges, so it carries no review; this keeps code off it."""
+    cwd = option(argv, "--cwd") or os.getcwd()
+    base, head = option(argv, "--base"), option(argv, "--head")
+    if len(argv) < 3 or argv[2].startswith("--") or not head:
+        print("usage: review-gate.py check-shots BRANCH --head SHA [--base REF] [--cwd DIR]", file=sys.stderr)
+        return 1
+    branch, prefix = argv[2], branch_prefix()
+    m = re.fullmatch(rf"{re.escape(prefix) if prefix else '[a-z0-9-]+'}/({BRANCH_KEY})-shots", branch)
+    if m is None:
+        print(f'Branch "{branch}" is not named {prefix or "<prefix>"}/<JIRA-KEY>-shots.', file=sys.stderr)
+        return 1
+    key = m.group(1)
+    try:
+        commit = git(["--no-replace-objects", "rev-parse", "--verify", "--quiet", f"{head}^{{commit}}"], cwd)
+        merge_base = None
+        if base:
+            git(["--no-replace-objects", "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"], cwd)  # a bad base fails closed
+            try:
+                merge_base = git(["--no-replace-objects", "merge-base", base, commit], cwd)
+            except RuntimeError:  # unrelated histories: judge the whole tree
+                merge_base = None
+        # Every commit the push adds is judged on its own, so a code file added in one commit and dropped in a later
+        # one still fails. A merge commit has no single diff to judge, so it fails too.
+        rng = [f"{merge_base}..{commit}"] if merge_base else [commit]
+        if git(["--no-replace-objects", "rev-list", "--merges", *rng], cwd):
+            print(f"{branch} holds a merge commit; a screenshots branch must be a plain line of commits.", file=sys.stderr)
+            return 1
+        commits = git(["--no-replace-objects", "rev-list", *rng], cwd).split()
+        if len(commits) > SHOTS_MAX_COMMITS:
+            print(f"{branch} adds {len(commits)} commits; a screenshots branch holds at most {SHOTS_MAX_COMMITS}.", file=sys.stderr)
+            return 1
+        records = []
+        for c in commits:  # strip=False: a path may start with a space
+            parts = git(["--no-replace-objects", "diff-tree", "-r", "--root", "--no-commit-id", "--no-renames", "--ignore-submodules=none", "--raw", "-z", c], cwd, strip=False).split("\0")
+            for meta, path in zip(parts[0::2], parts[1::2]):
+                records.append((path, meta.split(" ")[1], meta.split(" ")[-1]))  # path, new mode, status
+    except (RuntimeError, GateTimeout, IndexError) as e:
+        print(f"Cannot read {head}: {e}", file=sys.stderr)
+        return 1
+    paths = sorted({p for p, _, _ in records})
+    # A deletion has no new mode (000000); every other change must leave a regular file (100644), never a default.
+    bad = [p for p, mode, status in records if not shots_path_ok(p, key) or (status != "D" and mode != "100644")]
+    if not paths or bad:
+        print(f"{branch} is not a screenshots-only branch: "
+              + (", ".join(bad[:5]) + (" ..." if len(bad) > 5 else "") if bad else "it changes nothing")
+              + f". Allowed: media files (png, jpg, gif, webp, mp4, mov, webm) under shots/{key}/.", file=sys.stderr)
+        return 1
+    print(f"{branch}: {len(paths)} media file(s) under shots/{key}/, no review needed.")
+    return 0
+
+
+SHORT_VALUE_FLAGS = "FCcStu"  # `git commit` short flags that take the rest of the word (or the next one) as a value
+COMMIT_OPT_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--exec-path", "--namespace"}  # git options before `commit`
+HEREDOC_SUBJECT = re.compile(r"<<-?[ \t]*(['\"]?)\w+\1[ \t]*\n[ \t]*(\S[^\n]*)")
+
+
+def commit_subject(command, ps=False):
+    """The literal subject of the one `git commit -m ...` in command, or None when there is none, there are
+    several, or it cannot be read (-F, an editor, a message built at run time, a cd before it)."""
+    if pr_create_parser is None or "commit" not in command or CD_MENTION.search(command):
+        return None  # the substring test keeps the parser off nearly every Bash call
+    found = []
+    for event in pr_create_parser.parse(command, ps):
+        if not isinstance(event, list) or pr_create_parser.command_name(event[0].text) != "git":
+            continue
+        args, i = event[1:], 0
+        while i < len(args) and args[i].text.startswith("-"):  # git's own options, before the subcommand
+            if args[i].text.split("=")[0] in COMMIT_OPT_VALUE:
+                return None  # another repo (`-C dir`, `--git-dir=x`): not this branch
+            i += 1
+        if i >= len(args) or args[i].text != "commit":
+            continue
+        found.append(args[i + 1:])
+    if len(found) != 1:
+        return None
+    args = found[0]
+    for i, w in enumerate(args):
+        t = w.text
+        if t == "--":
+            break
+        value = None
+        if t.startswith("--"):
+            if t == "--message" and i + 1 < len(args):
+                w, value = args[i + 1], args[i + 1].text
+            elif t.startswith("--message="):
+                value = t[len("--message="):]
+        elif t.startswith("-"):
+            for j, ch in enumerate(t[1:], 1):  # a short cluster: -am MSG, -amMSG, -Fmsg.txt (F takes the rest)
+                if ch == "m":
+                    value = t[j + 1:] or (args[i + 1].text if i + 1 < len(args) else None)
+                    if not t[j + 1:] and i + 1 < len(args):
+                        w = args[i + 1]
+                    break
+                if ch in SHORT_VALUE_FLAGS:
+                    break
+        if value is None:
+            continue
+        if w.dynamic:
+            m = HEREDOC_SUBJECT.search(value)
+            return m.group(2).strip() if m and "$" not in value.replace("$(", "") else None
+        return value.strip().splitlines()[0] if value.strip() else None
+    return None
+
+
+def commit_warning(command, cwd, ps=False):
+    """The hook JSON that warns about a commit whose subject names another key than the branch's, or None.
+    Advisory (NFX-86): it never blocks, and any failure means no warning."""
+    try:
+        subject = commit_subject(command, ps)
+        if subject is None or not in_repo(cwd):
+            return None
+        why = commit_key_problem(subject, current_branch(cwd))
+    except Exception:
+        return None
+    if not why:
+        return None
+    text = f"Commit key check (warning): {why}"
+    return json.dumps({"systemMessage": text,
+                       "hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": text}})
+
+
 def allow_branch(argv):
     cwd = os.getcwd()
     branch = current_branch(cwd)
@@ -627,7 +872,8 @@ def allow_branch(argv):
 def branch_blocked(cwd, branch=None):
     """Message to print when the branch (default: the current one) breaks the naming rule, else None."""
     branch = branch or current_branch(cwd)
-    if branch == "HEAD" or BRANCH_OK.match(branch):  # detached HEAD: nothing to judge
+    prefix = branch_prefix()
+    if branch == "HEAD" or branch_ok(branch, prefix):  # detached HEAD: nothing to judge
         return None
     try:
         with open(git_path("claude-branch-ok", cwd), encoding="utf-8") as f:
@@ -635,7 +881,7 @@ def branch_blocked(cwd, branch=None):
                 return None
     except (OSError, KeyError, ValueError):
         pass
-    return BRANCH_BLOCK.format(branch=branch, script=SCRIPT)
+    return BRANCH_BLOCK.format(branch=branch, prefix=prefix or "<prefix>", script=SCRIPT)
 
 
 def in_repo(cwd):
@@ -1019,6 +1265,35 @@ def can_create(tool):
     return tool.lower() in ("bash", "powershell") or bool(MCP_PR_CREATE.search(tool))
 
 
+COPY_BLOCK = """\
+Blocked: the gate copy differs from main: {path} is not the review gate the default branch has.
+A branch could edit its own gate to pass, so a PR is not opened from here. Restore it (git checkout <the default branch's origin ref> -- .claude/hooks)
+or, if the change is intended, merge it to main first. CI is the real check.
+"""
+
+
+def copy_differs(path):
+    """True when the gate or the parser next to `path` is not byte for byte this one. Anything but a regular file of
+    the same size (a missing file, a FIFO that would hang the read, a link to /dev/zero) counts as different."""
+    here = os.path.dirname(SCRIPT)
+    for ours, theirs in ((SCRIPT, path), (os.path.join(here, "pr_create_parser.py"),
+                                          os.path.join(os.path.dirname(path), "pr_create_parser.py"))):
+        try:
+            info = os.stat(theirs)
+            if not stat.S_ISREG(info.st_mode):
+                return True
+            with open(ours, "rb") as a:
+                want = a.read()
+            if info.st_size != len(want):
+                return True
+            with open(theirs, "rb") as b:
+                if b.read(len(want) + 1) != want:
+                    return True
+        except Exception:
+            return True
+    return False
+
+
 def gate(argv):
     """Claude PreToolUse hook: parse the payload, then ask evaluate(). A hook that times out lets the call
     through, so the gate keeps to the budget the hook command passes (`--budget N`, below its timeout)."""
@@ -1038,7 +1313,12 @@ def gate(argv):
             return 0  # a tool that cannot open a PR: never break unrelated work
         print(PAYLOAD_BLOCK.format(error=f"{type(e).__name__}: {e}"), file=sys.stderr)
         return 2
-    return evaluate(tool, command, cwd, body)
+    code = evaluate(tool, command, cwd, body, option(argv, "--repo-copy"))
+    if code == 0 and tool.lower() in ("bash", "powershell"):
+        warning = commit_warning(command, cwd, tool.lower() == "powershell")  # NFX-86: advisory, never blocks
+        if warning:
+            print(warning)
+    return code
 
 
 BODY_BLOCK = """\
@@ -1052,6 +1332,21 @@ Then pass the body with --body "..." or --body-file FILE (a heredoc inside --bod
 
 BODY_NO_LINES = """The gate cannot print the lines to paste: {error}
 Fix that, run python3 "{script}" attest, and put its lines in the PR body."""
+
+# NFX-135: where a repo keeps its PR template, first match wins. The gate runs in every repo, so the message
+# names the file that exists there, never a fixed path.
+PR_TEMPLATES = (".github/pull_request_template.md", "claude/templates/pull_request_template.md")
+
+
+def pr_template(cwd):
+    """Repo-relative path of the first PR template that exists at the repo root, else None. A git failure or an
+    unreadable folder gives None; GateTimeout still propagates."""
+    try:
+        root = git(["rev-parse", "--show-toplevel"], cwd)
+    except RuntimeError:
+        return None
+    return next((p for p in PR_TEMPLATES if os.path.isfile(os.path.join(root, *p.split("/")))), None)
+
 
 BODY_WHY = {
     "none": "this PR create passes no PR body, so it has no `Review-Gate: <HEAD tree>` line.",
@@ -1136,21 +1431,25 @@ def body_blocked(cwd, source):
                     "`review-gate.py attest` itself wants it clean: commit or clean first.")
     except NO_ATTESTATION as e:
         fix = BODY_NO_LINES.format(error=e, script=SCRIPT)
+    template = pr_template(cwd)
+    if template:
+        fix += "\nPR template: " + template
     return BODY_BLOCK.format(why=why, fix=fix)
 
 
-def evaluate(tool, command, cwd, body=None):
+def evaluate(tool, command, cwd, body=None, repo_copy=None):
     """Exit code for one tool call. The single decision path for the hook and for `check`.
-    body: the PR body of a create-PR MCP tool (shell commands carry theirs in the command)."""
+    body: the PR body of a create-PR MCP tool (shell commands carry theirs in the command).
+    repo_copy: the repo's own copy of this gate (--repo-copy), which a PR create must match (NFX-107)."""
     global TREES
     TREES = {}
     try:
-        return decide(tool, command, cwd, body)
+        return decide(tool, command, cwd, body, repo_copy)
     finally:
         TREES = None
 
 
-def decide(tool, command, cwd, body):
+def decide(tool, command, cwd, body, repo_copy=None):
     if MCP_PR_CREATE.search(tool):
         calls = [(cwd, {"kind": "mcp", "value": body})]
     elif PARSER_ERROR:
@@ -1181,6 +1480,9 @@ def decide(tool, command, cwd, body):
             if not (isinstance(command, str) and mentions_create(command)):
                 return 0
             calls = [(None if CD_MENTION.search(command) else cwd, {"kind": "unknown"})]  # the parse lost any cd
+    if calls and repo_copy and copy_differs(repo_copy):
+        print(COPY_BLOCK.format(path=repo_copy), file=sys.stderr)
+        return 2
     if calls and not MCP_PR_CREATE.search(tool) and isinstance(command, str) and GIT_REPO_VARS.search(command):
         print(GIT_VARS_BLOCK, file=sys.stderr)
         return 2
@@ -1212,6 +1514,12 @@ if __name__ == "__main__":
         sys.exit(verify_attestation(sys.argv))
     if sys.argv[1:2] == ["verify-tier"]:
         sys.exit(verify_tier(sys.argv))
+    if sys.argv[1:2] == ["check-branch"]:
+        sys.exit(check_branch(sys.argv))
+    if sys.argv[1:2] == ["check-commits"]:
+        sys.exit(check_commits(sys.argv))
+    if sys.argv[1:2] == ["check-shots"]:
+        sys.exit(check_shots(sys.argv))
     if "--allow-branch" in sys.argv:
         sys.exit(allow_branch(sys.argv))
     sys.exit(mark(sys.argv) if "--mark" in sys.argv else gate(sys.argv))

@@ -5,7 +5,8 @@
 # gate script, python3 or git error blocks the push.
 #
 # What it judges: git sends one line per ref on stdin ("local_ref local_sha remote_ref remote_sha").
-# Deletes, tag pushes and pushes of the default branch are allowed without a review. Any other
+# Deletes, tag pushes and pushes of the default branch are allowed without a review, and so is a
+# <prefix>/<KEY>-shots branch that holds only media under shots/<KEY>/ (gate: check-shots). Any other
 # branch push is judged on the tree of the pushed commit (local_sha), not the checked-out branch:
 # that tree needs a valid review mark, and the pushed branch name must follow the naming rule.
 #
@@ -56,6 +57,27 @@ while read -r lref lsha rref rsha; do
   branch=${rref#refs/heads/}
   case "$branch" in main|master) continue ;; esac
   [ -n "$default" ] && [ "$branch" = "$default" ] && continue
+  case "$branch" in
+    *-shots)
+      # A screenshots branch never merges: it may skip the review when it holds only media under shots/<KEY>/ (NFX-143).
+      # Pass only on the gate's own success line, so a gate that does not know check-shots cannot let a push through.
+      base=""
+      if [ -n "$default" ]; then base="refs/remotes/origin/$default"
+      else # a repo set up with `git remote add` has no origin/HEAD
+        for guess in refs/remotes/origin/main refs/remotes/origin/master; do
+          git rev-parse --verify --quiet "$guess^{commit}" >/dev/null 2>&1 && { base=$guess; break; }
+        done
+      fi
+      # Full ref names: a local branch called origin/main must not shadow the remote one.
+      # Exit 0 AND the success line on stdout. The reason for a rejection goes to stderr and names the offending paths,
+      # which anyone can name "no review needed.", so stderr is never part of the test.
+      errf=$(mktemp) || fail "cannot create a temp file"
+      if out=$(python3 -I -B "$script" check-shots "$branch" --head "$lsha" ${base:+--base "$base"} --cwd "$root" </dev/null 2>"$errf"); then
+        case "$out" in *"no review needed.") rm -f "$errf"; continue ;; esac
+      fi
+      [ -s "$errf" ] && { printf 'pre-push: ' >&2; cat "$errf" >&2; }
+      rm -f "$errf" ;;
+  esac
   tree=$(git rev-parse --verify --quiet "$lsha^{tree}" 2>/dev/null) || fail "cannot read the commit $lsha pushed to $branch"
   python3 -I -B "$script" check --cwd "$root" --command "gh pr create" --tree "$tree" --branch "$branch" </dev/null || exit 2
 done
