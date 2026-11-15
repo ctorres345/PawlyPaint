@@ -215,8 +215,8 @@ def classify(files, labels=(), project_paths=()):
     if ui_path and tier < 1:
         tier = 1
         reasons.append("Tier 1: UI change (%s)" % ui_path)
-    return {"tier": tier, "reasons": reasons, "ui": ui_path is not None, "security": security_skills(files),
-            "stats": stats}
+    return {"tier": tier, "reasons": reasons, "ui": ui_path is not None, "fallback": False,
+            "security": security_skills(files), "stats": stats}
 
 
 # ---- git layer -------------------------------------------------------------------------------------------------
@@ -419,7 +419,8 @@ def fallback(reason, labels, base=None):
         reasons.append("Tier 3: label fable-review")
     else:
         tier = bump_size_l(2, reasons, labels)
-    return {"tier": tier, "reasons": reasons, "ui": False, "security": [],
+    # "fallback": the diff was not read, so "ui": False is unknown, not "no UI" (NFX-20: the Via gate fails closed).
+    return {"tier": tier, "reasons": reasons, "ui": False, "fallback": True, "security": [],
             "stats": {"lines": 0, "files": 0, "hunks": 0, "base": base}}
 
 

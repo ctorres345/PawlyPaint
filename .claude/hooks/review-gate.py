@@ -1088,6 +1088,9 @@ def attestation(cwd, clean=True):
         if override and isinstance(computed, int) and not isinstance(computed, bool) and computed > tier:
             line += f" override: computed {computed}, {override}"
         lines.append(line)
+    via = via_line(cwd, tree)  # NFX-20: a UI diff also needs a valid Via pass or skip
+    if via:
+        lines.append(via)
     return lines
 
 
@@ -1096,7 +1099,10 @@ def attest(cwd):
     try:
         lines = attestation(cwd)
     except NO_ATTESTATION as e:
-        hint = "" if isinstance(e, Dirty) else " Run the review loop first."
+        hint = ("" if isinstance(e, Dirty) else " Run `/via check` first." if isinstance(e, ViaMissing)
+                else " The gate cannot tell whether the diff touches UI: fix tier.py or the base branch (`git remote "
+                     "set-head origin -a`), or record `--via-skip`." if isinstance(e, ViaUnknown)
+                else " Run the review loop first.")
         print(f"No attestation: no valid review for the current code ({e}).{hint}", file=sys.stderr)
         return 2
     print("\n".join(lines))
@@ -1277,6 +1283,307 @@ def run_check_ref(argv):
         return 2
     print("Check passed.")
     return 0
+
+
+VIA_OK_FILE = "via-check-ok"  # written by plugins/via/scripts/via_run.py `pass`
+VIA_SKIP_FILE = "via-check-skip"  # written by `--via-skip`; its own file, so a later `pass` never erases it
+# `Via-Check: <tree>` or `Via-Check: <tree> skipped: <reason>`. A skip names its tree like `Review-Gate:` does, so a
+# later push makes it stale in CI even though the via-skip label stays on the PR.
+VIA_LINE = re.compile(r"^[ \t]*Via-Check:[ \t]+([0-9a-f]{40}|[0-9a-f]{64})(?:[ \t]+skipped:[ \t]*(\S.*?))?[ \t]*$",
+                      re.I | re.M)
+# Same pattern as via_run.py SECRET_RE (a test pins the two together): a skip reason is written to the PR body.
+SECRET_RE = re.compile(
+    r"(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|AQ\.[0-9A-Za-z_-]{20,}|gh[pousr]_[0-9A-Za-z]{36}"
+    r"|github_pat_[0-9A-Za-z_]{20,}|glpat-[0-9A-Za-z_-]{20,}|(^|[^0-9A-Za-z_-])sk-[0-9A-Za-z_-]{20,}"
+    r"|[sr]k_live_[0-9A-Za-z]{10,}|xox[baprs]-[0-9A-Za-z-]{10,}"
+    r"|eyJ[0-9A-Za-z_-]{10,}\.eyJ[0-9A-Za-z_-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY)"
+)
+
+VIA_BLOCK = """\
+Blocked: this diff touches UI, and {why}.
+- Run `/via check` (invoke the `via` skill) on the final code, then fix or route what it finds.
+- Skipping the check is the user's call: ask the user. Only then run `review-gate.py --via-skip "<reason>"`.
+  Do not record a skip yourself.
+"""
+
+VIA_ERROR_BLOCK = """\
+Blocked: the gate cannot tell whether this diff touches UI, or whether `/via check` passed: {error}
+A diff it cannot classify is treated as UI. Fix the cause (is tier.py next to {script}? does the branch have an
+origin/main to diff against?) and run the PR create again.
+- If this diff is not UI and the gate still cannot classify it, the user can record a skip:
+  `review-gate.py --via-skip "<reason>"`. Skipping is the user's call: ask the user. Do not record a skip yourself.
+"""
+
+VIA_BODY_BLOCK = """\
+Blocked: this diff touches UI, and the PR body has no `Via-Check: <HEAD tree>` line on a line of its own.
+CI compares that line with HEAD's tree, so a PR opened without it fails there.
+Put the lines `review-gate.py attest` prints in the PR body (it prints a `Via-Check:` line once `/via check` passed).
+"""
+
+VIA_DIRTY_BLOCK = """\
+Blocked: this diff touches UI, and the Via record is for uncommitted code, not for HEAD, which is what the PR carries.
+Commit the checked changes (the record then covers HEAD), or run `/via check` again on the committed code.
+"""
+
+
+class ViaUnknown(ValueError):
+    """tier.py could not say whether the diff touches UI. ValueError, so `attest` reads it as no attestation."""
+
+
+class ViaMissing(ValueError):
+    """The diff touches UI and there is no valid Via pass or skip for the current code."""
+
+
+def via_ui(cwd):
+    """True when the diff of the repo at cwd touches UI, False when it does not (tier.py's `ui` flag). ViaUnknown when
+    tier.py is missing, fails, times out, prints something odd, or reports that it could not read the diff."""
+    path = os.path.normpath(os.path.join(os.path.dirname(SCRIPT), TIER_PY))
+    if not os.path.isfile(path):
+        raise ViaUnknown(f"tier.py not found at {path} (re-run the sync)")
+    timeout = TIER_TIMEOUT
+    if DEADLINE is not None:
+        timeout = min(TIER_TIMEOUT, DEADLINE - time.monotonic())
+        if timeout <= 0:
+            raise GateTimeout(TIMED_OUT)
+    try:
+        r = subprocess.run([sys.executable, "-B", path, "--cwd", cwd], capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise ViaUnknown("tier.py timed out") from None
+    if r.returncode != 0:
+        detail = " ".join(r.stderr.split())[:200]
+        raise ViaUnknown(f"tier.py exit {r.returncode}" + (f": {detail}" if detail else ""))
+    try:
+        data = json.loads(r.stdout)
+    except ValueError:
+        raise ViaUnknown("tier.py printed something that is not JSON") from None
+    return via_flag(data)
+
+
+def via_flag(data):
+    """The `ui` bool of tier.py's JSON object. ViaUnknown for a fallback result or a missing or odd `ui` or
+    `fallback`. A result with no boolean `fallback` comes from a tier.py older than this gate (its "could not read the
+    diff" result says `ui: false` too), so it cannot be trusted to mean "no UI"."""
+    if not isinstance(data, dict) or not isinstance(data.get("ui"), bool):
+        raise ViaUnknown("tier.py printed no boolean `ui`")
+    if not isinstance(data.get("fallback"), bool):
+        raise ViaUnknown("tier.py printed no boolean `fallback`: it is older than this gate (re-run the sync)")
+    if data["fallback"]:
+        why = "; ".join(str(x) for x in data.get("reasons") or [] if isinstance(x, str))
+        raise ViaUnknown("tier.py could not read the diff" + (f" ({why})" if why else ""))
+    return data["ui"]
+
+
+def read_record(path):
+    """The JSON object in a Via record file, or None when the file is missing. ValueError when it is unreadable."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError) as e:
+        raise ValueError(f"cannot read {os.path.basename(path)} ({e})") from None
+    if not isinstance(data, dict):
+        raise ValueError(f"{os.path.basename(path)} is not a JSON object")
+    return data
+
+
+def valid_skip(cwd):
+    """(reason, tree) of a skip that covers the current code on this branch, else None."""
+    try:
+        skip = read_record(git_path(VIA_SKIP_FILE, cwd))
+    except ValueError:
+        return None
+    reason = " ".join(str(skip.get("reason") or "").split()) if skip else ""
+    if (reason and isinstance(skip.get("tree"), str) and covers(cwd, skip["tree"])
+            and skip.get("branch") == current_branch(cwd)):
+        return reason, skip["tree"]
+    return None
+
+
+def via_status(cwd):
+    """(kind, text, tree) for a diff that touches UI. kind "pass" (text: a note, maybe empty), "skip" (text: the
+    reason) or "block" (text: why, to finish `this diff touches UI, and ...`). tree: the tree the pass or skip was
+    recorded for (None for a block). Strict: a record counts only for the working tree or HEAD it was written for,
+    so any later change makes it stale."""
+    got = via_pass(cwd)
+    if got[0] != "block":  # a real pass wins over a skip, as it does in verify-via
+        return got
+    skip = valid_skip(cwd)
+    return ("skip", skip[0], skip[1]) if skip else got
+
+
+def via_pass(cwd):
+    """via_status for the pass record alone: ("pass", note, tree) or ("block", why, None)."""
+    try:
+        rec = read_record(git_path(VIA_OK_FILE, cwd))
+    except ValueError as e:
+        return "block", f"its Via record is unreadable: {e}", None
+    if rec is None:
+        return "block", "no `/via check` pass is recorded for it", None
+    tree = rec.get("tree")
+    if not isinstance(tree, str) or not covers(cwd, tree):
+        now = once(worktree_tree, cwd)
+        return "block", (f"the code changed after the Via pass (pass tree {str(tree)[:10]}, now {now[:10]}): "
+                         "the check has to run again"), None
+    open_findings = rec.get("findings_open")
+    if type(open_findings) is not int or open_findings != 0:
+        return "block", f"the Via pass has open findings ({open_findings!r}) or does not say", None
+    pending = rec.get("pending_human")
+    if pending is not None and (type(pending) is not int or pending < 0):
+        return "block", f"the Via pass has an unreadable pending_human ({pending!r})", None
+    if type(pending) is int and pending > 0:
+        ids = ", ".join(str(x) for x in rec.get("pending_ids") or [])
+        return "pass", f"Via check passed with {pending} finding(s) waiting for a human ({ids}). Not blocking.", tree
+    return "pass", "", tree
+
+
+def via_touches_ui(cwd):
+    """True when the diff touches UI. A diff tier.py cannot classify counts as UI when a skip covers this code (the
+    user's way out, e.g. a repo with no origin/main); otherwise ViaUnknown."""
+    try:
+        return once(via_ui, cwd)
+    except ViaUnknown:
+        if valid_skip(cwd):
+            return True
+        raise
+
+
+def via_blocked(cwd):
+    """(message, note). message: why a PR create from cwd is blocked on the Via rule, else None. note: text to show
+    when it is allowed. Any error blocks: a diff the gate cannot classify is treated as UI."""
+    try:  # in_repo too: it re-raises a git error or timeout, and an escaped exception would let the create through
+        if not in_repo(cwd) or not via_touches_ui(cwd):
+            return None, ""
+        kind, text, _ = via_status(cwd)
+    except Exception as e:
+        return VIA_ERROR_BLOCK.format(error=f"{type(e).__name__}: {e}", script=SCRIPT), ""
+    if kind == "block":
+        return VIA_BLOCK.format(why=text), ""
+    return None, text
+
+
+def via_body_blocked(cwd, source):
+    """Message when this diff touches UI and the PR body has no `Via-Check:` line for HEAD's tree, or the Via record
+    behind it is for uncommitted code (the PR carries HEAD only; the review mark has the same rule)."""
+    if not in_repo(cwd) or not via_touches_ui(cwd):
+        return None
+    text, _ = body_text(source, cwd)
+    if text is None:
+        return None  # the review body check already blocks a body it cannot read
+    head = once(head_tree, cwd)
+    kind, _, tree = via_status(cwd)
+    lines = [m for m in VIA_LINE.finditer(text.replace("\r\n", "\n").replace("\r", "\n"))
+             if head and m.group(1).lower() == head]
+    # The line must say what is recorded: a body with a plain line for a recorded skip would reach CI as a pass,
+    # and CI would never ask for the via-skip label.
+    if not any(bool(m.group(2)) == (kind == "skip") for m in lines):
+        return VIA_BODY_BLOCK
+    return VIA_DIRTY_BLOCK if kind != "block" and tree != head else None
+
+
+def via_line(cwd, head):
+    """The `Via-Check:` line `attest` prints for HEAD's tree: None when the diff is not UI, ViaMissing when it is UI
+    and has no valid pass or skip. ViaUnknown when tier.py cannot tell."""
+    if not via_touches_ui(cwd):
+        return None
+    kind, text, tree = via_status(cwd)
+    if kind == "block":
+        raise ViaMissing(f"this diff touches UI, and {text}")
+    if tree != head:
+        raise ViaMissing("this diff touches UI, and the Via record is for uncommitted code, not HEAD: commit it, "
+                         "or run `/via check` again on the committed code")
+    return f"Via-Check: {head}" if kind == "pass" else f"Via-Check: {head} skipped: {text}"
+
+
+def unattended():
+    return os.environ.get("VIA_UNATTENDED", "").strip().lower() in ("1", "true", "yes")
+
+
+def via_skip(argv):
+    """`--via-skip "<reason>"`: record a skip of the Via check for the current working tree and branch. The user's
+    call, never an unattended run's. Refuses an empty, flag-like or secret-shaped reason."""
+    i = argv.index("--via-skip") + 1
+    reason = " ".join(argv[i].split()) if i < len(argv) else ""
+    if not reason or reason.startswith("--"):
+        print('Blocked: --via-skip needs a reason: review-gate.py --via-skip "<why>". Nothing recorded.',
+              file=sys.stderr)
+        return 2
+    if SECRET_RE.search(reason):
+        print("Blocked: the skip reason looks like a secret, and it goes into the PR body. Nothing recorded.",
+              file=sys.stderr)
+        return 2
+    if unattended():
+        print("Blocked: an unattended run (VIA_UNATTENDED) cannot skip the Via check; only the user can. "
+              "Nothing recorded.", file=sys.stderr)
+        return 2
+    cwd = os.getcwd()
+    try:
+        branch = current_branch(cwd)
+        if branch == "HEAD":
+            print("Blocked: HEAD is detached, and a skip covers only the branch it was recorded on.", file=sys.stderr)
+            return 2
+        record = {"tree": worktree_tree(cwd), "branch": branch, "reason": reason,
+                  "time": time.strftime("%Y-%m-%dT%H:%M:%S")}
+        path = git_path(VIA_SKIP_FILE, cwd)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(record, f)
+    except (OSError, RuntimeError, GateTimeout) as e:
+        print(f"Blocked: could not record the skip: {e}", file=sys.stderr)
+        return 2
+    print(f"Via check skipped for this code: {reason}. `review-gate.py attest` now prints the `Via-Check: <tree> "
+          "skipped: ...` line for the PR body; CI then needs the via-skip label from the repo owner.")
+    return 0
+
+
+def verify_via(argv):
+    """`verify-via --tier-json FILE --text-file F [--text-file G ...] --tree HASH` (CI, NFX-20): exit 0 when tier.py's
+    JSON for the PR diff says no UI, or a `Via-Check: HASH` line is in a file. A `Via-Check: HASH skipped: <reason>`
+    line prints `Via check skipped: <reason>` (CI then needs the via-skip label). Only the line for HASH counts, so
+    a later push makes a skip stale. The outcome is always the first line printed, so CI can compare it exactly: a
+    reason is free text and must never decide the outcome. A fallback result, unreadable JSON, or a UI diff without
+    a line exits 2. A skip line for HASH wins over a plain line for it, in any file (NFX-145)."""
+    tier_json, tree = option(argv, "--tier-json"), option(argv, "--tree")
+    files = [argv[i + 1] for i, a in enumerate(argv[:-1]) if a == "--text-file"]
+    if not tier_json or not tree or not files:
+        print("Blocked: usage: review-gate.py verify-via --tier-json FILE --text-file FILE --tree HASH",
+              file=sys.stderr)
+        return 2
+    try:
+        with open(tier_json, encoding="utf-8") as f:
+            ui = via_flag(json.load(f))
+    except (OSError, ValueError) as e:  # ViaUnknown is a ValueError
+        print(f"Blocked: cannot check the Via rule: {e}. Re-run the job; CI cannot tell whether this PR touches UI.",
+              file=sys.stderr)
+        return 2
+    if not ui:
+        print("Via check not needed.")
+        return 0
+    skipped = passed = None
+    for path in files:
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                text = f.read().replace("\r\n", "\n").replace("\r", "\n")
+        except OSError as e:
+            print(f"Blocked: cannot read {path}: {e}", file=sys.stderr)
+            return 2
+        for m in VIA_LINE.finditer(text):
+            if m.group(1).lower() != tree.strip().lower():
+                continue
+            if m.group(2):
+                skipped = skipped or m.group(2)
+            else:
+                passed = True
+    if skipped:  # NFX-145: a skip line wins over a plain line, in any file, so the label check always sees it
+        print(f"Via check skipped: {skipped}")
+        return 0
+    if passed:
+        print("Via check verified.")
+        return 0
+    print(f"Blocked: this PR touches UI and has no `Via-Check: {tree}` line in the PR description or last commit "
+          "message. Run `/via check`, then `review-gate.py attest` on the final code and paste its lines.",
+          file=sys.stderr)
+    return 2
 
 
 def can_create(tool):
@@ -1509,16 +1816,26 @@ def decide(tool, command, cwd, body, repo_copy=None):
         code = check_repo(d)
         if code:
             return code
+    notes = []
+    for d in dict.fromkeys(d for d, _ in calls):  # NFX-20: a UI diff also needs a Via pass or skip
+        msg, note = via_blocked(d)
+        if msg:
+            print(msg, file=sys.stderr)
+            return 2
+        if note:
+            notes.append(note)
     for d, source in calls:  # every repo has a valid review: now each create's body must attest HEAD
         if source is None:
             continue
         try:
-            msg = body_blocked(d, source)
+            msg = body_blocked(d, source) or via_body_blocked(d, source)
         except Exception as e:  # this is a create, so a body the gate cannot check must not let it through
             msg = ERROR_BLOCK.format(error=e, script=SCRIPT)
         if msg:
             print(msg, file=sys.stderr)
             return 2
+    for note in dict.fromkeys(notes):
+        print(note)
     return 0
 
 
@@ -1539,6 +1856,10 @@ if __name__ == "__main__":
         sys.exit(check_commits(sys.argv))
     if sys.argv[1:2] == ["check-shots"]:
         sys.exit(check_shots(sys.argv))
+    if sys.argv[1:2] == ["verify-via"]:
+        sys.exit(verify_via(sys.argv))
     if "--allow-branch" in sys.argv:
         sys.exit(allow_branch(sys.argv))
+    if "--via-skip" in sys.argv:
+        sys.exit(via_skip(sys.argv))
     sys.exit(mark(sys.argv) if "--mark" in sys.argv else gate(sys.argv))
