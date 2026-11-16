@@ -7,6 +7,7 @@ class _SortStats extends StatelessWidget {
     required this.seconds,
     required this.left,
     this.countdown = false,
+    this.meter,
   });
 
   final bool relaxed;
@@ -18,53 +19,64 @@ class _SortStats extends StatelessWidget {
   final int seconds;
   final int left;
 
+  /// The star meter row under the progress bar, when stars count.
+  final Widget? meter;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final time = '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+    final meter = this.meter;
     return Container(
       color: scheme.surface,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(value: progress, minHeight: 8),
-            ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        _progressRow(scheme, text, time),
+        if (meter != null) ...[const SizedBox(height: 6), meter],
+      ]),
+    );
+  }
+
+  Widget _progressRow(ColorScheme scheme, TextTheme text, String time) {
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(value: progress, minHeight: 8),
           ),
-          const SizedBox(width: 12),
-          Flexible(
-            flex: 0,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                children: [
-                  Text('$left to sort', style: text.labelLarge),
-                  if (!relaxed) ...[
-                    const SizedBox(width: 16),
-                    Icon(
-                      countdown ? Icons.hourglass_bottom_rounded : Icons.timer_outlined,
-                      size: 18,
-                      semanticLabel: countdown ? 'Time left' : 'Time',
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          flex: 0,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              children: [
+                Text('$left to sort', style: text.labelLarge),
+                if (!relaxed) ...[
+                  const SizedBox(width: 16),
+                  Icon(
+                    countdown ? Icons.hourglass_bottom_rounded : Icons.timer_outlined,
+                    size: 18,
+                    semanticLabel: countdown ? 'Time left' : 'Time',
+                    color: countdown && seconds <= 10 ? scheme.error : null,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    time,
+                    style: text.labelLarge?.copyWith(
                       color: countdown && seconds <= 10 ? scheme.error : null,
+                      fontWeight: countdown ? FontWeight.w800 : null,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      time,
-                      style: text.labelLarge?.copyWith(
-                        color: countdown && seconds <= 10 ? scheme.error : null,
-                        fontWeight: countdown ? FontWeight.w800 : null,
-                      ),
-                    ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

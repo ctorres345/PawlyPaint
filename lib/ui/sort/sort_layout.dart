@@ -62,6 +62,14 @@ mixin _SortLayout on _SortStateBase {
                     seconds: _timed ? game.timeLeft : clock.value,
                     countdown: _timed,
                     left: game.game.wrongCount,
+                    // Relaxed or an excused save finishes with no stars; Time Attack has none.
+                    meter: widget.tutorial || _timed || game.relaxed || game.excusedMistakes
+                        ? null
+                        : StarMeterBar(
+                            meter: game.meter,
+                            fresh: game.game.placed == 0 && game.game.mistakes == 0 && game.game.shakes == 0,
+                            onStarLost: _onStarLost,
+                          ),
                   ),
                 )),
                 Expanded(
