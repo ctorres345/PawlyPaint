@@ -199,15 +199,20 @@ const ringInk = Color(0xFF2E2233);
 /// A selection ring that reads on every bead color: a dark outline around a
 /// bright core, so it stands out on white beads as well as on dark ones.
 /// [width] is the core's stroke width and [alpha] fades the whole ring.
-void drawSelectRing(Canvas canvas, Rect r, double width, {double alpha = 1, Color core = Colors.white}) {
+void drawSelectRing(Canvas canvas, Rect r, double width, {double alpha = 1, Color core = Colors.white}) =>
+    drawSelectRings(canvas, Path()..addOval(r), width, alpha: alpha, core: core);
+
+/// [drawSelectRing] for many rings at once: [rings] holds their ovals, so
+/// the whole set is two draws instead of two per ring.
+void drawSelectRings(Canvas canvas, Path rings, double width, {double alpha = 1, Color core = Colors.white}) {
   _ringOutline
     ..color = ringInk.withValues(alpha: 0.85 * alpha)
     ..strokeWidth = width * 2.2;
   _ringCore
     ..color = core.withValues(alpha: alpha)
     ..strokeWidth = width;
-  canvas.drawOval(r, _ringOutline);
-  canvas.drawOval(r, _ringCore);
+  canvas.drawPath(rings, _ringOutline);
+  canvas.drawPath(rings, _ringCore);
 }
 
 /// How long the finish sweep takes to cross the picture.

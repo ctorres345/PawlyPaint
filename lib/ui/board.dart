@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../logic/line.dart';
@@ -160,7 +161,7 @@ class Board extends StatefulWidget {
 
   final GameController game;
   final BoardView view;
-  final Animation<double> shimmer;
+  final ValueListenable<double> shimmer;
   final List<GemPaints> paints;
   final bool highlight;
 
@@ -301,6 +302,9 @@ class _BoardState extends State<Board> {
   }
 }
 
+/// A fixed pseudo-random 16-bit number per cell, so twinkles look scattered.
+int twinkleHash(int i) => (i * 2654435761) & 0xFFFF;
+
 /// The canvas, recorded in layers so a frame mostly replays pictures:
 /// the sheet with every spot and the grid, the numbers, and the placed
 /// drills in chunks that only grow. Placing a drill re-records nothing big,
@@ -319,6 +323,21 @@ class BoardCache {
   int committed = 0;
   Object? gemsLook;
   static const chunk = 64;
+
+  /// The cells that may twinkle, one in [every]: worked out once rather than
+  /// hashing every cell on every frame.
+  List<int> twinkleCells(int cellCount, int every) {
+    final key = (cellCount, every);
+    if (_twinkleKey == key) return _twinkle;
+    _twinkleKey = key;
+    return _twinkle = [
+      for (var i = 0; i < cellCount; i++)
+        if (twinkleHash(i) % every == 0) i,
+    ];
+  }
+
+  List<int> _twinkle = const [];
+  Object? _twinkleKey;
 
   void dispose() {
     base?.dispose();
@@ -354,7 +373,7 @@ class BoardPainter extends CustomPainter {
 
   final GameController game;
   final BoardView view;
-  final Animation<double> shimmer;
+  final ValueListenable<double> shimmer;
   final List<GemPaints> paints;
   final bool highlight;
   final bool celebrate;
@@ -527,9 +546,12 @@ class BoardPainter extends CustomPainter {
       _ring
         ..color = (selColor.computeLuminance() > 0.55 ? ringInk : selColor).withValues(alpha: 0.35 + 0.45 * pulse)
         ..strokeWidth = math.max(kCell * 0.08, 1.5 / view.scale);
+      // One path for every ring: a single draw instead of one per cell.
+      final rings = Path();
       for (final i in p.cellsByColor[game.selected]) {
-        if (game.placed[i] == 0) canvas.drawRect(cellRect(i).deflate(kCell * 0.08), _ring);
+        if (game.placed[i] == 0) rings.addRect(cellRect(i).deflate(kCell * 0.08));
       }
+      canvas.drawPath(rings, _ring);
     }
 
     // A band of light sweeping diagonally across the placed drills.
@@ -549,9 +571,9 @@ class BoardPainter extends CustomPainter {
     drawSweep(canvas, sweepAt, Rect.fromLTWH(0, 0, p.width * kCell, p.height * kCell), now);
 
     // The odd twinkle, and lots of them while the finished picture is revealed.
-    for (var i = 0; i < p.cellCount; i++) {
-      final hash = (i * 2654435761) & 0xFFFF;
-      if (hash % (celebrate ? 3 : 9) != 0 || game.placed[i] == 0) continue;
+    for (final i in cache.twinkleCells(p.cellCount, celebrate ? 3 : 9)) {
+      final hash = twinkleHash(i);
+      if (game.placed[i] == 0) continue;
       final s = math.sin(2 * math.pi * (t * (celebrate ? 6 : 2) + hash / 0xFFFF));
       if (s > 0.94) drawGemSparkle(canvas, cellRect(i), (s - 0.94) / 0.06);
     }

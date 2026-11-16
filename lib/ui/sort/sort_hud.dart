@@ -129,20 +129,26 @@ class _SortTips extends StatelessWidget {
 /// The live combo: a badge that pops on each good drop, with a bar that
 /// drains until the combo lapses.
 class _ComboMeter extends StatelessWidget {
-  const _ComboMeter({required this.game, required this.bar});
+  const _ComboMeter({required this.game, required this.tick, required this.drained});
 
   final SortController game;
-  final AnimationController bar;
+
+  /// Paces the draining bar (about 30 frames a second, not every vsync).
+  final Listenable tick;
+
+  /// How much of the bar has drained, 0..1 (1: the combo lapsed).
+  final double Function() drained;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return IgnorePointer(
       child: AnimatedBuilder(
-        animation: Listenable.merge([game, bar]),
+        animation: Listenable.merge([game, tick]),
         builder: (context, _) {
           final combo = game.comboNow();
-          final show = combo >= 2 && bar.isAnimating;
+          final left = 1 - drained();
+          final show = combo >= 2 && left > 0;
           return AnimatedOpacity(
             opacity: show ? 1 : 0,
             duration: const Duration(milliseconds: 200),
@@ -175,7 +181,7 @@ class _ComboMeter extends StatelessWidget {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(3),
                           child: LinearProgressIndicator(
-                            value: 1 - bar.value,
+                            value: left,
                             minHeight: 5,
                             color: Colors.white,
                             backgroundColor: Colors.white30,

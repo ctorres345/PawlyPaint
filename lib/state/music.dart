@@ -3,7 +3,7 @@ import 'dart:math' as math;
 
 import 'package:audio_session/audio_session.dart' as session;
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, visibleForTesting;
 import 'package:flutter/widgets.dart';
 import 'package:just_audio/just_audio.dart' as ja;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -231,6 +231,10 @@ class MusicController extends ChangeNotifier with WidgetsBindingObserver {
   bool _inGame = false;
   Future<void>? _sessionReady;
   bool _appActive = true;
+
+  /// Whether the app is in front, so music may play (false in the background).
+  @visibleForTesting
+  bool get inForeground => _appActive;
   int _generation = 0;
 
   void playMenu() {

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:ui' show lerpDouble;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -20,8 +21,8 @@ import 'board.dart' show BoardView, kCell;
 import 'coach.dart';
 import 'completion_sheet.dart';
 import 'desk.dart';
+import 'effect_clock.dart';
 import 'gem_style.dart';
-import 'idle_shimmer.dart';
 import 'layer_raster.dart';
 import 'mini_map.dart';
 import 'music_sheet.dart';

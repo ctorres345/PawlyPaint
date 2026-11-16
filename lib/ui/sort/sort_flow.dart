@@ -5,7 +5,7 @@ mixin _SortFlow on _SortStateBase {
   /// A wide shine sweeps once across the finished picture.
   void _startSweep() {
     if (MediaQuery.of(context).disableAnimations) return;
-    _shimmer.poke();
+    _effects.poke();
     setState(() => _sweepAt = DateTime.now());
   }
 
