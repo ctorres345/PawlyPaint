@@ -39,7 +39,7 @@ class BadgeGrid extends StatelessWidget {
       spacing: 10,
       runSpacing: 10,
       children: [
-        for (final a in achievements)
+        for (final a in achievementsShown(courses, store))
           Semantics(
             label: '${a.title}: ${a.description}. ${earned.contains(a.id) ? 'Earned' : 'Not earned yet'}',
             excludeSemantics: true,

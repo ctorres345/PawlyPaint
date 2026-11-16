@@ -5,6 +5,7 @@ import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/logic/boosters.dart';
 import 'package:pawlypaint/logic/unlocks.dart';
 import 'package:pawlypaint/models/puzzle.dart';
+import 'package:pawlypaint/state/achievements.dart';
 import 'package:pawlypaint/state/progress_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 // ignore: depend_on_referenced_packages
@@ -116,6 +117,25 @@ void main() {
       expect(saved['secrets'], isEmpty);
       expect(saved['streakBonusPaid'], 0);
       expect(saved['keptOpen'], containsAll(UnlockTables.legacyIds));
+    });
+
+    test('keeps its earned badges quietly under the tiered engine and gains daysPlayed', () async {
+      final prefs = await seed({'progress_v1': jsonEncode(v1Save())});
+      final store = await ProgressStore.load();
+      expect(store.hasSeenBadge('first'), isTrue);
+      expect(store.hasSeenBadge('wide'), isTrue, reason: 'an id this build no longer knows is kept');
+      await baselineBadges(courses, store);
+      expect(store.hasSeenBadge('first'), isTrue);
+      expect(store.hasSeenBadge('wide'), isTrue);
+      expect(store.hasSeenBadge('combo10'), isFalse, reason: 'best combo is 9');
+      expect(takeNewAchievements(courses, store), isEmpty);
+      // Her 4-day daily streak ending 2026-11-09 is the only dated play she has.
+      expect(store.playedDays, {'2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09'});
+      await store.noteCombo(12);
+      final saved = readSave(prefs);
+      expect(saved['version'], 2);
+      expect(saved['daysPlayed'], ['2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09']);
+      expect(saved['badges'], containsAll(['first', 'wide']));
     });
 
     test('rewards a version 1 save already earned stay earned when the build grows', () async {

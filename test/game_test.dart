@@ -592,6 +592,13 @@ void main() {
       }
       expect(earnedAchievements(courses, store), containsAll(['course', 'hard']));
     });
+
+    test('every badge has a Mochi title and a description', () {
+      for (final a in achievementsFor(store: false, courses: buildCourses())) {
+        expect(a.mochiTitle, isNotEmpty, reason: a.id);
+        expect(a.description, isNotEmpty, reason: a.id);
+      }
+    });
   });
 
   test('every picture has clearly distinct colors, Hard included', () {

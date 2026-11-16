@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'data/courses.dart';
+import 'state/achievements.dart';
 import 'state/music.dart';
 import 'state/progress_store.dart';
 import 'state/settings.dart';
@@ -10,6 +11,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Load everything at once rather than one after another.
   final (store, music, settings) = await (ProgressStore.load(), MusicController.load(), AppSettings.load()).wait;
+  await baselineBadges(allCourses, store);
   runApp(PawlyPaintApp(store: store, music: music, settings: settings));
   music.playMenu();
 }
