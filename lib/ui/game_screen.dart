@@ -45,17 +45,28 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin, WidgetsBindingObserver
+    implements PlayTimers {
   AppSettings get _settings => SettingsScope.read(context);
 
   late final GameController game;
   late List<GemPaints> paints;
   final view = BoardView();
   late final EffectClock _effects;
-  bool _animate = true;
   ValueListenable<double> get shimmer => _effects;
+
+  @override
+  EffectClock get effects => _effects;
+
+  @override
+  bool get clockTicking => _clockTick != null;
+
+  @override
+  bool get lapsePending => false;
   final clock = ValueNotifier<int>(0);
   Timer? _clockTick;
+  bool _covered = false;
   int _unsavedPlacements = 0;
   DateTime _lastHaptic = DateTime(0);
   bool highlight = true;
@@ -134,17 +145,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       _music = MusicScope.read(context);
       _music!.enterGame();
     }
-    // Respect the system "remove animations" setting: the drills stay still.
-    final animate = !MediaQuery.of(context).disableAnimations;
-    if (animate != _animate) {
-      _animate = animate;
-      _effects.allowed = animate;
+    // Still with "remove animations", resting while another screen covers this one.
+    _effects.follow(context);
+    // The clock text rests too while covered.
+    final covered = !TickerMode.valuesOf(context).enabled;
+    if (covered != _covered) {
+      _covered = covered;
+      covered ? _stopClockTick() : _maybeStartClockTick();
     }
-    // Rest the effects while another screen covers this one.
-    _effects.onScreen = TickerMode.valuesOf(context).enabled;
   }
 
   /// Only the clock text listens to this, so the canvas never rebuilds for it.
+  /// Starts the clock text's timer unless the round is over, the app is in
+  /// the background or another screen covers this one.
+  void _maybeStartClockTick() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (_finished || _covered || (state != null && state != AppLifecycleState.resumed)) return;
+    _startClockTick();
+  }
+
+  void _stopClockTick() {
+    _clockTick?.cancel();
+    _clockTick = null;
+  }
+
   void _startClockTick() {
     _clockTick?.cancel();
     _clockTick = Timer.periodic(const Duration(seconds: 1), (_) => clock.value = game.seconds);
@@ -153,12 +177,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (!_finished) _startClockTick();
+      _maybeStartClockTick();
       return;
     }
     // Inactive, hidden or paused: nothing ticks in the background.
-    _clockTick?.cancel();
-    _clockTick = null;
+    _stopClockTick();
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       game.pause();
       _save();
@@ -559,8 +582,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
             final canvas = ClipRect(
               child: Stack(
                 children: [
-                  Positioned.fill(
-                    child: RepaintBoundary(child: CustomPaint(painter: DeskPainter(SettingsScope.of(context).theme))),
+                  const Positioned.fill(
+                    child: DeskLayer(),
                   ),
                   Positioned.fill(
                     child: Semantics(

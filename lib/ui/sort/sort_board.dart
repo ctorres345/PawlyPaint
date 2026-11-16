@@ -1,6 +1,11 @@
 part of '../sort_screen.dart';
 
 /// The canvas for Sort mode: tap to send beads down, drag or pinch to move.
+
+/// How long a hint's rings and a miss cross stay on the board.
+const _hintShows = Duration(milliseconds: 3800);
+const _missShows = Duration(milliseconds: 600);
+
 class _SortBoard extends StatefulWidget {
   const _SortBoard({
     super.key,
@@ -286,7 +291,7 @@ class _SortBoardPainter extends CustomPainter {
 
     // Hint: pulsing rings on what to pick up and where it goes.
     final hint = game.hintStep, hintAt = game.hintAt;
-    if (hint != null && hintAt != null && now.difference(hintAt).inMilliseconds < 3800) {
+    if (hint != null && hintAt != null && now.difference(hintAt) < _hintShows) {
       _ring
         ..color = const Color(0xFFFFC107).withValues(alpha: 0.5 + 0.5 * pulse)
         ..strokeWidth = math.max(kCell * 0.12, 2 / view.scale);
@@ -299,7 +304,7 @@ class _SortBoardPainter extends CustomPainter {
     final miss = game.mistakeCell, missAt = game.mistakeAt;
     if (miss != null && missAt != null) {
       final age = now.difference(missAt).inMilliseconds;
-      if (age < 600) {
+      if (age < _missShows.inMilliseconds) {
         final rect = _cell(miss).deflate(kCell * 0.22);
         _miss
           ..color = const Color(0xFFE53935).withValues(alpha: 1 - age / 600)

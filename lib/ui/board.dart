@@ -302,6 +302,9 @@ class _BoardState extends State<Board> {
   }
 }
 
+/// A fixed pseudo-random 16-bit number per cell, so twinkles look scattered.
+int twinkleHash(int i) => (i * 2654435761) & 0xFFFF;
+
 /// The canvas, recorded in layers so a frame mostly replays pictures:
 /// the sheet with every spot and the grid, the numbers, and the placed
 /// drills in chunks that only grow. Placing a drill re-records nothing big,
@@ -329,7 +332,7 @@ class BoardCache {
     _twinkleKey = key;
     return _twinkle = [
       for (var i = 0; i < cellCount; i++)
-        if (((i * 2654435761) & 0xFFFF) % every == 0) i,
+        if (twinkleHash(i) % every == 0) i,
     ];
   }
 
@@ -569,7 +572,7 @@ class BoardPainter extends CustomPainter {
 
     // The odd twinkle, and lots of them while the finished picture is revealed.
     for (final i in cache.twinkleCells(p.cellCount, celebrate ? 3 : 9)) {
-      final hash = (i * 2654435761) & 0xFFFF;
+      final hash = twinkleHash(i);
       if (game.placed[i] == 0) continue;
       final s = math.sin(2 * math.pi * (t * (celebrate ? 6 : 2) + hash / 0xFFFF));
       if (s > 0.94) drawGemSparkle(canvas, cellRect(i), (s - 0.94) / 0.06);

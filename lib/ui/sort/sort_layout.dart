@@ -76,9 +76,8 @@ mixin _SortLayout on _SortStateBase {
                   child: ClipRect(
                     child: Stack(
                       children: [
-                        Positioned.fill(
-                          child: RepaintBoundary(
-                              child: CustomPaint(painter: DeskPainter(SettingsScope.of(context).theme))),
+                        const Positioned.fill(
+                          child: DeskLayer(),
                         ),
                         Positioned.fill(
                           child: Semantics(
@@ -119,7 +118,7 @@ mixin _SortLayout on _SortStateBase {
                             right: 10,
                             top: 10,
                             child: RepaintBoundary(
-                              child: _ComboMeter(game: game, tick: _effects, drained: () => _comboDrained),
+                              child: _ComboMeter(game: game, tick: _comboTick, drained: () => _comboDrained),
                             ),
                           ),
                         if (!_showTips && !_finished && !widget.tutorial)

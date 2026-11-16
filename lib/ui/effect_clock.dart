@@ -3,6 +3,19 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+/// What a play screen keeps running on timers, so tests can check that
+/// nothing runs in the background or under another screen.
+abstract interface class PlayTimers {
+  /// The 1 s timer that updates the clock text.
+  bool get clockTicking;
+
+  /// The clock that paces the screen's effects.
+  EffectClock get effects;
+
+  /// A one-shot timer waits to clear an effect whose window ends (Sort).
+  bool get lapsePending;
+}
+
 /// Paces the decorative effects of a play screen (the shimmer band, twinkles,
 /// pulses, pops and rings) at about 30 frames a second, and only while one
 /// of them can be seen.
@@ -23,11 +36,21 @@ class EffectClock extends ChangeNotifier with WidgetsBindingObserver implements 
     this.interval = const Duration(milliseconds: 33),
     this.period = const Duration(milliseconds: 4200),
     Duration Function()? elapsed,
-  }) : _elapsed = elapsed ?? _stopwatch() {
+  }) : _elapsed = elapsed ?? newElapsed() {
     WidgetsBinding.instance.addObserver(this);
     final state = WidgetsBinding.instance.lifecycleState;
     _appActive = state == null || state == AppLifecycleState.resumed;
   }
+
+  /// Makes the time source of a clock built without `elapsed`: a
+  /// monotonic [Stopwatch], so a change of the phone's clock can't keep the
+  /// effects running. Widget tests swap in their fake time.
+  @visibleForTesting
+  static Duration Function() Function() newElapsed = _stopwatch;
+
+  /// The wall clock that effect windows (a hint's 3.8 s, a combo's window)
+  /// are measured against. Widget tests swap in their fake time.
+  static DateTime Function() wallNow = DateTime.now;
 
   static Duration Function() _stopwatch() {
     final s = Stopwatch()..start();
@@ -79,6 +102,14 @@ class EffectClock extends ChangeNotifier with WidgetsBindingObserver implements 
     if (v == _onScreen) return;
     _onScreen = v;
     v ? _maybeStart() : _stop();
+  }
+
+  /// Follows the screen's [context]: the system "remove animations" setting
+  /// and whether another screen covers this one. Call it from
+  /// `didChangeDependencies`.
+  void follow(BuildContext context) {
+    allowed = !MediaQuery.of(context).disableAnimations;
+    onScreen = TickerMode.valuesOf(context).enabled;
   }
 
   /// A touch or game event: run the effects for [idleAfter] from now.

@@ -68,6 +68,15 @@ void main() {
     clock.dispose();
   });
 
+  testWidgets('by default the effects rest 15 s after the last poke', (tester) async {
+    make().poke();
+    await advance(tester, const Duration(milliseconds: 14900));
+    expect(clock.isRunning, isTrue);
+    await advance(tester, const Duration(milliseconds: 200));
+    expect(clock.isRunning, isFalse);
+    clock.dispose();
+  });
+
   testWidgets('each poke restarts the idle countdown', (tester) async {
     make(idleAfter: const Duration(seconds: 2)).poke();
     await advance(tester, const Duration(milliseconds: 1500));

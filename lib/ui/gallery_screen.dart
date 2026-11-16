@@ -129,8 +129,7 @@ class _PictureViewerState extends State<PictureViewer> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _shimmer.allowed = !MediaQuery.of(context).disableAnimations;
-    _shimmer.onScreen = TickerMode.valuesOf(context).enabled;
+    _shimmer.follow(context);
   }
 
   @override
