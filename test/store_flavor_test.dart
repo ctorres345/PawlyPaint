@@ -86,8 +86,16 @@ void main() {
   });
 
   test('the Fan favorite badge is only offered where a special course exists', () {
-    expect(achievementsFor(store: true).map((a) => a.id), isNot(contains('fan')));
-    expect(achievementsFor(store: false).map((a) => a.id), contains('fan'));
-    expect(achievementsFor(store: true).length, achievementsFor(store: false).length - 1);
+    final storeIds = achievementsFor(store: true, courses: store).map((a) => a.id).toSet();
+    final sideIds = achievementsFor(store: false, courses: sideload).map((a) => a.id).toSet();
+    expect(storeIds, isNot(contains('fan')));
+    expect(sideIds, contains('fan'));
+    // The sideload build differs by Fan favorite and the Course master badges of its extra courses.
+    final extra = {
+      for (final c in sideload)
+        if (sideloadOnlyCourseIds.contains(c.id)) ...sideIds.where((id) => id.startsWith('course.${c.id}.')),
+    };
+    expect(sideIds.difference(storeIds), {'fan', ...extra});
+    expect(storeIds.difference(sideIds).where((id) => !id.startsWith('course.')), isEmpty);
   });
 }

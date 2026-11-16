@@ -192,6 +192,7 @@ class ProgressStore extends ChangeNotifier {
     'streakBonusPaid',
     'keptOpen',
     'introduced',
+    'daysPlayed',
   };
 
   /// Parses each entry on its own and returns how many were skipped.
@@ -231,7 +232,31 @@ class ProgressStore extends ChangeNotifier {
   final Set<String> _celebrated = {};
   final Set<String> _keptOpen = {};
   final Set<String> _introduced = {};
+  final Set<String> _daysPlayed = {};
   int _streakBonusPaid = 0;
+
+  /// Clock for the days-played count; tests replace it.
+  @visibleForTesting
+  static DateTime Function() clock = DateTime.now;
+
+  /// Local days (see [dayKey]) she finished a picture on, in Paint or Sort (PAP-42).
+  Set<String> get playedDays => Set.unmodifiable(_daysPlayed);
+
+  /// How many different days she has finished a picture on. A missed day never lowers it.
+  int get daysPlayed => _daysPlayed.length;
+
+  /// A save without the key only has the daily streak to go by: its run of days.
+  void _seedDaysPlayed() {
+    final done = _dailyDone;
+    final parts = done?.split('-');
+    if (done == null || _streak < 1 || parts == null || parts.length != 3) return;
+    final y = int.tryParse(parts[0]), m = int.tryParse(parts[1]), d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) return;
+    // The streak comes from the save, so cap the loop: a damaged value must not stall startup.
+    for (var i = 0; i < math.min(_streak, 3650); i++) {
+      _daysPlayed.add(dayKey(DateTime(y, m, d - i)));
+    }
+  }
 
   Set<String> get secrets => Set.unmodifiable(_secrets);
   Set<String> get celebrated => Set.unmodifiable(_celebrated);
@@ -337,6 +362,7 @@ class ProgressStore extends ChangeNotifier {
     var readOnly = false;
     var secrets = <String>{}, celebrated = <String>{}, keptOpen = <String>{};
     Set<String>? introduced;
+    Set<String>? daysPlayed;
     var streakBonusPaid = 0;
     final extra = <String, dynamic>{};
     final raw = prefs.getString(_key);
@@ -397,6 +423,7 @@ class ProgressStore extends ChangeNotifier {
       secrets = _stringSet(j['secrets']);
       celebrated = _stringSet(j['celebrated']);
       if (j['introduced'] is List) introduced = _stringSet(j['introduced']);
+      if (j['daysPlayed'] is List) daysPlayed = _stringSet(j['daysPlayed']);
       streakBonusPaid = j['streakBonusPaid'] is int ? j['streakBonusPaid'] as int : 0;
       j.forEach((k, v) {
         if (!_knownKeys.contains(k)) extra[k] = v;
@@ -440,6 +467,11 @@ class ProgressStore extends ChangeNotifier {
       .._extra.addAll(extra);
     // Rewards a save already qualifies for stay earned if the build grows before the next picture.
     store._keepEarnedRewards();
+    if (daysPlayed != null) {
+      store._daysPlayed.addAll(daysPlayed);
+    } else {
+      store._seedDaysPlayed();
+    }
     if (introduced != null) {
       store._introduced.addAll(introduced);
     } else {
@@ -677,6 +709,7 @@ class ProgressStore extends ChangeNotifier {
     );
     _saved.remove(id);
     _sortSaved.remove(id);
+    _daysPlayed.add(dayKey(clock()));
     // Rewards scale with the build, so keep each one once earned: a bigger build must not take it back.
     _keepEarnedRewards();
     notifyListeners();
@@ -746,6 +779,7 @@ class ProgressStore extends ChangeNotifier {
           'streakBonusPaid': _streakBonusPaid,
           'keptOpen': _keptOpen.toList(),
           'introduced': _introduced.toList(),
+          'daysPlayed': _daysPlayed.toList()..sort(),
         }),
       );
       // Android reports a failed write (a full disk, say) as false, not as an error.
