@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../logic/line.dart';
@@ -160,7 +161,7 @@ class Board extends StatefulWidget {
 
   final GameController game;
   final BoardView view;
-  final Animation<double> shimmer;
+  final ValueListenable<double> shimmer;
   final List<GemPaints> paints;
   final bool highlight;
 
@@ -354,7 +355,7 @@ class BoardPainter extends CustomPainter {
 
   final GameController game;
   final BoardView view;
-  final Animation<double> shimmer;
+  final ValueListenable<double> shimmer;
   final List<GemPaints> paints;
   final bool highlight;
   final bool celebrate;

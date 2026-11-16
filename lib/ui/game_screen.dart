@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' show lerpDouble;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../data/courses.dart' show allCourses;
@@ -20,8 +21,8 @@ import 'coach.dart';
 import 'combo_pop.dart';
 import 'completion_sheet.dart';
 import 'desk.dart';
+import 'effect_clock.dart';
 import 'gem_style.dart';
-import 'idle_shimmer.dart';
 import 'mini_map.dart';
 import 'music_sheet.dart';
 import 'star_meter.dart';
@@ -50,9 +51,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   late final GameController game;
   late List<GemPaints> paints;
   final view = BoardView();
-  late final IdleShimmer _shimmer;
+  late final EffectClock _effects;
   bool _animate = true;
-  Animation<double> get shimmer => _shimmer.animation;
+  ValueListenable<double> get shimmer => _effects;
   final clock = ValueNotifier<int>(0);
   Timer? _clockTick;
   int _unsavedPlacements = 0;
@@ -96,10 +97,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     super.initState();
     game = GameController(widget.puzzle, resume: widget.tutorial ? null : widget.store.savedFor(widget.puzzle));
     paints = GemPaints.forPuzzle(widget.puzzle, _settings.shape);
-    _shimmer = IdleShimmer(this)..poke();
+    _effects = EffectClock()..poke();
     clock.value = game.seconds;
-    // Only the clock text listens to this, so the canvas never rebuilds for it.
-    _clockTick = Timer.periodic(const Duration(seconds: 1), (_) => clock.value = game.seconds);
+    _startClockTick();
     WidgetsBinding.instance.addObserver(this);
     if (!widget.tutorial) WidgetsBinding.instance.addPostFrameCallback((_) => _introduceBoosters());
   }
@@ -138,12 +138,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final animate = !MediaQuery.of(context).disableAnimations;
     if (animate != _animate) {
       _animate = animate;
-      _shimmer.allowed = animate;
+      _effects.allowed = animate;
     }
+    // Rest the effects while another screen covers this one.
+    _effects.onScreen = TickerMode.valuesOf(context).enabled;
+  }
+
+  /// Only the clock text listens to this, so the canvas never rebuilds for it.
+  void _startClockTick() {
+    _clockTick?.cancel();
+    _clockTick = Timer.periodic(const Duration(seconds: 1), (_) => clock.value = game.seconds);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (!_finished) _startClockTick();
+      return;
+    }
+    // Inactive, hidden or paused: nothing ticks in the background.
+    _clockTick?.cancel();
+    _clockTick = null;
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       game.pause();
       _save();
@@ -166,7 +181,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     _glide?.dispose();
     _clockTick?.cancel();
     clock.dispose();
-    _shimmer.dispose();
+    _effects.dispose();
     game.dispose();
     view.dispose();
     super.dispose();
@@ -239,7 +254,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       case PlaceResult.colorComplete:
         _settings.light();
         _music?.play(milestone ? Sfx.combo : Sfx.color);
-        _shimmer.poke();
+        _effects.poke();
         _save();
       case PlaceResult.puzzleComplete:
         _settings.heavy();
@@ -303,7 +318,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     if (!mounted) return;
     // A wide shine sweeps once across the finished picture.
     if (!reduceMotion) {
-      _shimmer.poke();
+      _effects.poke();
       setState(() => _sweepAt = DateTime.now());
     }
     await Future<void>.delayed(const Duration(milliseconds: 1600));
@@ -393,7 +408,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   void _boosterFill(List<int> cells, {required int origin}) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     final result = game.fill(cells, origin: origin);
-    _shimmer.poke();
+    _effects.poke();
     _settings.heavy();
     _music?.play(Sfx.boom);
     if (result == PlaceResult.placed) {
@@ -427,7 +442,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         if (game.placed[i] == 0) i
     ];
     if (open.isEmpty) return;
-    _shimmer.poke();
+    _effects.poke();
     var target = _nearestToCenter(open);
     if (open.length > 5) {
       final patch = largestPatch(p.width, p.height, open);
@@ -552,7 +567,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                       label: 'Painting canvas',
                       hint: 'Tap or drag over the cells with the selected number. Pinch to zoom.',
                       child: Listener(
-                          onPointerDown: (_) => _shimmer.poke(),
+                          onPointerDown: (_) => _effects.poke(),
                           child: RepaintBoundary(
                               child: Board(
                             game: game,

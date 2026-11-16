@@ -15,15 +15,19 @@ abstract class _SortStateBase extends State<SortScreen> with TickerProviderState
   late final SortController game;
   late List<GemPaints> paints;
   final view = BoardView();
-  late final IdleShimmer _shimmer;
+
+  /// Paces the shimmer and the gentle pulses at about 30 frames a second.
+  late final EffectClock _effects;
   bool _animate = true;
-  Animation<double> get shimmer => _shimmer.animation;
+  ValueListenable<double> get shimmer => _effects;
   late final Ticker _ticker;
-  int _lastFrameUs = 0;
   final clock = ValueNotifier<int>(0);
 
-  /// Ticks every frame while something animates (flights, hint, pulses).
+  /// Ticks every frame while beads fly between the board and the tray.
   final frame = ValueNotifier<int>(0);
+
+  /// What the tray repaints on: flying beads and the paced pulses.
+  late final Listenable _trayRepaint = Listenable.merge([frame, _effects]);
   Timer? _clockTick;
   final _boardKey = GlobalKey();
   final _trayKey = GlobalKey();
@@ -43,8 +47,18 @@ abstract class _SortStateBase extends State<SortScreen> with TickerProviderState
   MusicController? _music;
   late bool _showTips = !widget.store.seenSortTutorial && !widget.tutorial;
 
-  /// Drains while the combo is alive; restarted on every good drop.
-  late final AnimationController _comboBar;
+  /// When the combo bar started draining; it is restarted on every good drop
+  /// and empties after [Scoring.comboWindow].
+  DateTime? _comboAt;
+
+  /// How much of the combo bar has drained, 0..1 (1: no live combo).
+  double get _comboDrained {
+    final at = _comboAt;
+    if (at == null) return 1;
+    final ms = DateTime.now().difference(at).inMilliseconds;
+    return (ms / Scoring.comboWindow.inMilliseconds).clamp(0.0, 1.0);
+  }
+
   bool get _timed => widget.timeAttack != null;
 
   static const _coachSteps = [
@@ -82,36 +96,20 @@ abstract class _SortStateBase extends State<SortScreen> with TickerProviderState
     game = _timed
         ? SortController.timed(widget.puzzle, seed: widget.seed)
         : SortController(widget.puzzle, resume: widget.tutorial ? null : widget.store.sortSaved(widget.puzzle.id));
-    _comboBar = AnimationController(vsync: this, duration: Scoring.comboWindow);
     paints = GemPaints.forPuzzle(widget.puzzle, _settings.shape);
-    _shimmer = IdleShimmer(this)..poke();
+    _effects = EffectClock()
+      ..keepAliveWhile = _pulsing
+      ..poke();
+    // Flying beads get every frame; everything else runs on [_effects].
     _ticker = createTicker((_) {
       game.tick();
-      final hintAt = game.hintAt, missAt = game.mistakeAt;
-      final now = DateTime.now();
-      if (game.animating ||
-          // Picked-up beads and the spots that want them gently pulse.
-          (game.selection != null && !_finished) ||
-          (hintAt != null && now.difference(hintAt).inMilliseconds < 4000) ||
-          (missAt != null && now.difference(missAt).inMilliseconds < 700)) {
-        // Flying beads get every frame; the gentle pulses are fine at about
-        // 30 a second, which matters on 120 Hz screens.
-        final us = now.microsecondsSinceEpoch;
-        if (game.animating || us - _lastFrameUs >= 30000) {
-          _lastFrameUs = us;
-          frame.value++;
-        }
-      } else {
-        // Nothing moving: stop ticking until the next tap, shake or hint.
-        frame.value++;
-        _ticker.stop();
-      }
+      frame.value++;
+      // The tap that woke the ticker may have started a pulse.
+      _effects.wake();
+      if (!game.animating) _ticker.stop();
     });
     clock.value = game.seconds;
-    _clockTick = Timer.periodic(const Duration(seconds: 1), (_) {
-      clock.value = game.seconds;
-      if (game.timeUp && !_finished) _timeUp();
-    });
+    _startClockTick();
     // The clock starts with the run, not with the first tap.
     if (_timed) game.resume();
     WidgetsBinding.instance.addObserver(this);
@@ -131,17 +129,45 @@ abstract class _SortStateBase extends State<SortScreen> with TickerProviderState
     final animate = !MediaQuery.of(context).disableAnimations;
     if (animate != _animate) {
       _animate = animate;
-      _shimmer.allowed = animate;
+      _effects.allowed = animate;
     }
+    // Rest the effects while another screen covers this one.
+    _effects.onScreen = TickerMode.valuesOf(context).enabled;
+  }
+
+  /// Picked-up beads and the spots that want them gently pulse, as do a
+  /// hint, a miss and a live combo bar.
+  bool _pulsing() {
+    if (_finished) return false;
+    final now = DateTime.now();
+    final hintAt = game.hintAt, missAt = game.mistakeAt;
+    return game.selection != null ||
+        (hintAt != null && now.difference(hintAt).inMilliseconds < 4000) ||
+        (missAt != null && now.difference(missAt).inMilliseconds < 700) ||
+        _comboDrained < 1;
+  }
+
+  void _startClockTick() {
+    _clockTick?.cancel();
+    _clockTick = Timer.periodic(const Duration(seconds: 1), (_) {
+      clock.value = game.seconds;
+      if (game.timeUp && !_finished) _timeUp();
+    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_timed && !_finished) game.resume();
+      if (!_finished) _startClockTick();
+      return;
+    }
+    // Inactive, hidden or paused: nothing ticks in the background.
+    _clockTick?.cancel();
+    _clockTick = null;
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       game.pause();
       _save();
-    } else if (state == AppLifecycleState.resumed && _timed && !_finished) {
-      game.resume();
     }
   }
 
@@ -166,12 +192,11 @@ abstract class _SortStateBase extends State<SortScreen> with TickerProviderState
     if (music != null) Future.microtask(music.leaveGame);
     _music = null;
     _glide?.dispose();
-    _comboBar.dispose();
     _clockTick?.cancel();
     _ticker.dispose();
     clock.dispose();
     frame.dispose();
-    _shimmer.dispose();
+    _effects.dispose();
     game.dispose();
     view.dispose();
     super.dispose();
@@ -240,12 +265,15 @@ abstract class _SortStateBase extends State<SortScreen> with TickerProviderState
           if (level == 2) _settings.heavy();
           _music?.play(Sfx.landAt(level));
         });
-        if (game.combo >= 2) _comboBar.forward(from: 0);
+        if (game.combo >= 2) {
+          _comboAt = DateTime.now();
+          _effects.wake();
+        }
         if (++_unsaved >= 10) _save();
       case SortTapResult.wrong:
         _settings.medium();
         _music?.play(Sfx.wrong);
-        _comboBar.value = 1;
+        _comboAt = null;
       case SortTapResult.noBeads:
         _settings.light();
         _toast('No beads of that color in the tray yet. Pick up a misplaced one first.');

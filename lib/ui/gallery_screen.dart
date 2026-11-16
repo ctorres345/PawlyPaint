@@ -1,14 +1,15 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import '../state/settings.dart';
 import 'badges.dart';
+import 'effect_clock.dart';
 import 'gem_style.dart';
-import 'idle_shimmer.dart';
 import 'picture_export.dart';
 
 /// Every finished picture, to admire.
@@ -120,8 +121,8 @@ class PictureViewer extends StatefulWidget {
   State<PictureViewer> createState() => _PictureViewerState();
 }
 
-class _PictureViewerState extends State<PictureViewer> with SingleTickerProviderStateMixin {
-  late final IdleShimmer _shimmer = IdleShimmer(this, idleAfter: const Duration(seconds: 30))..poke();
+class _PictureViewerState extends State<PictureViewer> {
+  late final EffectClock _shimmer = EffectClock(idleAfter: const Duration(seconds: 30))..poke();
   late final paints = GemPaints.forPuzzle(widget.puzzle, SettingsScope.read(context).shape);
   final _cache = _GemsCache();
 
@@ -129,6 +130,7 @@ class _PictureViewerState extends State<PictureViewer> with SingleTickerProvider
   void didChangeDependencies() {
     super.didChangeDependencies();
     _shimmer.allowed = !MediaQuery.of(context).disableAnimations;
+    _shimmer.onScreen = TickerMode.valuesOf(context).enabled;
   }
 
   @override
@@ -181,7 +183,7 @@ class _PictureViewerState extends State<PictureViewer> with SingleTickerProvider
                           child: Listener(
                             onPointerDown: (_) => _shimmer.poke(),
                             child: CustomPaint(
-                              painter: _FinishedPainter(widget.puzzle, paints, _shimmer.controller, _cache),
+                              painter: _FinishedPainter(widget.puzzle, paints, _shimmer, _cache),
                             ),
                           ),
                         ),
@@ -220,7 +222,7 @@ class _FinishedPainter extends CustomPainter {
 
   final Puzzle puzzle;
   final List<GemPaints> paints;
-  final Animation<double> shimmer;
+  final ValueListenable<double> shimmer;
   final _GemsCache cache;
   final CanvasTheme _theme = canvasTheme;
   Object get look => (_theme, paints.first.shape);

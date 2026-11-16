@@ -18,7 +18,7 @@ class _SortBoard extends StatefulWidget {
 
   final SortController game;
   final BoardView view;
-  final Animation<double> shimmer;
+  final ValueListenable<double> shimmer;
   final Listenable frame;
   final List<GemPaints> paints;
   final bool showWrong;
@@ -147,7 +147,7 @@ class _SortBoardPainter extends CustomPainter {
 
   final SortController game;
   final BoardView view;
-  final Animation<double> shimmer;
+  final ValueListenable<double> shimmer;
   final Listenable frame;
   final List<GemPaints> paints;
   final bool showWrong;

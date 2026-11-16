@@ -85,7 +85,7 @@ mixin _SortLayout on _SortStateBase {
                             label: 'Scrambled picture',
                             hint: 'Tap a misplaced bead to pick it up, then tap the tray or an empty spot.',
                             child: Listener(
-                                onPointerDown: (_) => _shimmer.poke(),
+                                onPointerDown: (_) => _effects.poke(),
                                 child: RepaintBoundary(
                                     child: _SortBoard(
                                   key: _boardKey,
@@ -118,7 +118,9 @@ mixin _SortLayout on _SortStateBase {
                           Positioned(
                             right: 10,
                             top: 10,
-                            child: _ComboMeter(game: game, bar: _comboBar),
+                            child: RepaintBoundary(
+                              child: _ComboMeter(game: game, tick: _effects, drained: () => _comboDrained),
+                            ),
                           ),
                         if (!_showTips && !_finished && !widget.tutorial)
                           Positioned(
@@ -168,7 +170,7 @@ mixin _SortLayout on _SortStateBase {
                     trayKey: _trayKey,
                     game: game,
                     paints: paints,
-                    frame: frame,
+                    frame: _trayRepaint,
                     onTap: _tapTray,
                     onShake: () {
                       if (game.shake()) {
