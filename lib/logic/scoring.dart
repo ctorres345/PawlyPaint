@@ -19,22 +19,43 @@ class Scoring {
     return (parSeconds - seconds).clamp(0, cap);
   }
 
+  /// Most Paint mistakes that still give 3 stars (1% of the cells, at least 1)
+  /// and 2 stars (5%, at least 3).
+  static ({int three, int two}) paintLimits(int cells) =>
+      (three: (cells * 0.01).ceil().clamp(1, cells), two: (cells * 0.05).ceil().clamp(3, cells));
+
   /// 3 stars for at most 1% mistakes, 2 for at most 5%, otherwise 1.
-  static int stars({required int mistakes, required int cells}) {
-    final perfectLimit = (cells * 0.01).ceil().clamp(1, cells);
-    final goodLimit = (cells * 0.05).ceil().clamp(3, cells);
-    if (mistakes <= perfectLimit) return 3;
-    if (mistakes <= goodLimit) return 2;
-    return 1;
+  static int stars({required int mistakes, required int cells}) => paintMeter(mistakes: mistakes, cells: cells).stars;
+
+  /// The Paint star meter: the best stars still possible and how many more
+  /// mistakes keep them.
+  static StarMeter paintMeter({required int mistakes, required int cells}) {
+    final limits = paintLimits(cells);
+    if (mistakes <= limits.three) return (stars: 3, left: limits.three - mistakes, counts: MeterCount.mistake);
+    if (mistakes <= limits.two) return (stars: 2, left: limits.two - mistakes, counts: MeterCount.mistake);
+    return (stars: 1, left: null, counts: MeterCount.mistake);
   }
+
+  /// Most Sort wrong taps that still give 3 stars, with no shakes.
+  static const sortWrongTapLimit = 3;
+
+  /// Most Sort shakes that still give 2 stars.
+  static const sortShakeLimit = 2;
 
   /// Sort mode: 3 stars with no shakes of the tray and few wrong taps, 2 with
   /// a couple of shakes, otherwise 1. A move always exists, so careful play
   /// never needs a shake.
-  static int sortStars({required int shakes, required int mistakes}) {
-    if (shakes == 0 && mistakes <= 3) return 3;
-    if (shakes <= 2) return 2;
-    return 1;
+  static int sortStars({required int shakes, required int mistakes}) =>
+      sortMeter(shakes: shakes, mistakes: mistakes).stars;
+
+  /// The Sort star meter: wrong taps left while 3 stars are possible, then
+  /// shakes left for 2. Wrong taps don't matter for 2 stars.
+  static StarMeter sortMeter({required int shakes, required int mistakes}) {
+    if (shakes == 0 && mistakes <= sortWrongTapLimit) {
+      return (stars: 3, left: sortWrongTapLimit - mistakes, counts: MeterCount.wrongTap);
+    }
+    if (shakes <= sortShakeLimit) return (stars: 2, left: sortShakeLimit - shakes, counts: MeterCount.shake);
+    return (stars: 1, left: null, counts: MeterCount.shake);
   }
 
   /// Sort mode score: points for each bead sorted into place plus the combo
@@ -72,3 +93,10 @@ class Scoring {
     return hit;
   }
 }
+
+/// What the star meter counts down.
+enum MeterCount { mistake, wrongTap, shake }
+
+/// The best stars still possible while playing, and how many more counted
+/// slips ([counts]) keep them. `left` is null at 1 star: nothing is left to lose.
+typedef StarMeter = ({int stars, int? left, MeterCount counts});

@@ -6,6 +6,12 @@ part of '../sort_screen.dart';
 abstract class _SortStateBase extends State<SortScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   AppSettings get _settings => SettingsScope.read(context);
 
+  /// A star just dropped on the meter: one firmer buzz, a beat after the
+  /// wrong-tap or shake buzz so the two don't merge.
+  void _onStarLost() => Future<void>.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) _settings.heavy();
+      });
+
   late final SortController game;
   late List<GemPaints> paints;
   final view = BoardView();

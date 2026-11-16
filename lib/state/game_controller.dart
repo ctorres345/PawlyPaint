@@ -251,6 +251,9 @@ class GameController extends ChangeNotifier implements PlayStats {
   @override
   int get stars => Scoring.stars(mistakes: mistakes, cells: puzzle.cellCount);
 
+  /// The star meter shown while playing (PAP-8).
+  StarMeter get meter => Scoring.paintMeter(mistakes: mistakes, cells: puzzle.cellCount);
+
   /// The next color that still needs drills, preferring the lowest number.
   int? firstIncompleteColor() {
     for (var i = 0; i < remaining.length; i++) {

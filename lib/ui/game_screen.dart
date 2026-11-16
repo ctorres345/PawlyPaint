@@ -24,6 +24,7 @@ import 'gem_style.dart';
 import 'idle_shimmer.dart';
 import 'mini_map.dart';
 import 'music_sheet.dart';
+import 'star_meter.dart';
 import 'tray.dart';
 import 'unlock_ui.dart';
 
@@ -194,6 +195,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         _settings.medium();
     }
   }
+
+  /// A star just dropped on the meter: one firmer buzz, a beat after the
+  /// wrong-tap buzz so the two don't merge.
+  void _onStarLost() => Future<void>.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) _settings.heavy();
+      });
 
   /// Pops a "Combo ×N!" badge when the streak passes 25, 50, 100...
   bool _checkMilestone() {
@@ -616,6 +623,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                 seconds: clock.value,
                 score: game.score,
                 combo: game.combo,
+                // Relaxed or an excused save finishes with no stars, so there is nothing to count.
+                meter: widget.tutorial || game.relaxed || game.excusedMistakes
+                    ? null
+                    : StarMeterBar(
+                        meter: game.meter,
+                        fresh: game.placedCount == 0 && game.mistakes == 0,
+                        onStarLost: _onStarLost,
+                      ),
               ),
             ));
             if (landscape) {
@@ -698,6 +713,7 @@ class _StatsBar extends StatelessWidget {
     required this.seconds,
     required this.score,
     required this.combo,
+    this.meter,
   });
 
   final bool relaxed;
@@ -707,70 +723,80 @@ class _StatsBar extends StatelessWidget {
   final int score;
   final int combo;
 
+  /// The star meter row under the progress bar, when stars count.
+  final Widget? meter;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final time = '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+    final meter = this.meter;
     return Container(
       color: scheme.surface,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(value: progress, minHeight: 8),
-            ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        _progressRow(scheme, text, time),
+        if (meter != null) ...[const SizedBox(height: 6), meter],
+      ]),
+    );
+  }
+
+  Widget _progressRow(ColorScheme scheme, TextTheme text, String time) {
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(value: progress, minHeight: 8),
           ),
-          const SizedBox(width: 12),
-          Flexible(
-            flex: 0,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                children: [
-                  Text('${(progress * 100).floor()}%', style: text.labelLarge),
-                  if (relaxed) ...[
-                    const SizedBox(width: 12),
-                    Icon(Icons.spa_rounded, size: 18, color: scheme.primary, semanticLabel: 'Relaxed mode'),
-                  ],
-                  if (!relaxed) ...[
-                    const SizedBox(width: 16),
-                    const Icon(Icons.timer_outlined, size: 18, semanticLabel: 'Time'),
-                    const SizedBox(width: 4),
-                    Text(time, style: text.labelLarge),
-                    const SizedBox(width: 16),
-                    const Icon(Icons.diamond_outlined, size: 18, semanticLabel: 'Score'),
-                    const SizedBox(width: 4),
-                    Text('$score', style: text.labelLarge),
-                    if (combo >= 10) ...[
-                      const SizedBox(width: 8),
-                      // Grows and warms up as the streak gets longer.
-                      AnimatedScale(
-                        scale: 1 + 0.12 * Scoring.paintStreakLevel(combo),
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeOutBack,
-                        child: Row(
-                          children: [
-                            if (Scoring.paintStreakLevel(combo) > 0)
-                              const Icon(Icons.local_fire_department_rounded, size: 18, color: Color(0xFFFF7043)),
-                            Text('×$combo',
-                                style: text.labelLarge?.copyWith(
-                                    color:
-                                        Scoring.paintStreakLevel(combo) > 1 ? const Color(0xFFF4511E) : scheme.primary,
-                                    fontWeight: FontWeight.w800)),
-                          ],
-                        ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          flex: 0,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              children: [
+                Text('${(progress * 100).floor()}%', style: text.labelLarge),
+                if (relaxed) ...[
+                  const SizedBox(width: 12),
+                  Icon(Icons.spa_rounded, size: 18, color: scheme.primary, semanticLabel: 'Relaxed mode'),
+                ],
+                if (!relaxed) ...[
+                  const SizedBox(width: 16),
+                  const Icon(Icons.timer_outlined, size: 18, semanticLabel: 'Time'),
+                  const SizedBox(width: 4),
+                  Text(time, style: text.labelLarge),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.diamond_outlined, size: 18, semanticLabel: 'Score'),
+                  const SizedBox(width: 4),
+                  Text('$score', style: text.labelLarge),
+                  if (combo >= 10) ...[
+                    const SizedBox(width: 8),
+                    // Grows and warms up as the streak gets longer.
+                    AnimatedScale(
+                      scale: 1 + 0.12 * Scoring.paintStreakLevel(combo),
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutBack,
+                      child: Row(
+                        children: [
+                          if (Scoring.paintStreakLevel(combo) > 0)
+                            const Icon(Icons.local_fire_department_rounded, size: 18, color: Color(0xFFFF7043)),
+                          Text('×$combo',
+                              style: text.labelLarge?.copyWith(
+                                  color: Scoring.paintStreakLevel(combo) > 1 ? const Color(0xFFF4511E) : scheme.primary,
+                                  fontWeight: FontWeight.w800)),
+                        ],
                       ),
-                    ],
+                    ),
                   ],
                 ],
-              ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

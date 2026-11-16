@@ -203,6 +203,9 @@ class SortController extends ChangeNotifier implements PlayStats {
 
   @override
   int get stars => Scoring.sortStars(shakes: game.shakes, mistakes: game.mistakes);
+
+  /// The star meter shown while playing (PAP-8).
+  StarMeter get meter => Scoring.sortMeter(shakes: game.shakes, mistakes: game.mistakes);
   int get score => timed
       ? TimeAttack.score(
           placed: game.placed,
