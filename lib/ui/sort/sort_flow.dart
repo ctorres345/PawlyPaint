@@ -53,6 +53,8 @@ mixin _SortFlow on _SortStateBase {
         seconds: game.seconds,
       );
     }
+    // Taken now so a gift is never shown on a later finish if this screen closes early.
+    final gifts = widget.store.takeDaysPlayedBonus();
     // Let the last beads land, then glide out to the whole picture.
     await Future<void>.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
@@ -88,7 +90,9 @@ mixin _SortFlow on _SortStateBase {
       title: difficulty == null ? 'Masterpiece complete!' : 'You beat the clock!',
       done: difficulty == null ? 'Back to the course' : 'Back to Time Attack',
     );
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (gifts > 0) showDaysPlayedGift(context, gifts);
+    Navigator.of(context).pop();
   }
 
   /// Time Attack ran out: count the round and offer another go.

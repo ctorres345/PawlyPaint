@@ -327,6 +327,8 @@ class _GameScreenState extends State<GameScreen>
       stars: stars,
       seconds: game.seconds,
     );
+    // Taken now so a gift is never shown on a later finish if this screen closes early.
+    final gifts = widget.store.takeDaysPlayedBonus();
     setState(() => _celebrate = true);
     final reduceMotion = MediaQuery.of(context).disableAnimations;
     final (toScale, toOffset) = view.fitTransform();
@@ -362,7 +364,9 @@ class _GameScreenState extends State<GameScreen>
       boosters: reward,
       replayOrder: game.order,
     );
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (gifts > 0) showDaysPlayedGift(context, gifts);
+    Navigator.of(context).pop();
   }
 
   // ---- Boosters -----------------------------------------------------------

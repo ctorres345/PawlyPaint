@@ -14,6 +14,12 @@ enum Booster {
   static const starter = {Booster.bomb: 3, Booster.wand: 2, Booster.brush: 2};
 }
 
+/// Every this many different days played pays one [daysPlayedBonus] (PAP-49).
+const daysPlayedBonusEvery = 7;
+
+/// The gift for each [daysPlayedBonusEvery] days played.
+const daysPlayedBonus = {Booster.bomb: 1, Booster.wand: 1};
+
 /// Boosters earned for finishing a Paint picture. Only the first finish of a
 /// picture pays out, so replays can't be farmed.
 /// Hard and Extreme canvases ([width] 32 and up) add a magic wand.
