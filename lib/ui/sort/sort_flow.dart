@@ -88,6 +88,10 @@ mixin _SortFlow on _SortStateBase {
       title: difficulty == null ? 'Masterpiece complete!' : 'You beat the clock!',
       done: difficulty == null ? 'Back to the course' : 'Back to Time Attack',
     );
+    if (mounted) {
+      final gifts = widget.store.takeDaysPlayedBonus();
+      if (gifts > 0) showDaysPlayedGift(context, gifts);
+    }
     if (mounted) Navigator.of(context).pop();
   }
 

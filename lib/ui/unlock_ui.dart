@@ -115,6 +115,17 @@ void showLockedHint(BuildContext context, String message) {
     ..showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
 }
 
+/// Toast for [gifts] 7-days-played gifts (PAP-49). Uses the app's root messenger so it
+/// stays up after the finished screen pops.
+void showDaysPlayedGift(BuildContext context, int gifts) {
+  final text = gifts == 1
+      ? 'A gift for 7 days of painting: +1 bomb, +1 magic wand!'
+      : 'Gifts for coming back: +$gifts bombs, +$gifts magic wands!';
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text), behavior: SnackBarBehavior.floating));
+}
+
 /// The look of a locked card: dimmed, dashed outline, readable text.
 class LockedSurface extends StatelessWidget {
   const LockedSurface({super.key, required this.child, this.radius = 24});

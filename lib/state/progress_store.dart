@@ -279,8 +279,27 @@ class ProgressStore extends ChangeNotifier {
         _evaluate(_pictureCount).unlocked.where((u) => u.startsWith('mode.') || u.startsWith('booster.')),
       );
 
-  /// Days of the 7-day booster bonus already paid (PAP-49).
+  /// How many 7-days-played gifts are already paid (PAP-49). It counts days played, not a streak;
+  /// the name is kept so saves need no migration.
   int get streakBonusPaid => _streakBonusPaid;
+
+  int _pendingDaysBonus = 0;
+
+  /// Gifts paid since the last call, for the toast. Resets to 0.
+  int takeDaysPlayedBonus() {
+    final n = _pendingDaysBonus;
+    _pendingDaysBonus = 0;
+    return n;
+  }
+
+  /// Pays every 7-day gift she is owed, all at once. Never lowers the marker.
+  void _payDaysPlayedBonus() {
+    final owed = daysPlayed ~/ daysPlayedBonusEvery - _streakBonusPaid;
+    if (owed <= 0) return;
+    daysPlayedBonus.forEach((b, n) => _boosters[b] = boosters(b) + n * owed);
+    _streakBonusPaid += owed;
+    _pendingDaysBonus += owed;
+  }
 
   Future<void> addSecret(String id) {
     if (!_secrets.add(id)) return Future.value();
@@ -424,7 +443,7 @@ class ProgressStore extends ChangeNotifier {
       celebrated = _stringSet(j['celebrated']);
       if (j['introduced'] is List) introduced = _stringSet(j['introduced']);
       if (j['daysPlayed'] is List) daysPlayed = _stringSet(j['daysPlayed']);
-      streakBonusPaid = j['streakBonusPaid'] is int ? j['streakBonusPaid'] as int : 0;
+      streakBonusPaid = j['streakBonusPaid'] is int ? math.max(0, j['streakBonusPaid'] as int) : 0;
       j.forEach((k, v) {
         if (!_knownKeys.contains(k)) extra[k] = v;
       });
@@ -710,6 +729,7 @@ class ProgressStore extends ChangeNotifier {
     _saved.remove(id);
     _sortSaved.remove(id);
     _daysPlayed.add(dayKey(clock()));
+    _payDaysPlayedBonus();
     // Rewards scale with the build, so keep each one once earned: a bigger build must not take it back.
     _keepEarnedRewards();
     notifyListeners();

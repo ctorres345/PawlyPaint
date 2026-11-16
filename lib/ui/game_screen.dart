@@ -362,6 +362,10 @@ class _GameScreenState extends State<GameScreen>
       boosters: reward,
       replayOrder: game.order,
     );
+    if (mounted) {
+      final gifts = widget.store.takeDaysPlayedBonus();
+      if (gifts > 0) showDaysPlayedGift(context, gifts);
+    }
     if (mounted) Navigator.of(context).pop();
   }
 
