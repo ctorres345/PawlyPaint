@@ -210,6 +210,19 @@ void drawSelectRing(Canvas canvas, Rect r, double width, {double alpha = 1, Colo
   canvas.drawOval(r, _ringCore);
 }
 
+/// [drawSelectRing] for many rings at once: [rings] holds their ovals, so
+/// the whole set is two draws instead of two per ring.
+void drawSelectRings(Canvas canvas, Path rings, double width, {double alpha = 1, Color core = Colors.white}) {
+  _ringOutline
+    ..color = ringInk.withValues(alpha: 0.85 * alpha)
+    ..strokeWidth = width * 2.2;
+  _ringCore
+    ..color = core.withValues(alpha: alpha)
+    ..strokeWidth = width;
+  canvas.drawPath(rings, _ringOutline);
+  canvas.drawPath(rings, _ringCore);
+}
+
 /// How long the finish sweep takes to cross the picture.
 const sweepDuration = Duration(milliseconds: 1300);
 

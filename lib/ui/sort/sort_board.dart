@@ -275,12 +275,13 @@ class _SortBoardPainter extends CustomPainter {
       }
       _spot.color = paints[sel.color].color.withValues(alpha: 0.35 + 0.45 * pulse);
       final cur = game.game.current, target = game.game.target;
+      final spots = Path();
       for (var i = 0; i < cur.length; i++) {
         if (cur[i] >= 0 || target[i] != sel.color || game.arriving.containsKey(i)) continue;
-        final r = _cell(i).deflate(kCell * (0.2 - 0.06 * pulse));
-        canvas.drawOval(r, _spot);
-        drawSelectRing(canvas, r, math.max(kCell * 0.07, 1.2 / view.scale), alpha: 0.6 + 0.4 * pulse);
+        spots.addOval(_cell(i).deflate(kCell * (0.2 - 0.06 * pulse)));
       }
+      canvas.drawPath(spots, _spot);
+      drawSelectRings(canvas, spots, math.max(kCell * 0.07, 1.2 / view.scale), alpha: 0.6 + 0.4 * pulse);
     }
 
     // Hint: pulsing rings on what to pick up and where it goes.
