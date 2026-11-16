@@ -117,4 +117,22 @@ void main() {
     final store = await _load({'streakBonusPaid': -3});
     expect(store.streakBonusPaid, 0);
   });
+
+  test('a read-only save pays nothing, since it could never record it', () async {
+    SharedPreferences.setMockInitialValues({
+      'progress_v1': jsonEncode({'version': 3, 'daysPlayed': _keys(14)}),
+    });
+    final store = await ProgressStore.load();
+    expect(store.isReadOnly, isTrue);
+    final bombs = store.boosters(Booster.bomb);
+    await _finish(store, 1);
+    expect(store.takeDaysPlayedBonus(), 0);
+    expect(store.boosters(Booster.bomb), bombs);
+  });
+
+  test('the paid count never goes down', () async {
+    final store = await _load({'streakBonusPaid': 2});
+    await store.setStreakBonusPaid(1);
+    expect(store.streakBonusPaid, 2);
+  });
 }

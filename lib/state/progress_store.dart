@@ -293,7 +293,9 @@ class ProgressStore extends ChangeNotifier {
   }
 
   /// Pays every 7-day gift she is owed, all at once. Never lowers the marker.
+  /// A read-only save could never record the payment, so it would pay again every session.
   void _payDaysPlayedBonus() {
+    if (_readOnly) return;
     final owed = daysPlayed ~/ daysPlayedBonusEvery - _streakBonusPaid;
     if (owed <= 0) return;
     daysPlayedBonus.forEach((b, n) => _boosters[b] = boosters(b) + n * owed);
@@ -315,8 +317,9 @@ class ProgressStore extends ChangeNotifier {
     return _persist();
   }
 
+  /// Raises the paid count; it never goes down, so a gift is never paid twice.
   Future<void> setStreakBonusPaid(int value) {
-    if (value == _streakBonusPaid) return Future.value();
+    if (value <= _streakBonusPaid) return Future.value();
     _streakBonusPaid = value;
     notifyListeners();
     return _persist();
