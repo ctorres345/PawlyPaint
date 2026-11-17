@@ -250,6 +250,8 @@ abstract class _SortStateBase extends State<SortScreen>
 
   @override
   void dispose() {
+    // First, so a throwing dispose below cannot leave the cap on (PAP-59).
+    DisplayRate.release();
     WidgetsBinding.instance.removeObserver(this);
     game.pause();
     if (!_finished &&
@@ -279,7 +281,6 @@ abstract class _SortStateBase extends State<SortScreen>
     _effects.dispose();
     game.dispose();
     view.dispose();
-    DisplayRate.release();
     super.dispose();
   }
 

@@ -192,6 +192,8 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   void dispose() {
+    // First, so a throwing dispose below cannot leave the cap on (PAP-59).
+    DisplayRate.release();
     WidgetsBinding.instance.removeObserver(this);
     game.pause();
     // The tree is locked during dispose, so the store notifies its listeners afterwards.
@@ -209,7 +211,6 @@ class _GameScreenState extends State<GameScreen>
     _effects.dispose();
     game.dispose();
     view.dispose();
-    DisplayRate.release();
     super.dispose();
   }
 
