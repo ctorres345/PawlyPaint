@@ -11,6 +11,7 @@ import '../logic/scoring.dart';
 import '../logic/unlocks.dart';
 import '../models/puzzle.dart';
 import '../state/achievements.dart';
+import '../state/display_rate.dart';
 import '../state/game_controller.dart';
 import '../state/music.dart';
 import '../state/progress_store.dart';
@@ -106,6 +107,7 @@ class _GameScreenState extends State<GameScreen>
   @override
   void initState() {
     super.initState();
+    DisplayRate.hold();
     game = GameController(widget.puzzle, resume: widget.tutorial ? null : widget.store.savedFor(widget.puzzle));
     paints = GemPaints.forPuzzle(widget.puzzle, _settings.shape);
     _effects = EffectClock()..poke();
@@ -190,6 +192,8 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   void dispose() {
+    // First, so a throwing dispose below cannot leave the cap on (PAP-59).
+    DisplayRate.release();
     WidgetsBinding.instance.removeObserver(this);
     game.pause();
     // The tree is locked during dispose, so the store notifies its listeners afterwards.

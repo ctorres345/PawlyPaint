@@ -111,6 +111,7 @@ abstract class _SortStateBase extends State<SortScreen>
   @override
   void initState() {
     super.initState();
+    DisplayRate.hold();
     game = _timed
         ? SortController.timed(widget.puzzle, seed: widget.seed, clock: EffectClock.wallNow)
         : SortController(
@@ -249,6 +250,8 @@ abstract class _SortStateBase extends State<SortScreen>
 
   @override
   void dispose() {
+    // First, so a throwing dispose below cannot leave the cap on (PAP-59).
+    DisplayRate.release();
     WidgetsBinding.instance.removeObserver(this);
     game.pause();
     if (!_finished &&

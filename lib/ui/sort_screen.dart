@@ -13,6 +13,7 @@ import '../logic/scoring.dart';
 import '../logic/time_attack.dart';
 import '../models/puzzle.dart';
 import '../state/achievements.dart';
+import '../state/display_rate.dart';
 import '../state/music.dart';
 import '../state/progress_store.dart';
 import '../state/settings.dart';
