@@ -27,6 +27,16 @@ flutter:
     # Original loops composed by tool/compose_music.py (no third-party audio).
     - assets/music/
     - assets/sfx/
+    # Redesign art (PAP-19), transparent PNGs. See assets/art/README.md.
+    # assets/art/app_icon/ is not listed: it is source art for a later launcher
+    # icon ticket, like assets/icon/, and the app never loads it.
+    - assets/art/badges/
+    - assets/art/brand/
+    - assets/art/courses/
+    - assets/art/difficulty/
+    - assets/art/icons/
+    - assets/art/mochi/
+    - assets/art/tiers/
   fonts:
     # Variable font (weights 300-700), SIL Open Font License: assets/fonts/OFL.txt
     - family: Quicksand
