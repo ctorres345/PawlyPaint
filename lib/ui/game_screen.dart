@@ -11,6 +11,7 @@ import '../logic/scoring.dart';
 import '../logic/unlocks.dart';
 import '../models/puzzle.dart';
 import '../state/achievements.dart';
+import '../state/display_rate.dart';
 import '../state/game_controller.dart';
 import '../state/music.dart';
 import '../state/progress_store.dart';
@@ -106,6 +107,7 @@ class _GameScreenState extends State<GameScreen>
   @override
   void initState() {
     super.initState();
+    DisplayRate.hold();
     game = GameController(widget.puzzle, resume: widget.tutorial ? null : widget.store.savedFor(widget.puzzle));
     paints = GemPaints.forPuzzle(widget.puzzle, _settings.shape);
     _effects = EffectClock()..poke();
@@ -207,6 +209,7 @@ class _GameScreenState extends State<GameScreen>
     _effects.dispose();
     game.dispose();
     view.dispose();
+    DisplayRate.release();
     super.dispose();
   }
 

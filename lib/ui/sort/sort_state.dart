@@ -111,6 +111,7 @@ abstract class _SortStateBase extends State<SortScreen>
   @override
   void initState() {
     super.initState();
+    DisplayRate.hold();
     game = _timed
         ? SortController.timed(widget.puzzle, seed: widget.seed, clock: EffectClock.wallNow)
         : SortController(
@@ -278,6 +279,7 @@ abstract class _SortStateBase extends State<SortScreen>
     _effects.dispose();
     game.dispose();
     view.dispose();
+    DisplayRate.release();
     super.dispose();
   }
 
