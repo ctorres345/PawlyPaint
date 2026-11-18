@@ -1,0 +1,55 @@
+# Via asset spec. Source of truth for /via assets and /via check.
+palette = ["#E5739F", "#FCE4EC", "#FFFBF7", "#8D5A3B", "#3B2A2F"]
+
+[paths]
+# Flutter app: frames are bundled with the other redesign art.
+flutter = "assets/art/frames"
+
+# PAP-43 photo frames. Nine-slice PNGs with a transparent center, drawn around
+# the saved picture (~1600 px). 1x is 341 so the 3.0x variant is 1023 px, under
+# the 1024 px cap in test/art_assets_test.dart; the export uses the 3.0x file.
+
+[[asset]]
+name = "frame_photo_wood"
+kind = "image"
+source = "design/assets/frame_photo_wood.png"
+transparent = "#00FF00"
+platforms = ["flutter"]
+size = "341x341"
+usage = "PAP-43 free Wood frame around the saved picture; picker swatch"
+
+[[asset]]
+name = "frame_photo_polaroid"
+kind = "image"
+source = "design/assets/frame_photo_polaroid.png"
+transparent = "#00FF00"
+platforms = ["flutter"]
+size = "341x341"
+usage = "PAP-43 Polaroid frame (reward.frame.polaroid, 15 pictures); picker swatch"
+
+[[asset]]
+name = "frame_photo_lace"
+kind = "image"
+source = "design/assets/frame_photo_lace.png"
+transparent = "#00FF00"
+platforms = ["flutter"]
+size = "341x341"
+usage = "PAP-43 Lace frame (reward.frame.lace, 45 pictures); picker swatch"
+
+[[asset]]
+name = "frame_photo_paw"
+kind = "image"
+source = "design/assets/frame_photo_paw.png"
+transparent = "#00FF00"
+platforms = ["flutter"]
+size = "341x341"
+usage = "PAP-43 Paw-print frame (reward.frame.paw, 75 pictures); picker swatch"
+
+[[asset]]
+name = "frame_photo_secret"
+kind = "image"
+source = "design/assets/frame_photo_secret.png"
+transparent = "#00FF00"
+platforms = ["flutter"]
+size = "341x341"
+usage = "PAP-43 hidden gallery frame, shown after the PAP-45 secret; picker swatch"

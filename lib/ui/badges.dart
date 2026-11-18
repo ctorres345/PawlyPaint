@@ -20,6 +20,7 @@ IconData badgeIcon(String id) => switch (id) {
       'fan' => Icons.favorite_rounded,
       'half' => Icons.hourglass_bottom_rounded,
       'all' => Icons.emoji_events_rounded,
+      'frame.it' => Icons.filter_frames_rounded,
       _ => Icons.military_tech_rounded,
     };
 

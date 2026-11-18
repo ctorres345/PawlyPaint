@@ -820,4 +820,7 @@ class ProgressScope extends InheritedNotifier<ProgressStore> {
 
   static ProgressStore of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<ProgressScope>()!.notifier!;
+
+  /// The store without listening to it, for event handlers.
+  static ProgressStore read(BuildContext context) => context.getInheritedWidgetOfExactType<ProgressScope>()!.notifier!;
 }

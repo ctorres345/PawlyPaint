@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../logic/photo_frames.dart';
 import '../ui/gem_style.dart' show GemShape;
 
 /// The table the canvas sits on, and the sheet itself.
@@ -26,7 +27,11 @@ CanvasTheme canvasTheme = CanvasTheme.linen;
 /// Player preferences that change how the game looks and feels.
 class AppSettings extends ChangeNotifier {
   AppSettings._(this._prefs,
-      {required this.relaxed, required this.haptics, required this.theme, required GemShape shape})
+      {required this.relaxed,
+      required this.haptics,
+      required this.theme,
+      required GemShape shape,
+      this.frame = PhotoFrame.none})
       : _shape = shape {
     canvasTheme = theme;
   }
@@ -35,6 +40,7 @@ class AppSettings extends ChangeNotifier {
   static const _hapticsKey = 'haptics_on';
   static const _themeKey = 'canvas_theme';
   static const _shapeKey = 'drill_shape';
+  static const _frameKey = 'photo_frame';
 
   static Future<AppSettings> load() async {
     SharedPreferences? prefs;
@@ -51,6 +57,7 @@ class AppSettings extends ChangeNotifier {
       haptics: prefs?.getBool(_hapticsKey) ?? true,
       theme: pick(CanvasTheme.values, prefs?.getString(_themeKey), CanvasTheme.linen),
       shape: pick(GemShape.values, prefs?.getString(_shapeKey), GemShape.square),
+      frame: pick(PhotoFrame.values, prefs?.getString(_frameKey), PhotoFrame.none),
     );
   }
 
@@ -67,6 +74,9 @@ class AppSettings extends ChangeNotifier {
   GemShape _shape;
   GemShape get shape => _shape;
 
+  /// The frame last picked for Save to Photos. It may not be open: use [PhotoFrame.usable].
+  PhotoFrame frame;
+
   Future<void> setRelaxed(bool v) => _set(() => relaxed = v, (p) => p.setBool(_relaxedKey, v));
   Future<void> setHaptics(bool v) => _set(() => haptics = v, (p) => p.setBool(_hapticsKey, v));
   Future<void> setTheme(CanvasTheme v) => _set(() {
@@ -76,6 +86,8 @@ class AppSettings extends ChangeNotifier {
   Future<void> setShape(GemShape v) => _set(() {
         _shape = v;
       }, (p) => p.setString(_shapeKey, v.name));
+
+  Future<void> setFrame(PhotoFrame v) => _set(() => frame = v, (p) => p.setString(_frameKey, v.name));
 
   Future<void> _set(VoidCallback change, Future<bool> Function(SharedPreferences) save) async {
     change();

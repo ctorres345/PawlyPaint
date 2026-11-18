@@ -34,6 +34,10 @@ flutter:
     - assets/art/brand/
     - assets/art/courses/
     - assets/art/difficulty/
+    # Photo frames (PAP-43); 2.0x/ and 3.0x/ ship as resolution variants.
+    - assets/art/frames/
+    # Full-size frames (2048 px), drawn only into saved pictures.
+    - assets/art/frames/export/
     - assets/art/icons/
     - assets/art/mochi/
     - assets/art/tiers/
