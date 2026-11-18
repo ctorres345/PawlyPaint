@@ -1,12 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/models/puzzle.dart';
 import 'package:pawlypaint/state/music.dart';
 import 'package:pawlypaint/state/progress_store.dart';
 import 'package:pawlypaint/state/settings.dart';
+import 'package:pawlypaint/ui/board.dart';
 import 'package:pawlypaint/ui/effect_clock.dart';
 import 'package:pawlypaint/ui/game_screen.dart';
 import 'package:pawlypaint/ui/sort_screen.dart';
@@ -203,6 +205,120 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(timers.lapsePending, isTrue, reason: 'armed again for the rest of the hint');
+    });
+  });
+
+  group('Paint effects clear on time (PAP-60)', () {
+    Future<(PlayTimers, Board)> openPaint(WidgetTester tester) async {
+      // Taps play sounds, and the audio plugin is missing in tests.
+      await tester.runAsync(() => music.setSfx(false));
+      await pumpScreen(tester, (store) => GameScreen(puzzle: puzzle, store: store));
+      return (tester.state(find.byType(GameScreen)) as PlayTimers, tester.widget<Board>(find.byType(Board)));
+    }
+
+    /// Where cell [i] sits on screen.
+    Offset cellCenter(WidgetTester tester, Board board, int i) {
+      final w = board.game.puzzle.width, view = board.view;
+      final local = view.offset + Offset((i % w + 0.5) * kCell, (i ~/ w + 0.5) * kCell) * view.scale;
+      return tester.getTopLeft(find.byType(Board)) + local;
+    }
+
+    /// A cell of another color than the selected one, and one of the selected color.
+    (int wrong, int right) pickCells(Board board) {
+      final g = board.game;
+      final cells = g.puzzle.cells;
+      final wrong = cells.indexWhere((c) => c != g.selected), right = cells.indexWhere((c) => c == g.selected);
+      expect([wrong, right], everyElement(isNonNegative), reason: 'the picture has two colors');
+      return (wrong, right);
+    }
+
+    /// Pumps up to just before [window] ends, then just past it, and checks
+    /// the canvas painted only after it ended.
+    Future<void> expectRedrawAtEnd(WidgetTester tester, PlayTimers timers, Duration window, String what) async {
+      expect(timers.lapsePending, isTrue, reason: 'waiting to clear the $what');
+      await tester.pump(window - const Duration(milliseconds: 20));
+      // Counts the canvas paints through the debug paint hook, which must be
+      // off again before the test ends.
+      var boardPaints = 0;
+      debugProfilePaintsEnabled = true;
+      debugOnProfilePaint = (object) {
+        if (object is RenderCustomPaint && object.painter is BoardPainter) boardPaints++;
+      };
+      try {
+        await tester.pump(const Duration(milliseconds: 20));
+      } finally {
+        debugProfilePaintsEnabled = false;
+        debugOnProfilePaint = null;
+      }
+      expect(boardPaints, greaterThan(0), reason: 'the canvas redraws when the $what ends');
+    }
+
+    void removeAnimations(WidgetTester tester) {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    }
+
+    testWidgets('with "remove animations", a miss cross clears when its window ends', (tester) async {
+      removeAnimations(tester);
+      final (timers, board) = await openPaint(tester);
+      expect(timers.effects.isRunning, isFalse, reason: 'no effects at all');
+      expect(board.view.cellSize, greaterThanOrEqualTo(kMinTapCell), reason: 'a tap places, not zooms');
+      final (wrong, _) = pickCells(board);
+      await tester.tapAt(cellCenter(tester, board, wrong));
+      await tester.pump();
+      expect(board.game.lastMistakeCell, wrong);
+      await expectRedrawAtEnd(tester, timers, BoardPainter.missShows, 'miss cross');
+      expect(timers.lapsePending, isFalse, reason: 'nothing left to clear');
+    });
+
+    testWidgets('with "remove animations", a pop settles when its window ends', (tester) async {
+      removeAnimations(tester);
+      final (timers, board) = await openPaint(tester);
+      final (_, right) = pickCells(board);
+      await tester.tapAt(cellCenter(tester, board, right));
+      await tester.pump();
+      expect(board.game.placed[right], 1);
+      await expectRedrawAtEnd(tester, timers, BoardPainter.popShows, 'pop');
+    });
+
+    testWidgets('in a drag held past the effects idle time, a pop settles when its window ends', (tester) async {
+      final (timers, board) = await openPaint(tester);
+      final (_, right) = pickCells(board);
+      final gesture = await tester.startGesture(cellCenter(tester, board, right) + const Offset(-40, 0));
+      await tester.pump(const Duration(seconds: 16));
+      expect(timers.effects.isRunning, isFalse, reason: 'the effects rest during the long hold');
+      await gesture.moveTo(cellCenter(tester, board, right));
+      await tester.pump();
+      expect(board.game.placed[right], 1);
+      await expectRedrawAtEnd(tester, timers, BoardPainter.popShows, 'pop');
+      await gesture.up();
+    });
+
+    testWidgets('with "remove animations", no timer waits in the background or under another screen', (tester) async {
+      removeAnimations(tester);
+      final (timers, board) = await openPaint(tester);
+      final (wrong, _) = pickCells(board);
+      await tester.tapAt(cellCenter(tester, board, wrong));
+      await tester.pump();
+      expect(timers.lapsePending, isTrue);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      expect(timers.lapsePending, isFalse, reason: 'nothing waits in the background');
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(timers.lapsePending, isTrue, reason: 'armed again for the rest of the cross');
+
+      nav.currentState!.push(MaterialPageRoute<void>(builder: (_) => const Scaffold()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(timers.lapsePending, isFalse, reason: 'covered');
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(timers.lapsePending, isFalse, reason: 'resumed but still covered');
     });
   });
 }
