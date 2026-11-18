@@ -63,6 +63,9 @@ abstract final class UnlockTables {
   static const modeTimeAttack = 'mode.timeAttack';
   static const modeDaily = 'mode.daily';
 
+  /// The reward with [id], or null.
+  static Reward? rewardById(String? id) => rewards.where((r) => r.id == id).firstOrNull;
+
   static String courseId(String id) => 'course.$id';
   static String boosterId(Booster b) => 'booster.${b.name}';
 
@@ -145,7 +148,15 @@ class NextUnlock {
 }
 
 class UnlockState {
-  const UnlockState._(this.unlocked, this.nextReward, this.nextCourse, this.celebrated, this.gateStars);
+  const UnlockState._(
+    this.unlocked,
+    this.nextReward,
+    this.nextCourse,
+    this.celebrated,
+    this.gateStars,
+    this.threeStars,
+    this.pictureCount,
+  );
 
   /// Gated items that are open. Items that are always open never appear here.
   final Set<String> unlocked;
@@ -155,6 +166,15 @@ class UnlockState {
 
   /// Stars toward the course gates (best of Paint and Sort per picture, added up).
   final int gateStars;
+
+  /// Pictures with 3 stars in Paint or Sort, each counted once.
+  final int threeStars;
+
+  /// Pictures the build ships; reward thresholds scale with it.
+  final int pictureCount;
+
+  /// 3-star pictures [r] needs in this build.
+  int threshold(Reward r) => UnlockTables.scaled(r.threshold, pictureCount);
 
   bool isUnlocked(String id) => unlocked.contains(id);
 
@@ -176,6 +196,13 @@ class UnlockState {
         for (final id in catchUp)
           if (!id.startsWith('reward.') && !_isFutureCourse(id)) id,
       };
+
+  /// Rewards earned and never celebrated, in table order: the unlock
+  /// celebration after a finished picture, or the catch-up summary, names them.
+  List<Reward> get newRewards => [
+        for (final r in UnlockTables.rewards)
+          if (unlocked.contains(r.id) && !celebrated.contains(r.id)) r,
+      ];
 
   static bool _isFutureCourse(String id) => UnlockTables.futureCourseIds.any((c) => id == UnlockTables.courseId(c));
 }
@@ -218,6 +245,6 @@ abstract final class Unlocks {
         nextCourse = NextUnlock(UnlockTables.courseId(e.key), left);
       }
     }
-    return UnlockState._(unlocked, nextReward, nextCourse, i.celebrated, i.gateStars);
+    return UnlockState._(unlocked, nextReward, nextCourse, i.celebrated, i.gateStars, threeStars, i.pictureCount);
   }
 }

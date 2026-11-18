@@ -14,11 +14,9 @@ const framedSaveSecret = 'frame.saved';
 int? threeStarPictures(UnlockState unlocks, int pictureCount) {
   final next = unlocks.nextReward;
   if (next == null) return null;
-  final r = _reward(next.id);
+  final r = UnlockTables.rewardById(next.id);
   return r == null ? null : UnlockTables.scaled(r.threshold, pictureCount) - next.remaining;
 }
-
-Reward? _reward(String? id) => UnlockTables.rewards.where((r) => r.id == id).firstOrNull;
 
 /// A frame drawn around a saved picture. [none] saves the picture as before.
 enum PhotoFrame {
@@ -56,7 +54,7 @@ enum PhotoFrame {
 
   /// 3-star pictures needed in a build of [pictureCount] pictures, or null when no reward opens it.
   int? threshold(int pictureCount) {
-    final r = _reward(rewardId);
+    final r = UnlockTables.rewardById(rewardId);
     return r == null ? null : UnlockTables.scaled(r.threshold, pictureCount);
   }
 

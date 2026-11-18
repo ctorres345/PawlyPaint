@@ -6,6 +6,9 @@ import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import 'cat_mascot.dart';
 
+/// "picture" or "pictures" for [n].
+String picturesWord(int n) => n == 1 ? 'picture' : 'pictures';
+
 /// What she still has to do to open [id], in one short sentence.
 String unlockCondition(String id, {int starsLeft = 0}) {
   if (id.startsWith('course.')) return 'Earn $starsLeft more ${starsLeft == 1 ? 'star' : 'stars'} to open';
@@ -50,20 +53,28 @@ String unlockLabel(String id, List<Course> courses) {
   return id;
 }
 
-/// "6 courses, Sort, Time Attack and 4 boosters", or '' when nothing is named.
+/// "6 courses, Sort, Time Attack, 4 boosters and 2 rewards", or '' when nothing is named.
 String unlockPhrase(Set<String> ids) {
   final courses = ids.where((i) => i.startsWith('course.')).length;
   final boosters = ids.where((i) => i.startsWith('booster.')).length;
+  final rewards = ids.where((i) => i.startsWith('reward.')).length;
   final parts = <String>[
     if (courses > 0) '$courses ${courses == 1 ? 'course' : 'courses'}',
     if (ids.contains(UnlockTables.modeSort)) 'Sort',
     if (ids.contains(UnlockTables.modeTimeAttack)) 'Time Attack',
     if (ids.contains(UnlockTables.modeDaily)) "today's picture",
     if (boosters > 0) '$boosters ${boosters == 1 ? 'booster' : 'boosters'}',
+    if (rewards > 0) '$rewards ${rewards == 1 ? 'reward' : 'rewards'}',
   ];
-  if (parts.isEmpty) return '';
-  return parts.length == 1 ? parts.first : '${parts.take(parts.length - 1).join(', ')} and ${parts.last}';
+  return joinAnd(parts);
 }
+
+/// "A, B and C", or '' for none.
+String joinAnd(List<String> parts) => switch (parts.length) {
+      0 => '',
+      1 => parts.first,
+      _ => '${parts.take(parts.length - 1).join(', ')} and ${parts.last}',
+    };
 
 /// What just opened, as short names for the completion sheet. Marks them
 /// celebrated, so each unlock is announced once.
@@ -74,11 +85,27 @@ List<String> takeNewUnlocks(ProgressStore store, List<Course> courses) {
   return [for (final id in ids) unlockLabel(id, courses)];
 }
 
+/// What the one catch-up summary names: [UnlockState.summary] plus rewards
+/// earned and never celebrated, so a save that already qualifies gets one
+/// dialog and not a celebration per reward (PAP-38).
+Set<String> catchUpIds(UnlockState unlocks) => {...unlocks.summary, for (final r in unlocks.newRewards) r.id};
+
 /// Shows the one catch-up summary, then marks everything in it celebrated.
 Future<void> showCatchUp(BuildContext context, ProgressStore store, Set<String> ids) async {
   final list = unlockPhrase(ids);
   if (list.isEmpty) return;
-  await showMochiDialog(context, title: 'Welcome back!', message: "You've unlocked $list.", button: "Let's paint");
+  final rewards = ids.where((i) => i.startsWith('reward.')).length;
+  final where = switch (rewards) {
+    0 => '',
+    1 => ' Your reward is waiting in Unlocks.',
+    _ => ' Your rewards are waiting in Unlocks.',
+  };
+  await showMochiDialog(
+    context,
+    title: 'Welcome back!',
+    message: "You've unlocked $list.$where",
+    button: "Let's paint",
+  );
   await store.markCelebrated(ids);
 }
 
