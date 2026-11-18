@@ -91,8 +91,11 @@ mixin _SortFlow on _SortStateBase {
       done: difficulty == null ? 'Back to the course' : 'Back to Time Attack',
     );
     if (!mounted) return;
+    final seeUnlocks = await celebrateNewRewards(context, widget.store);
+    if (!mounted) return;
     if (gifts > 0) showDaysPlayedGift(context, gifts);
-    Navigator.of(context).pop();
+    final nav = Navigator.of(context)..pop();
+    if (seeUnlocks) openUnlocks(nav);
   }
 
   /// Time Attack ran out: count the round and offer another go.

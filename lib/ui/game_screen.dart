@@ -29,6 +29,7 @@ import 'music_sheet.dart';
 import 'star_meter.dart';
 import 'tray.dart';
 import 'unlock_ui.dart';
+import 'unlocks_screen.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key, required this.puzzle, required this.store, this.daily = false, this.tutorial = false});
@@ -415,8 +416,11 @@ class _GameScreenState extends State<GameScreen>
       replayOrder: game.order,
     );
     if (!mounted) return;
+    final seeUnlocks = await celebrateNewRewards(context, widget.store);
+    if (!mounted) return;
     if (gifts > 0) showDaysPlayedGift(context, gifts);
-    Navigator.of(context).pop();
+    final nav = Navigator.of(context)..pop();
+    if (seeUnlocks) openUnlocks(nav);
   }
 
   // ---- Boosters -----------------------------------------------------------

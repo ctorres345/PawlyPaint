@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/rewards.dart';
 import '../logic/unlocks.dart';
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
@@ -16,6 +17,7 @@ import 'music_sheet.dart';
 import 'settings_screen.dart';
 import 'time_attack_screen.dart';
 import 'unlock_ui.dart';
+import 'unlocks_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.courses});
@@ -43,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final store = ProgressScope.of(context);
-      final ids = store.unlockState(courses).summary;
+      final ids = catchUpIds(store.unlockState(courses));
       if (ids.isNotEmpty) await showCatchUp(context, store, ids);
     });
   }
@@ -140,6 +142,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                _UnlockStrip(unlocks: unlocks),
                 const SizedBox(height: 12),
                 if (taOpen)
                   FilledButton.icon(
@@ -692,4 +696,53 @@ void _showHowToPlay(BuildContext context, ProgressStore store) {
       ),
     ),
   );
+}
+
+/// Opens the Unlocks screen and says what the next reward is (PAP-38).
+class _UnlockStrip extends StatelessWidget {
+  const _UnlockStrip({required this.unlocks});
+
+  final UnlockState unlocks;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final next = unlocks.nextReward;
+    final reward = next == null ? null : rewardById(next.id);
+    final line = reward == null
+        ? 'Every reward is yours!'
+        : 'Next: ${rewardInfo(reward).name} · ${next!.remaining} more three-star';
+    return Material(
+      color: scheme.surface,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => openUnlocks(Navigator.of(context)),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 64),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              Image.asset('assets/art/icons/gift.png', width: 40, height: 40, excludeFromSemantics: true),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Unlocks', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                    Text(line, style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

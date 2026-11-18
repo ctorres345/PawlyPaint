@@ -29,6 +29,7 @@ import 'mini_map.dart';
 import 'music_sheet.dart';
 import 'star_meter.dart';
 import 'unlock_ui.dart';
+import 'unlocks_screen.dart';
 
 part 'sort/sort_state.dart';
 part 'sort/sort_flow.dart';
