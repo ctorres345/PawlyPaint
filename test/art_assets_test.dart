@@ -74,7 +74,7 @@ void main() {
         .whereType<Directory>()
         .map((d) => d.uri.pathSegments.where((s) => s.isNotEmpty).last)
         .toSet();
-    expect(folders, {..._bundled, 'app_icon'});
+    expect(folders, {..._bundled, 'app_icon', 'frames'});
   });
 
   test('pubspec declares every bundled art folder', () {
@@ -111,6 +111,61 @@ void main() {
       }
     });
   }
+
+  test('pubspec declares the frames folder', () {
+    expect(File('pubspec.yaml').readAsStringSync(),
+        contains('- assets/art/frames/'));
+  });
+
+  // Frames fill their border, so they get their own check: the same names at
+  // 1x, 2.0x and 3.0x, at most 1024 px, transparent corners and middle.
+  test('assets/art/frames: every frame at three sizes, clear corners and middle',
+      () async {
+    const dir = 'assets/art/frames';
+    final names = _names(dir);
+    expect(names, isNotEmpty);
+    expect(
+        Directory(dir)
+            .listSync()
+            .whereType<Directory>()
+            .map((d) => d.uri.pathSegments.where((s) => s.isNotEmpty).last)
+            .toSet(),
+        {'2.0x', '3.0x', 'export'});
+    for (final variant in ['', '2.0x/', '3.0x/']) {
+      expect(_names('$dir/$variant'), names, reason: '$dir/$variant');
+      for (final name in names) {
+        final key = '$dir/$variant$name';
+        expect(name, endsWith('.png'), reason: key);
+        final data = await rootBundle.load(key);
+        final image = await _decode(
+            data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+        expect(image.width <= 1024 && image.height <= 1024, isTrue,
+            reason: key);
+        expect((await _edges(image)).corners, everyElement(0),
+            reason: '$key corners should be transparent');
+        final rgba =
+            (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+        final mid = (image.height ~/ 2 * image.width + image.width ~/ 2) * 4 + 3;
+        expect(rgba.getUint8(mid), 0,
+            reason: '$key middle should be transparent');
+      }
+    }
+  });
+
+  // Saves draw the frame from full-size copies, so it stays sharp at about 2500 px.
+  test('assets/art/frames/export: every frame at 2048 px, declared, clear corners and middle', () async {
+    const dir = 'assets/art/frames/export';
+    expect(File('pubspec.yaml').readAsStringSync(), contains('- $dir/'));
+    expect(_names(dir), _names('assets/art/frames'));
+    for (final name in _names(dir)) {
+      final data = await rootBundle.load('$dir/$name');
+      final image = await _decode(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+      expect([image.width, image.height], [2048, 2048], reason: name);
+      expect((await _edges(image)).corners, everyElement(0), reason: name);
+      final rgba = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+      expect(rgba.getUint8((image.height ~/ 2 * image.width + image.width ~/ 2) * 4 + 3), 0, reason: name);
+    }
+  });
 
   test('app icon art decodes; only the full icon has a solid background',
       () async {

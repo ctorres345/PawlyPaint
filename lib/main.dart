@@ -5,12 +5,14 @@ import 'state/achievements.dart';
 import 'state/music.dart';
 import 'state/progress_store.dart';
 import 'state/settings.dart';
+import 'ui/frame_picker.dart';
 import 'ui/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Load everything at once rather than one after another.
   final (store, music, settings) = await (ProgressStore.load(), MusicController.load(), AppSettings.load()).wait;
+  registerFrameBadge();
   await baselineBadges(allCourses, store);
   runApp(PawlyPaintApp(store: store, music: music, settings: settings));
   music.playMenu();

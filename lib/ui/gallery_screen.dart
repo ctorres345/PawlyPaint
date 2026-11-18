@@ -4,11 +4,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
+import '../logic/photo_frames.dart';
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import '../state/settings.dart';
 import 'badges.dart';
 import 'effect_clock.dart';
+import 'frame_picker.dart';
 import 'gem_style.dart';
 import 'picture_export.dart';
 
@@ -143,6 +145,7 @@ class _PictureViewerState extends State<PictureViewer> {
   Widget build(BuildContext context) {
     final store = ProgressScope.of(context);
     final text = Theme.of(context).textTheme;
+    final frame = usableFrame(context);
     Widget stars(PlayMode mode) {
       final r = store.record(mode.key(widget.puzzle.id));
       return Row(
@@ -173,16 +176,22 @@ class _PictureViewerState extends State<PictureViewer> {
                     aspectRatio: widget.puzzle.width / widget.puzzle.height,
                     child: Hero(
                       tag: 'gallery-${widget.puzzle.id}',
-                      child: Material(
-                        elevation: 8,
-                        borderRadius: BorderRadius.circular(16),
-                        color: SettingsScope.of(context).theme.sheet,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Listener(
-                            onPointerDown: (_) => _shimmer.poke(),
-                            child: CustomPaint(
-                              painter: _FinishedPainter(widget.puzzle, paints, _shimmer, _cache),
+                      child: FramedPreview(
+                        frame: frame,
+                        aspect: widget.puzzle.width / widget.puzzle.height,
+                        paper: SettingsScope.of(context).theme.sheet,
+                        child: Material(
+                          elevation: frame == PhotoFrame.none ? 8 : 0,
+                          borderRadius: BorderRadius.circular(frame == PhotoFrame.none ? 16 : 4),
+                          color: SettingsScope.of(context).theme.sheet,
+                          child: Padding(
+                            // In a frame, its opening already leaves room around the gems.
+                            padding: EdgeInsets.all(frame == PhotoFrame.none ? 12 : 0),
+                            child: Listener(
+                              onPointerDown: (_) => _shimmer.poke(),
+                              child: CustomPaint(
+                                painter: _FinishedPainter(widget.puzzle, paints, _shimmer, _cache),
+                              ),
                             ),
                           ),
                         ),
@@ -195,7 +204,8 @@ class _PictureViewerState extends State<PictureViewer> {
             Text(widget.course.title, style: text.titleMedium),
             const SizedBox(height: 8),
             Wrap(spacing: 24, children: [stars(PlayMode.paint), stars(PlayMode.sort)]),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            const FramePicker(),
             SavePictureButton(puzzle: widget.puzzle),
             const SizedBox(height: 16),
           ],
