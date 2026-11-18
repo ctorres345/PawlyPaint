@@ -3,11 +3,10 @@
 /// screen and in its celebration.
 library;
 
-import '../logic/photo_frames.dart';
 import '../logic/unlocks.dart';
 
 class RewardInfo {
-  const RewardInfo(this.name, this.kind, this.art, this.blurb, this.cheer);
+  const RewardInfo(this.name, this.kind, this.art, this.blurb, this.cheer, {this.ready = false});
 
   final String name;
 
@@ -22,17 +21,12 @@ class RewardInfo {
 
   /// What Mochi says when it opens.
   final String cheer;
+
+  /// Whether the build has the reward's content yet. Until then the Unlocks
+  /// screen and the celebration say it is on its way. Frames shipped in PAP-43;
+  /// the content tickets (PAP-16, PAP-44 to PAP-47) set it for theirs.
+  final bool ready;
 }
-
-/// Whether the build has [r]'s content yet. Until then the Unlocks screen and
-/// the celebration say it is on its way. Frames shipped in PAP-43; the content
-/// tickets (PAP-16, PAP-44 to PAP-47) add theirs here.
-bool rewardReady(Reward r) => _shipped.contains(r.id);
-
-final _shipped = {
-  for (final f in PhotoFrame.values)
-    if (f.rewardId != null) f.rewardId!,
-};
 
 const _info = {
   'reward.bg.sakura': RewardInfo('Sakura canvas', 'Background', 'icons/canvas.png',
@@ -40,7 +34,8 @@ const _info = {
   'reward.palette.matcha': RewardInfo('Matcha palette', 'Palette', 'icons/palette_matcha.png',
       'A calm green look for the whole app.', 'Green tea time!'),
   'reward.frame.polaroid': RewardInfo('Polaroid frame', 'Photo frame', 'frames/frame_photo_polaroid.png',
-      'Save your pictures to Photos like an instant photo.', 'Say cheese!'),
+      'Save your pictures to Photos like an instant photo.', 'Say cheese!',
+      ready: true),
   'reward.drill.heart':
       RewardInfo('Heart drills', 'Drill shape', 'icons/gems.png', 'Place your gems as little hearts.', 'So much love!'),
   'reward.drill.glitter':
@@ -50,7 +45,8 @@ const _info = {
   'reward.palette.midnight': RewardInfo('Midnight Café palette', 'Palette', 'icons/palette_midnight.png',
       'A cozy evening look for the whole app.', 'Night owl mode!'),
   'reward.frame.lace': RewardInfo('Lace frame', 'Photo frame', 'frames/frame_photo_lace.png',
-      'A delicate lace border for saved pictures.', 'So fancy!'),
+      'A delicate lace border for saved pictures.', 'So fancy!',
+      ready: true),
   'reward.secret.song':
       RewardInfo('Secret song', 'Music', 'mochi/music.png', 'A new tune to paint along to.', "Let's dance!"),
   'reward.drill.pastel':
@@ -58,7 +54,8 @@ const _info = {
   'reward.bg.starry': RewardInfo('Starry canvas', 'Background', 'icons/canvas.png',
       'A night sky full of stars behind your pictures.', 'Wish upon a star!'),
   'reward.frame.paw': RewardInfo('Paw print frame', 'Photo frame', 'frames/frame_photo_paw.png',
-      'Little paw prints around saved pictures.', 'Paws up!'),
+      'Little paw prints around saved pictures.', 'Paws up!',
+      ready: true),
   'reward.mochi.outfit':
       RewardInfo('Mochi outfit', 'For Mochi', 'mochi/happy.png', 'A new outfit for Mochi.', 'Do I look cute?'),
   'reward.drill.holographic': RewardInfo(
@@ -71,9 +68,3 @@ const _info = {
 
 /// How [r] looks. Every reward in [UnlockTables.rewards] has an entry (a test checks).
 RewardInfo rewardInfo(Reward r) => _info[r.id]!;
-
-/// The reward with [id], or null.
-Reward? rewardById(String id) => UnlockTables.rewards.where((r) => r.id == id).firstOrNull;
-
-/// Every reward id that has art and words, for the test.
-Iterable<String> get describedRewardIds => _info.keys;

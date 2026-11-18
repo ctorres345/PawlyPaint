@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/data/rewards.dart';
+import 'package:pawlypaint/logic/photo_frames.dart';
 import 'package:pawlypaint/logic/unlocks.dart';
 import 'package:pawlypaint/state/music.dart';
 import 'package:pawlypaint/state/progress_store.dart';
 import 'package:pawlypaint/ui/home_screen.dart';
 import 'package:pawlypaint/ui/unlock_ui.dart';
+import 'package:pawlypaint/ui/unlock_celebration.dart';
 import 'package:pawlypaint/ui/unlocks_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -56,7 +58,6 @@ void main() {
 
   group('reward catalog', () {
     test('every reward has words and art that exists', () {
-      expect(describedRewardIds.toSet(), {for (final r in UnlockTables.rewards) r.id});
       for (final r in UnlockTables.rewards) {
         final info = rewardInfo(r);
         expect(File('assets/art/${info.art}').existsSync(), isTrue, reason: '${r.id}: ${info.art}');
@@ -65,8 +66,12 @@ void main() {
     });
 
     test('frames are ready, rewards without content are not yet', () {
-      expect(rewardReady(rewardById('reward.frame.polaroid')!), isTrue);
-      expect(rewardReady(rewardById('reward.bg.sakura')!), isFalse);
+      for (final f in PhotoFrame.values) {
+        final id = f.rewardId;
+        if (id != null) expect(rewardInfo(UnlockTables.rewardById(id)!).ready, isTrue, reason: id);
+      }
+      expect(rewardInfo(UnlockTables.rewardById('reward.frame.polaroid')!).ready, isTrue);
+      expect(rewardInfo(UnlockTables.rewardById('reward.bg.sakura')!).ready, isFalse);
     });
   });
 
@@ -82,7 +87,7 @@ void main() {
 
     test('thresholds scale with the build', () async {
       final store = ProgressStore.memory(pictureCount: 80);
-      final sakura = rewardById('reward.bg.sakura')!;
+      final sakura = UnlockTables.rewardById('reward.bg.sakura')!;
       expect(store.currentUnlocks.threshold(sakura), 3);
     });
   });
@@ -168,6 +173,52 @@ void main() {
       await tester.pumpAndSettle();
       expect(results.last, isTrue);
       expect(store.currentUnlocks.newRewards, isEmpty);
+    });
+
+    testWidgets('a tap outside the card does not close it', (tester) async {
+      final store = await _store(5);
+      await _pump(tester, store, _Finish(store, []));
+      await tester.tap(find.text('finish'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      expect(find.byType(UnlockCelebration), findsOneWidget);
+    });
+
+    testWidgets('"See my unlocks" leaves the picture and opens Unlocks', (tester) async {
+      final store = await _store(5);
+      await _pump(
+        tester,
+        store,
+        Builder(
+          builder: (home) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.of(home).push(MaterialPageRoute<void>(
+                builder: (_) => Scaffold(
+                  body: Builder(
+                    builder: (game) => TextButton(
+                      onPressed: () => leaveFinishedPicture(game, store, gifts: 0),
+                      child: const Text('done'),
+                    ),
+                  ),
+                ),
+              )),
+              child: const Text('play'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('play'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('done'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('See my unlocks'));
+      await tester.pumpAndSettle();
+      expect(find.byType(UnlocksScreen), findsOneWidget);
+      expect(find.text('done'), findsNothing);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('play'), findsOneWidget);
     });
 
     testWidgets('with reduced motion the card just appears', (tester) async {

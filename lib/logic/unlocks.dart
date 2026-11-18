@@ -63,6 +63,9 @@ abstract final class UnlockTables {
   static const modeTimeAttack = 'mode.timeAttack';
   static const modeDaily = 'mode.daily';
 
+  /// The reward with [id], or null.
+  static Reward? rewardById(String? id) => rewards.where((r) => r.id == id).firstOrNull;
+
   static String courseId(String id) => 'course.$id';
   static String boosterId(Booster b) => 'booster.${b.name}';
 

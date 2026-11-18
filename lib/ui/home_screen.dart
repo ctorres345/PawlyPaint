@@ -708,10 +708,10 @@ class _UnlockStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final next = unlocks.nextReward;
-    final reward = next == null ? null : rewardById(next.id);
+    final reward = UnlockTables.rewardById(next?.id);
     final line = reward == null
         ? 'Every reward is yours!'
-        : 'Next: ${rewardInfo(reward).name} · ${next!.remaining} more three-star';
+        : 'Next: ${rewardInfo(reward).name} · ${next!.remaining} more three-star ${picturesWord(next.remaining)}';
     return Material(
       color: scheme.surface,
       borderRadius: BorderRadius.circular(20),

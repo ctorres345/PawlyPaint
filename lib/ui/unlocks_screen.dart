@@ -9,7 +9,7 @@ import 'cat_mascot.dart';
 import 'unlock_ui.dart';
 
 /// The star color of the PAP-19 tokens, light and dark.
-Color _star(BuildContext context) =>
+Color starColor(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark ? const Color(0xFFF2C14E) : const Color(0xFFE0A21B);
 
 /// Opens the Unlocks screen.
@@ -25,15 +25,15 @@ class UnlocksScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final unlocks = ProgressScope.of(context).currentUnlocks;
     final scheme = Theme.of(context).colorScheme;
-    final earned = [
-      for (final r in UnlockTables.rewards)
-        if (unlocks.isUnlocked(r.id)) r,
-    ];
-    final next = unlocks.nextReward == null ? null : rewardById(unlocks.nextReward!.id);
-    final hidden = [
-      for (final r in UnlockTables.rewards)
-        if (!unlocks.isUnlocked(r.id) && r != next) r,
-    ];
+    final next = UnlockTables.rewardById(unlocks.nextReward?.id);
+    final earned = <Reward>[], hidden = <Reward>[];
+    for (final r in UnlockTables.rewards) {
+      if (unlocks.isUnlocked(r.id)) {
+        earned.add(r);
+      } else if (r != next) {
+        hidden.add(r);
+      }
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Unlocks'),
@@ -41,7 +41,7 @@ class UnlocksScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Semantics(
-              label: '${unlocks.threeStars} three-star ${unlocks.threeStars == 1 ? 'picture' : 'pictures'}',
+              label: '${unlocks.threeStars} three-star ${picturesWord(unlocks.threeStars)}',
               excludeSemantics: true,
               child: Container(
                 constraints: const BoxConstraints(minHeight: 32),
@@ -51,7 +51,7 @@ class UnlocksScreen extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.star_rounded, size: 18, color: _star(context)),
+                    Icon(Icons.star_rounded, size: 18, color: starColor(context)),
                     const SizedBox(width: 4),
                     Text('${unlocks.threeStars} three-star',
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
@@ -107,7 +107,7 @@ class StickerTitle extends StatelessWidget {
         child: Transform.rotate(
           angle: -2 * math.pi / 180,
           child: Container(
-            height: 38,
+            constraints: const BoxConstraints(minHeight: 38),
             padding: const EdgeInsets.only(left: 6, right: 16),
             decoration: BoxDecoration(
               color: scheme.primary,
@@ -133,11 +133,12 @@ class StickerTitle extends StatelessWidget {
   }
 }
 
-/// A reward's art in a rounded tile.
-class RewardArt extends StatelessWidget {
-  const RewardArt({super.key, required this.reward, this.size = 48, this.color});
+/// Art from `assets/art/` in a rounded tile.
+class ArtTile extends StatelessWidget {
+  const ArtTile({super.key, required this.art, this.size = 48, this.color});
 
-  final Reward reward;
+  /// Path under `assets/art/`.
+  final String art;
   final double size;
   final Color? color;
 
@@ -150,11 +151,9 @@ class RewardArt extends StatelessWidget {
           color: color ?? Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(size / 3),
         ),
-        child: Image.asset('assets/art/${rewardInfo(reward).art}', fit: BoxFit.contain, excludeFromSemantics: true),
+        child: Image.asset('assets/art/$art', fit: BoxFit.contain, excludeFromSemantics: true),
       );
 }
-
-String _pictures(int n) => n == 1 ? 'picture' : 'pictures';
 
 class _NextCard extends StatelessWidget {
   const _NextCard({required this.reward, required this.unlocks});
@@ -167,11 +166,11 @@ class _NextCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final info = rewardInfo(reward);
     final need = unlocks.threshold(reward);
-    final have = unlocks.threeStars.clamp(0, need);
-    final left = need - have;
+    final left = unlocks.nextReward!.remaining;
+    final have = need - left;
     return Semantics(
       container: true,
-      label: 'Next unlock: ${info.name}. $left more three-star ${_pictures(left)}. $have of $need.',
+      label: 'Next unlock: ${info.name}. $left more three-star ${picturesWord(left)}. $have of $need.',
       excludeSemantics: true,
       child: EarsCard(
         color: scheme.primaryContainer,
@@ -188,14 +187,14 @@ class _NextCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    RewardArt(reward: reward, color: scheme.surface),
+                    ArtTile(art: info.art, color: scheme.surface),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(info.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                          Text('$left more three-star ${_pictures(left)}', style: const TextStyle(fontSize: 14)),
+                          Text('$left more three-star ${picturesWord(left)}', style: const TextStyle(fontSize: 14)),
                         ],
                       ),
                     ),
@@ -307,16 +306,16 @@ class _EarnedRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final info = rewardInfo(reward);
-    final ready = rewardReady(reward);
+    final ready = info.ready;
     return Semantics(
       container: true,
-      label: '${info.name}, ${info.kind}, earned at $at three-star ${_pictures(at)}${ready ? '' : ', coming soon'}',
+      label: '${info.name}, ${info.kind}, earned at $at three-star ${picturesWord(at)}${ready ? '' : ', coming soon'}',
       excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            RewardArt(reward: reward),
+            ArtTile(art: info.art),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -331,13 +330,17 @@ class _EarnedRow extends StatelessWidget {
               ),
             ),
             if (!ready)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: scheme.secondaryContainer, borderRadius: BorderRadius.circular(12)),
-                child: Text(
-                  'Coming soon',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.onSecondaryContainer),
-                ),
+              // A status, not a button: an icon and muted text, no fill or border.
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.schedule_rounded, size: 16, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Coming soon',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant),
+                  ),
+                ],
               ),
           ],
         ),
@@ -356,7 +359,7 @@ class _MysteryRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       container: true,
-      label: 'Mystery reward, locked. At $at three-star ${_pictures(at)}.',
+      label: 'Mystery reward, locked. At $at three-star ${picturesWord(at)}.',
       excludeSemantics: true,
       child: LockedSurface(
         radius: 20,
@@ -364,20 +367,14 @@ class _MysteryRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(color: scheme.surface, borderRadius: BorderRadius.circular(16)),
-                child: Image.asset('assets/art/icons/mystery.png', excludeFromSemantics: true),
-              ),
+              ArtTile(art: 'icons/mystery.png', color: scheme.surface),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Mystery reward', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    Text('At $at three-star ${_pictures(at)}',
+                    Text('At $at three-star ${picturesWord(at)}',
                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                   ],
                 ),
@@ -389,207 +386,4 @@ class _MysteryRow extends StatelessWidget {
       ),
     );
   }
-}
-
-// ---- Celebration ------------------------------------------------------------
-
-/// After a finished picture: celebrates every reward that just opened, in one
-/// card, and marks them celebrated so each is shown once. True when she taps
-/// "See my unlocks". Does nothing when nothing new opened.
-Future<bool> celebrateNewRewards(BuildContext context, ProgressStore store) async {
-  final unlocks = store.currentUnlocks;
-  final rewards = unlocks.newRewards;
-  if (rewards.isEmpty) return false;
-  // Marked first, so leaving the app mid-card never shows it twice.
-  await store.markCelebrated([for (final r in rewards) r.id]);
-  if (!context.mounted) return false;
-  final see = await showDialog<bool>(
-    context: context,
-    builder: (_) => UnlockCelebration(rewards: rewards, unlocks: unlocks),
-  );
-  return see ?? false;
-}
-
-/// The "New unlock" card (PAP-19 board "Unlock celebration"). It scales in
-/// over 300 ms and its sparkles twinkle twice; with reduced motion it just appears.
-class UnlockCelebration extends StatefulWidget {
-  const UnlockCelebration({super.key, required this.rewards, required this.unlocks});
-
-  /// What just opened, in table order. Never empty.
-  final List<Reward> rewards;
-  final UnlockState unlocks;
-
-  @override
-  State<UnlockCelebration> createState() => _UnlockCelebrationState();
-}
-
-class _UnlockCelebrationState extends State<UnlockCelebration> with TickerProviderStateMixin {
-  late final _scale = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-  late final _twinkle = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
-  bool _started = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    if (MediaQuery.of(context).disableAnimations) {
-      _scale.value = 1;
-      _twinkle.value = 1;
-    } else {
-      _scale.forward();
-      _twinkle.forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _scale.dispose();
-    _twinkle.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final rewards = widget.rewards;
-    final first = rewards.first;
-    final info = rewardInfo(first);
-    final one = rewards.length == 1;
-    final name = one ? info.name : _list([for (final r in rewards) rewardInfo(r).name]);
-    final at = widget.unlocks.threshold(rewards.last);
-    final soon = rewards.any((r) => !rewardReady(r));
-    final message = [
-      if (one) info.blurb,
-      'You earned ${one ? 'it' : 'them'} with $at three-star ${_pictures(at)}.',
-      if (soon) one ? 'It arrives in an update soon.' : 'Some arrive in an update soon.',
-    ].join(' ');
-    final star = _star(context);
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: ScaleTransition(
-        scale: CurvedAnimation(parent: _scale, curve: Curves.easeOutBack),
-        child: FadeTransition(
-          opacity: CurvedAnimation(parent: _scale, curve: Curves.easeOut),
-          child: EarsCard(
-            color: scheme.surface,
-            radius: 28,
-            child: Material(
-              color: scheme.surface,
-              borderRadius: BorderRadius.circular(28),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ExcludeSemantics(
-                      child: SizedBox(
-                        width: 112,
-                        height: 112,
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(color: scheme.primaryContainer, shape: BoxShape.circle),
-                              ),
-                            ),
-                            Center(
-                              child: Image.asset('assets/art/${info.art}', width: 72, height: 72),
-                            ),
-                            Positioned(top: 2, right: 6, child: _Sparkle(_twinkle, star, 22, 0)),
-                            Positioned(bottom: 10, left: 2, child: _Sparkle(_twinkle, star, 16, 0.25)),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      one ? 'New unlock' : '${rewards.length} new unlocks',
-                      style: TextStyle(color: scheme.primary, fontSize: 13, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 12),
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        name,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: one ? 26 : 20, fontWeight: FontWeight.w800, height: 1.2),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, height: 1.45, color: scheme.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 16),
-                    Semantics(
-                      label: '$mascotName says: ${info.cheer}',
-                      excludeSemantics: true,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Image.asset('assets/art/mochi/celebrate.png', width: 72, height: 72),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              '$mascotName: “${info.cheer}”',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    FilledButton(
-                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text('See my unlocks'),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.tonal(
-                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Later'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "A, B and C".
-String _list(List<String> names) =>
-    names.length == 1 ? names.first : '${names.take(names.length - 1).join(', ')} and ${names.last}';
-
-/// A sparkle that twinkles twice as [t] runs from 0 to 1, starting [delay] in, then rests fully lit.
-class _Sparkle extends StatelessWidget {
-  const _Sparkle(this.t, this.color, this.size, this.delay);
-
-  final Animation<double> t;
-  final Color color;
-  final double size;
-  final double delay;
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-        animation: t,
-        builder: (context, child) {
-          final p = ((t.value - delay) / (1 - delay)).clamp(0.0, 1.0);
-          final s = p >= 1 ? 1.0 : 0.6 + 0.4 * math.cos(p * 4 * math.pi);
-          return Transform.scale(scale: s, child: Opacity(opacity: s, child: child));
-        },
-        child: Icon(Icons.auto_awesome_rounded, color: color, size: size),
-      );
 }
