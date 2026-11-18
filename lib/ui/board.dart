@@ -9,6 +9,7 @@ import '../logic/line.dart';
 import '../models/puzzle.dart';
 import '../state/game_controller.dart';
 import '../state/settings.dart';
+import 'effect_clock.dart';
 import 'gem_style.dart';
 import 'layer_raster.dart';
 
@@ -155,6 +156,7 @@ class Board extends StatefulWidget {
     required this.highlight,
     required this.celebrate,
     this.sweepAt,
+    this.lapse,
     required this.onResult,
     this.onBomb,
   });
@@ -170,6 +172,10 @@ class Board extends StatefulWidget {
 
   /// When the finished picture's shine sweep started, if it has.
   final DateTime? sweepAt;
+
+  /// Fires when a timed effect's window ends, so the canvas redraws even
+  /// with no effects running ([BoardPainter.nextLapse]).
+  final Listenable? lapse;
   final void Function(PlaceResult result, {required bool dragging}) onResult;
 
   /// Set while a bomb is armed: the next tap drops it on that cell instead
@@ -286,6 +292,7 @@ class _BoardState extends State<Board> {
               highlight: widget.highlight,
               celebrate: widget.celebrate,
               sweepAt: widget.sweepAt,
+              lapse: widget.lapse,
               cache: _cache,
               pixelRatio: MediaQuery.devicePixelRatioOf(context),
             ),
@@ -367,9 +374,49 @@ class BoardPainter extends CustomPainter {
     required this.highlight,
     required this.celebrate,
     this.sweepAt,
+    Listenable? lapse,
     required this.cache,
     required this.pixelRatio,
-  }) : super(repaint: Listenable.merge([game, view, shimmer]));
+  }) : super(repaint: Listenable.merge([game, view, shimmer, lapse]));
+
+  /// How long a wrong tap's red cross shows.
+  static const missShows = Duration(milliseconds: 600);
+
+  /// How long a drill that just landed pops above its neighbours.
+  static const popShows = Duration(milliseconds: 220);
+
+  /// How long a bomb or wand's golden ring spreads.
+  static const blastShows = Duration(milliseconds: 700);
+
+  /// How long a finished color glints.
+  static const glintShows = Duration(milliseconds: 1100);
+
+  /// The next moment after [now] when a timed effect on [game]'s canvas
+  /// (a miss cross, a pop, a booster drill landing, a blast ring or a color's
+  /// glint) appears or ends, or null when none is pending. Without running
+  /// effects nothing else redraws the canvas then.
+  static DateTime? nextLapse(GameController game, DateTime now) {
+    DateTime? next;
+    void at(DateTime? t) {
+      if (t != null && t.isAfter(now) && (next == null || t.isBefore(next!))) next = t;
+    }
+
+    final missAt = game.lastMistakeAt;
+    if (missAt != null) at(missAt.add(missShows));
+    for (final t in game.recentPlacements.values) {
+      // A booster drill still waiting in its wave shows its empty cell until it lands.
+      at(t);
+      at(t.add(popShows));
+    }
+    final blastAt = game.lastBlastAt;
+    if (blastAt != null) at(blastAt.add(blastShows));
+    final doneAt = game.lastColorDoneAt;
+    if (doneAt != null) {
+      at(doneAt);
+      at(doneAt.add(glintShows));
+    }
+    return next;
+  }
 
   final GameController game;
   final BoardView view;
@@ -534,7 +581,7 @@ class BoardPainter extends CustomPainter {
     _drawStatic(canvas);
 
     final t = shimmer.value;
-    final now = DateTime.now();
+    final now = EffectClock.wallNow();
     Rect cellRect(int i) => _cellRect(p, i);
 
     // Pulsing outline on the cells still waiting for the selected color.
@@ -582,8 +629,8 @@ class BoardPainter extends CustomPainter {
     final doneColor = game.lastColorDone, doneAt = game.lastColorDoneAt;
     if (doneColor != null && doneAt != null && !celebrate) {
       final age = now.difference(doneAt).inMilliseconds;
-      if (age >= 0 && age < 1100) {
-        final fade = 1 - age / 1100;
+      if (age >= 0 && age < glintShows.inMilliseconds) {
+        final fade = 1 - age / glintShows.inMilliseconds;
         for (final i in p.cellsByColor[doneColor]) {
           final hash = (i * 2654435761) & 0xFFFF;
           final s = 0.5 + 0.5 * math.sin(age / 90 + hash / 0xFFFF * 2 * math.pi);
@@ -600,8 +647,8 @@ class BoardPainter extends CustomPainter {
       if (game.placed[i] == 0) continue;
       if (age < 0) {
         canvas.drawRect(cellRect(i), paints[p.cells[i]].pale);
-      } else if (age < 220) {
-        drawGem(canvas, cellRect(i), paints[p.cells[i]], pop: 0.3 * (1 - age / 220));
+      } else if (age < popShows.inMilliseconds) {
+        drawGem(canvas, cellRect(i), paints[p.cells[i]], pop: 0.3 * (1 - age / popShows.inMilliseconds));
       }
     }
 
@@ -609,8 +656,8 @@ class BoardPainter extends CustomPainter {
     final blastCell = game.lastBlastCell, blastAt = game.lastBlastAt;
     if (blastCell != null && blastAt != null) {
       final age = now.difference(blastAt).inMilliseconds;
-      if (age < 700) {
-        final k = age / 700;
+      if (age < blastShows.inMilliseconds) {
+        final k = age / blastShows.inMilliseconds;
         _blast
           ..color = const Color(0xFFFFD54F).withValues(alpha: 0.9 * (1 - k))
           ..strokeWidth = kCell * (0.5 - 0.35 * k);
@@ -638,10 +685,10 @@ class BoardPainter extends CustomPainter {
     final missCell = game.lastMistakeCell, missAt = game.lastMistakeAt;
     if (missCell != null && missAt != null && game.placed[missCell] == 0) {
       final age = now.difference(missAt).inMilliseconds;
-      if (age < 600) {
+      if (age < missShows.inMilliseconds) {
         final rect = cellRect(missCell).deflate(kCell * 0.22);
         _miss
-          ..color = const Color(0xFFE53935).withValues(alpha: 1 - age / 600)
+          ..color = const Color(0xFFE53935).withValues(alpha: 1 - age / missShows.inMilliseconds)
           ..strokeWidth = kCell * 0.12;
         canvas.drawLine(rect.topLeft, rect.bottomRight, _miss);
         canvas.drawLine(rect.topRight, rect.bottomLeft, _miss);

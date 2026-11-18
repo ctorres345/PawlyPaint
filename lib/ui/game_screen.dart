@@ -64,10 +64,17 @@ class _GameScreenState extends State<GameScreen>
   bool get clockTicking => _clockTick != null;
 
   @override
-  bool get lapsePending => false;
+  bool get lapsePending => _lapse != null;
   final clock = ValueNotifier<int>(0);
   Timer? _clockTick;
   bool _covered = false;
+
+  /// Fires when a miss cross, a pop or another canvas effect's window ends,
+  /// so it clears even with no effects running ("remove animations", or a
+  /// drag held past the effects' idle time).
+  Timer? _lapse;
+  DateTime? _lapseAt;
+  final _lapsed = ValueNotifier(0);
   int _unsavedPlacements = 0;
   DateTime _lastHaptic = DateTime(0);
   bool highlight = true;
@@ -108,7 +115,11 @@ class _GameScreenState extends State<GameScreen>
   void initState() {
     super.initState();
     DisplayRate.hold();
-    game = GameController(widget.puzzle, resume: widget.tutorial ? null : widget.store.savedFor(widget.puzzle));
+    game = GameController(
+      widget.puzzle,
+      resume: widget.tutorial ? null : widget.store.savedFor(widget.puzzle),
+      clock: EffectClock.wallNow,
+    )..addListener(_armLapse);
     paints = GemPaints.forPuzzle(widget.puzzle, _settings.shape);
     _effects = EffectClock()..poke();
     clock.value = game.seconds;
@@ -154,7 +165,38 @@ class _GameScreenState extends State<GameScreen>
     if (covered != _covered) {
       _covered = covered;
       covered ? _stopClockTick() : _maybeStartClockTick();
+      _armLapse();
     }
+  }
+
+  /// Waits for the next moment a canvas effect appears or ends, then
+  /// redraws the canvas. Nothing waits in the background or while another
+  /// screen covers this one.
+  void _armLapse() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (!mounted || _covered || (state != null && state != AppLifecycleState.resumed)) {
+      _cancelLapse();
+      return;
+    }
+    final now = EffectClock.wallNow();
+    final at = BoardPainter.nextLapse(game, now);
+    // A drag notifies on every drill: keep a timer that fires no later.
+    final pending = _lapseAt;
+    if (_lapse != null && pending != null && at != null && !pending.isAfter(at)) return;
+    _cancelLapse();
+    if (at == null) return;
+    _lapseAt = at;
+    _lapse = Timer(at.difference(now), () {
+      _lapse = _lapseAt = null;
+      // A running effect clock redraws the canvas on its next tick anyway.
+      if (!_effects.isRunning) _lapsed.value++;
+      _armLapse();
+    });
+  }
+
+  void _cancelLapse() {
+    _lapse?.cancel();
+    _lapse = _lapseAt = null;
   }
 
   /// Only the clock text listens to this, so the canvas never rebuilds for it.
@@ -180,10 +222,12 @@ class _GameScreenState extends State<GameScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _maybeStartClockTick();
+      _armLapse();
       return;
     }
     // Inactive, hidden or paused: nothing ticks in the background.
     _stopClockTick();
+    _armLapse();
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       game.pause();
       _save();
@@ -207,6 +251,8 @@ class _GameScreenState extends State<GameScreen>
     _music = null;
     _glide?.dispose();
     _clockTick?.cancel();
+    _cancelLapse();
+    _lapsed.dispose();
     clock.dispose();
     _effects.dispose();
     game.dispose();
@@ -348,7 +394,7 @@ class _GameScreenState extends State<GameScreen>
     // A wide shine sweeps once across the finished picture.
     if (!reduceMotion) {
       _effects.poke();
-      setState(() => _sweepAt = DateTime.now());
+      setState(() => _sweepAt = EffectClock.wallNow());
     }
     await Future<void>.delayed(const Duration(milliseconds: 1600));
     final isBest = await best;
@@ -608,6 +654,7 @@ class _GameScreenState extends State<GameScreen>
                             highlight: highlight,
                             celebrate: _celebrate,
                             sweepAt: _sweepAt,
+                            lapse: _lapsed,
                             onResult: _onResult,
                             onBomb: _bombArmed ? _dropBomb : null,
                           ))),
