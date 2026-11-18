@@ -24,21 +24,47 @@ A non-zero exit means stop.
 ## Release a new version
 
 ```
-CHANGELOG entry ─► bump version ─► build APK ─► pre-release on GitHub ─► Cesar promotes it
+CHANGELOG entry ─► bump version ─► push the tag ─► Cesar approves the run ─► CI drafts the release ─► Cesar publishes, then promotes
 ```
 
 1. Ask Cesar before starting a release.
 2. Add a `## x.y.z (YYYY-MM-DD)` entry at the top of `CHANGELOG.md`, and move any "Unreleased" items into it.
 3. Bump `version:` in `pubspec.yaml`: `x.y.z+N`, where `N` goes up by one every GitHub release **and** every Google Play upload (Android refuses to update over a lower build number, and Play rejects a code it has already seen). Both flavors share this one counter, so a sideload release may skip numbers; that is fine. Bump `N` before building any bundle you will upload, even when the upload is only a fix for a rejected one.
 4. Commit and push to `main`. This release commit is the one allowed direct push to `main`, and only after Cesar's go-ahead; all other work goes through a `cesar/PAP-<n>` PR.
-5. Build and name the APK:
+5. Check the release commit is what `main` holds (`git status --porcelain` is empty and `git rev-parse HEAD` equals `git rev-parse origin/main`), then tag it and push the tag. The tag push is part of the same go-ahead; never push a `vx.y.z` tag for anything else, since each one starts a release build.
+   ```bash
+   git tag vx.y.z && git push origin vx.y.z
+   ```
+6. The `release-apk` workflow (`.github/workflows/release-apk.yml`) starts and waits for Cesar: he opens the run on GitHub (Actions, `release-apk`, the run for `vx.y.z`), checks it is the tag he asked for **and** that the run's commit is the release commit on `main` (the short hash on the run page, or `gh run view <id> --json headSha`, equals `gh api repos/ctorres345/PawlyPaint/commits/main --jq .sha`; if `main` has moved on since step 4, it must equal the release commit pushed there, and when unsure he doesn't approve), and only then approves `sideload-release` under "Review deployments". A tag runs the workflow file of its own commit, so a run on any other commit could carry a changed workflow that leaks the key. An agent tells him the run is waiting and never approves it. Then, on GitHub, the workflow:
+   - stops unless the tag is `vx.y.z`, matches `pubspec.yaml`, points at a commit on `main`, and `CHANGELOG.md` has a `## x.y.z` section;
+   - builds `flutter build apk --release --flavor sideload` with the same Flutter pin as the review gate, signed with the debug keystore from the `sideload-release` environment secret (see "Signing keystore" below);
+   - stops unless `apksigner` shows exactly the certificate every release so far has had (`fa1510ef...5390`);
+   - creates a **draft** release `vx.y.z` with `PawlyPaint-x.y.z.apk` and that CHANGELOG section as notes. A draft doesn't show on the Releases page, so her phone can't see it yet.
+
+   Find the run for this tag (it can take a few seconds to appear; if nothing shows after a minute, stop and tell Cesar), then follow it until it ends:
+   ```bash
+   gh run list --workflow release-apk.yml --branch vx.y.z --event push --limit 1 --json databaseId --jq '.[0].databaseId'
+   gh run watch <that id> --exit-status
+   ```
+   Run the watch in the background: it waits through Cesar's approval, which can take long. A watch that times out or is stopped is not a build failure; look again with `gh run view <that id> --json status,conclusion`. If the run fails (`conclusion` is `failure`), report the failed step's error to Cesar and stop: don't delete or re-push the tag, and don't build on the Mac unless he asks (see "If CI can't build" below).
+7. Read the draft's notes (`gh release view vx.y.z`): they hold that section and nothing else.
+8. Cesar publishes the draft as a **pre-release**, tries it, then promotes it to a full release himself:
+   ```bash
+   gh release edit vx.y.z --draft=false --prerelease
+   ```
+
+### If CI can't build (Mac fallback, only when Cesar asks)
+
+Run "Before any step" (the keystore check included), then:
+
+1. Build and name the APK:
    ```bash
    flutter build apk --release --flavor sideload
    cp build/app/outputs/flutter-apk/app-sideload-release.apk build/PawlyPaint-x.y.z.apk
    ```
-6. Check the signing key matches the last release. An APK signed with another key can't update the phones, and their only way out is an uninstall that erases progress.
+2. Check the signing key matches the last release. An APK signed with another key can't update the phones, and their only way out is an uninstall that erases progress.
    ```bash
-   apksigner=$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/build-tools/*/apksigner | tail -1)
+   apksigner=$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/build-tools/*/apksigner | sort -V | tail -1)
    rm -rf build/prev
    gh release download v<previous x.y.z> --pattern 'PawlyPaint-<previous x.y.z>.apk' --dir build/prev
    "$apksigner" verify --print-certs build/prev/PawlyPaint-<previous x.y.z>.apk | grep 'SHA-256'
@@ -47,12 +73,12 @@ CHANGELOG entry ─► bump version ─► build APK ─► pre-release on GitHu
    - Two lines with the same SHA-256: continue.
    - Two lines that differ: stop and tell Cesar. Don't touch the keystore; restoring it is his step (see "Signing keystore" below).
    - A missing line or an error: the check itself failed, not the keys. Stop and tell Cesar; don't touch the keystore.
-7. Write the release notes: the new `## x.y.z` section of `CHANGELOG.md`, without its heading, into `build/notes.md`.
+3. Write the release notes: the new `## x.y.z` section of `CHANGELOG.md`, without its heading, into `build/notes.md`.
    ```bash
    awk -v v="## x.y.z " 'index($0, v) == 1 {f = 1; next} /^## /{f = 0} f' CHANGELOG.md > build/notes.md
    ```
    Read `build/notes.md` and check it holds that section and nothing else.
-8. Check the release commit is what `main` holds (`git status --porcelain` is empty and `git rev-parse HEAD` equals `git rev-parse origin/main`), then create a **pre-release** tagged on that commit, with the APK attached in the same call, so no release ever exists without its APK. Cesar promotes it to a full release himself.
+4. If `gh run list --workflow release-apk.yml --branch vx.y.z` shows a run that is waiting or in progress, ask Cesar to cancel it (`gh run cancel <id>`) before going on. If the CI run already made a draft for `vx.y.z`, stop and ask Cesar what to do with it. Otherwise create a **pre-release** on the release commit, with the APK attached in the same call, so no release ever exists without its APK. Cesar promotes it to a full release himself.
    ```bash
    timeout 600 gh release create vx.y.z build/PawlyPaint-x.y.z.apk --prerelease --target "$(git rev-parse HEAD)" --title "PawlyPaint x.y.z" --notes-file build/notes.md
    ```
@@ -60,7 +86,7 @@ CHANGELOG entry ─► bump version ─► build APK ─► pre-release on GitHu
 
 ## Install on an Android phone
 
-From the phone: open the newest release on the GitHub Releases page, download `PawlyPaint-x.y.z.apk`, open it, and allow "install unknown apps" if asked. A newer APK installs over the old one and keeps progress. If the phone says "App not installed", never uninstall the old app (that erases progress): stop and tell Cesar. The cause is a different signing key or a lower build number.
+From the phone: open the newest full release on the GitHub Releases page (not one marked Pre-release), download `PawlyPaint-x.y.z.apk`, open it, and allow "install unknown apps" if asked. A newer APK installs over the old one and keeps progress. If the phone says "App not installed", never uninstall the old app (that erases progress): stop and tell Cesar. The cause is a different signing key or a lower build number.
 
 From the Mac, phone plugged in with USB debugging on:
 
@@ -221,7 +247,21 @@ One time, Cesar's steps:
 Release APKs of the `sideload` flavor are signed with the Mac's Android debug keystore (`~/.android/debug.keystore`). An APK signed with a different key cannot update the installed app, so losing it means uninstalling and losing progress.
 
 - Keep a backup of that file outside the Mac (an encrypted drive or password manager attachment).
-- Never commit it or paste it anywhere. On a new Mac, Cesar copies it back to the same path **before the first Flutter build**: a build without it silently creates a new keystore. An agent that finds no `~/.android/debug.keystore` stops and tells him before any build.
+- Never commit it or paste it anywhere, with one exception: the `SIDELOAD_DEBUG_KEYSTORE_B64` secret of the `sideload-release` GitHub environment, which the `release-apk` workflow signs with. It is an environment secret, not a repo secret: only a run for a `v*` tag can ask for it, and every such run waits until Cesar approves it on GitHub. That approval, with his commit check ("Release a new version", step 6), is the gate, because a tag runs the workflow file from the tagged commit, so a tag on a changed workflow could otherwise read the key. GitHub can't tell an agent from Cesar here (agents use his token), so the rule that agents never approve is what keeps it his. Only Cesar sets it up, once, from the Mac, before any `v*` tag is pushed. First the environment, with him as required reviewer and `v*` tags as the only allowed refs:
+  ```bash
+  gh api -X PUT repos/ctorres345/PawlyPaint/environments/sideload-release -F 'deployment_branch_policy[protected_branches]=false' -F 'deployment_branch_policy[custom_branch_policies]=true' -F 'reviewers[][type]=User' -F 'reviewers[][id]=11773798' && gh api -X POST repos/ctorres345/PawlyPaint/environments/sideload-release/deployment-branch-policies -f name='v*' -f type=tag
+  ```
+  Check it. The first command must print only `tag v*`, the second `ctorres345`:
+  ```bash
+  gh api repos/ctorres345/PawlyPaint/environments/sideload-release/deployment-branch-policies --jq '.branch_policies[] | .type + " " + .name'
+  gh api repos/ctorres345/PawlyPaint/environments/sideload-release --jq '.protection_rules[] | select(.type == "required_reviewers") | .reviewers[].reviewer.login'
+  ```
+  Only when both print that, add the keystore (piped straight in, so it never shows on screen):
+  ```bash
+  base64 -i ~/.android/debug.keystore | gh secret set SIDELOAD_DEBUG_KEYSTORE_B64 --env sideload-release --repo ctorres345/PawlyPaint
+  ```
+  No password secret is needed: the debug config uses Android's fixed debug password. Agents never run these, never approve a `sideload-release` run, never read the secret, and never edit the workflow to print or upload the keystore. The workflow refuses to release an APK whose certificate isn't the one every release has had, so a wrong secret fails the run instead of shipping.
+- On a new Mac, Cesar copies it back to the same path **before the first Flutter build**: a build without it silently creates a new keystore. An agent that finds no `~/.android/debug.keystore` stops and tells him before any build.
 - Restoring the backup is Cesar's step only; agents stop and tell him. He first moves the current file aside, never deleting or overwriting it, then copies the backup in and rebuilds:
   ```bash
   mv -n ~/.android/debug.keystore ~/.android/debug.keystore.$(date +%F-%H%M%S)

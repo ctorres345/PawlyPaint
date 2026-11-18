@@ -1,0 +1,201 @@
+name: release-apk
+
+# A version tag (vX.Y.Z) builds the sideload APK, signs it with the same debug key
+# as the Mac builds, and attaches it to a DRAFT release. Cesar publishes the draft
+# as a pre-release, then promotes it (docs/RUNBOOK.md, "Release a new version").
+# The keystore comes from the SIDELOAD_DEBUG_KEYSTORE_B64 secret of the
+# sideload-release environment, which only Cesar sets up: only v* tags can use
+# it, and each run waits for his approval, since a tag runs the workflow file of
+# the tagged commit (docs/RUNBOOK.md, "Signing keystore"). It never leaves the
+# build job: the only artifact is the signed APK.
+on:
+  push:
+    # vX.Y.Z only; the first step checks it again.
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions: {}
+
+# One run per tag; a second push of the same tag waits instead of racing.
+concurrency:
+  group: release-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Certificate of every APK released so far (apksigner format). A build signed
+  # with any other key can't update the installed app, so it never gets released.
+  SIDELOAD_CERT_SHA256: fa1510ef2d4e03035225967f5d6487b911faac1b7229ffabb2e061c150005390
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: sideload-release
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # The commit Cesar approved, even if the tag moves while the run waits.
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the tag, its commit, the CHANGELOG and the keystore secret
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+          HAS_KEYSTORE: ${{ secrets.SIDELOAD_DEBUG_KEYSTORE_B64 != '' }}
+        run: |
+          set -eu
+          if [ "$HAS_KEYSTORE" != true ]; then
+            echo "::error::The sideload-release environment has no SIDELOAD_DEBUG_KEYSTORE_B64 secret (docs/RUNBOOK.md, \"Signing keystore\")."
+            exit 1
+          fi
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Tag '$TAG' is not vX.Y.Z."
+            exit 1
+          fi
+          if [ "$(git rev-parse HEAD)" != "$GITHUB_SHA" ]; then
+            echo "::error::The checkout is not the run's commit."
+            exit 1
+          fi
+          version=${TAG#v}
+          pubspec=$(sed -n 's/^version: *\([0-9.]*\)+[0-9]*$/\1/p' pubspec.yaml)
+          if [ "$pubspec" != "$version" ]; then
+            echo "::error::pubspec.yaml says version '$pubspec', the tag says '$version'."
+            exit 1
+          fi
+          # Releases come from main only: a tag on a branch commit builds nothing.
+          # fetch-depth: 0 above already fetched origin/main.
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The tagged commit is not on main."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/release"
+          awk -v v="## $version " 'index($0, v) == 1 {f = 1; next} /^## /{f = 0} f' CHANGELOG.md > "$RUNNER_TEMP/release/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/release/notes.md"; then
+            echo "::error::CHANGELOG.md has no '## $version (...)' section with text."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # The runner image ships JDK 17, the Android SDK and its build-tools.
+      - name: Use JDK 17
+        run: |
+          set -eu
+          test -n "${JAVA_HOME_17_X64:-}" || { echo "::error::The runner has no JDK 17."; exit 1; }
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+
+      # Same pin as review-gate.yml. No cache: a release build starts clean.
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+          cache: false
+
+      # The lockfile pins every package; fail rather than resolve new ones.
+      - name: Fetch packages
+        run: flutter pub get --enforce-lockfile
+
+      # The release commit goes straight to main, so nothing else checked it.
+      - name: Analyze and test
+        run: flutter analyze && flutter test
+
+      # The sideload flavor signs with the debug config, which reads
+      # ~/.android/debug.keystore. Without the file, Gradle would silently make
+      # a new key, so an empty file stops here (and a wrong key at the certificate check).
+      - name: Put the signing keystore in place
+        env:
+          KEYSTORE_B64: ${{ secrets.SIDELOAD_DEBUG_KEYSTORE_B64 }}
+        run: |
+          set -eu
+          # Gradle looks for the debug keystore here only when none of these is set.
+          if [ -n "${ANDROID_USER_HOME:-}${ANDROID_PREFS_ROOT:-}${ANDROID_SDK_HOME:-}" ]; then
+            echo "::error::ANDROID_USER_HOME, ANDROID_PREFS_ROOT or ANDROID_SDK_HOME is set; Gradle would not read ~/.android/debug.keystore."
+            exit 1
+          fi
+          umask 077
+          mkdir -p "$HOME/.android"
+          if [ -e "$HOME/.android/debug.keystore" ]; then
+            echo "::error::The runner already has a debug keystore; refusing to sign with it."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
+          test -s "$HOME/.android/debug.keystore" || { echo "::error::The keystore secret decoded to nothing."; exit 1; }
+
+      - name: Build the sideload APK
+        run: flutter build apk --release --flavor sideload
+
+      - name: Remove the keystore
+        if: always()
+        run: rm -f "$HOME/.android/debug.keystore"
+
+      - name: Check the APK's signing certificate
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu
+          apksigner=$(find "$ANDROID_HOME/build-tools" -mindepth 2 -maxdepth 2 -name apksigner | sort -V | tail -1)
+          test -n "$apksigner" || { echo "::error::No apksigner in the Android SDK."; exit 1; }
+          apk="$RUNNER_TEMP/release/PawlyPaint-$VERSION.apk"
+          cp build/app/outputs/flutter-apk/app-sideload-release.apk "$apk"
+          certs=$("$apksigner" verify --print-certs "$apk")
+          printf '%s\n' "$certs" | grep 'SHA-256'
+          # Exactly one signer, and it is the released certificate.
+          signers=$(printf '%s\n' "$certs" | grep -o 'certificate SHA-256 digest: .*' || true)
+          if [ "$signers" != "certificate SHA-256 digest: $SIDELOAD_CERT_SHA256" ]; then
+            echo "::error::The APK is not signed with the released certificate only; it could not update the installed app."
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: |
+            ${{ runner.temp }}/release/PawlyPaint-${{ steps.version.outputs.version }}.apk
+            ${{ runner.temp }}/release/notes.md
+          if-no-files-found: error
+          # Artifacts of a public repo are downloadable; keep it only as long as needed.
+          retention-days: 1
+
+  # The only job that can write: it gets the signed APK and the notes, never the keystore.
+  draft-release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      # A draft: it doesn't show on the Releases page until Cesar publishes it.
+      - name: Create the draft release with the APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -eu
+          # Only "release not found" means there is none; any other error stops here.
+          if out=$(gh release view "$TAG" 2>&1); then
+            echo "::error::A release for $TAG already exists; nothing was changed. Delete or edit it by hand."
+            exit 1
+          elif ! printf '%s\n' "$out" | grep -q 'release not found'; then
+            printf '%s\n' "$out"
+            echo "::error::Could not check for an existing $TAG release."
+            exit 1
+          fi
+          # The release must sit on the commit that was built.
+          tag_sha=$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha)
+          if [ "$tag_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::$TAG moved to $tag_sha after the build of $GITHUB_SHA; no release made."
+            exit 1
+          fi
+          gh release create "$TAG" "release/PawlyPaint-$VERSION.apk" --draft --verify-tag \
+            --title "PawlyPaint $VERSION" --notes-file release/notes.md
