@@ -148,6 +148,18 @@ class TierColors {
   final Color text;
 }
 
+/// The rainbow tier's frame (PAP-48), fixed in both themes like the tier colors. The first color
+/// repeats at the end so a sweep around the frame has no seam.
+const rainbowColors = [
+  Color(0xFFFF6B6B),
+  Color(0xFFFFB347),
+  Color(0xFFFFE066),
+  Color(0xFF7ED957),
+  Color(0xFF5BC0EB),
+  Color(0xFF9B7EDE),
+  Color(0xFFFF6B6B),
+];
+
 /// Difficulty colors on the Course screen stickers (PAP-20). They don't follow
 /// the palette, like the gems, and carry dark ink text.
 const difficultyColors = {

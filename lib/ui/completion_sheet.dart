@@ -11,6 +11,7 @@ import 'booster_bar.dart' show boosterIcon;
 import 'gem_style.dart';
 import 'picture_export.dart';
 import 'replay.dart';
+import 'theme/tokens.dart';
 
 Future<void> showCompletionSheet(
   BuildContext context, {
@@ -158,11 +159,13 @@ Future<void> showCompletionSheet(
                         runSpacing: 8,
                         alignment: WrapAlignment.center,
                         children: [
-                          for (final b in badges)
+                          for (final (b, tier) in [for (final b in badges) (b, context.paw.tiers[b.tier]!)])
                             Chip(
-                              avatar: Icon(badgeIcon(b.id), size: 18, color: const Color(0xFFFFA000)),
-                              label: Text('New badge: ${b.title}'),
-                              backgroundColor: const Color(0xFFFFF3C4),
+                              avatar: Icon(badgeIcon(b.id), size: 18, color: tier.frame),
+                              label: Text(newBadgeLabel(b)),
+                              labelStyle: TextStyle(color: tier.text, fontWeight: FontWeight.w700),
+                              backgroundColor: tier.fill,
+                              side: BorderSide(color: tier.frame, width: 2),
                             ),
                         ],
                       ),

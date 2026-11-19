@@ -122,7 +122,7 @@ mixin _SortFlow on _SortStateBase {
         content: Text([
           'You sorted ${(game.progress * 100).floor()}% of ${widget.puzzle.title}.',
           if (game.bestCombo > 1) 'Best combo: ×${game.bestCombo}.',
-          for (final b in badges) 'New badge: ${b.title}!',
+          for (final b in badges) '${newBadgeLabel(b)}!',
         ].join('\n')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Back')),

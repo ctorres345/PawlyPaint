@@ -356,12 +356,15 @@ class SquareButton extends StatelessWidget {
 /// Her name and title in a 146 pt pill with a gold medal (PAP-20). A name or
 /// title too wide for it (wide letters, large text) shrinks instead of wrapping or clipping.
 class Nameplate extends StatelessWidget {
-  const Nameplate({super.key, required this.name, required this.title, this.onTap});
+  const Nameplate({super.key, required this.name, required this.title, required this.tier, this.onTap});
 
   static const width = 146.0;
 
   final String name;
   final String title;
+
+  /// The tier of the badge that gives [title]: it colors the medal. Null for the starter title.
+  final BadgeTier? tier;
 
   /// Opens Badges from Home; null where it is only shown (on Badges itself).
   final VoidCallback? onTap;
@@ -369,7 +372,7 @@ class Nameplate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.paw;
-    final gold = t.tiers[BadgeTier.gold]!;
+    final medal = tier == null ? null : t.tiers[tier]!;
     return Semantics(
       button: onTap != null,
       label: 'Your nameplate: $name, $title${onTap == null ? '' : '. Opens Badges'}',
@@ -395,11 +398,11 @@ class Nameplate extends StatelessWidget {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: gold.fill,
+                        color: medal?.fill ?? t.tint,
                         shape: BoxShape.circle,
-                        border: Border.all(color: gold.frame, width: 2),
+                        border: Border.all(color: medal?.frame ?? t.outline, width: 2),
                       ),
-                      child: Icon(Icons.workspace_premium_rounded, size: 20, color: gold.frame),
+                      child: Icon(Icons.workspace_premium_rounded, size: 20, color: medal?.frame ?? t.muted),
                     ),
                     const SizedBox(width: 5),
                     Expanded(
@@ -422,8 +425,11 @@ class Nameplate extends StatelessWidget {
                             child: Text(
                               title,
                               maxLines: 1,
-                              style:
-                                  TextStyle(fontSize: 11, fontWeight: FontWeight.w700, height: 1.2, color: gold.text),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.2,
+                                  color: medal?.text ?? t.muted),
                             ),
                           ),
                         ],

@@ -29,6 +29,7 @@ class Achievement {
     String? mochiTitle,
     this.series,
     this.progress,
+    this.unit,
     this.retired = false,
   }) : _mochiTitle = mochiTitle;
 
@@ -50,6 +51,9 @@ class Achievement {
 
   /// Progress toward the badge, or null when there is nothing to count.
   final BadgeProgress? Function(ProgressFacts f)? progress;
+
+  /// What [progress] counts, for short captions such as "Gold at 40 finished pictures". Null for single badges.
+  final String? unit;
 
   /// A badge no longer offered: shown only where already earned, never counted for platinum or the percentage.
   final bool retired;
@@ -170,6 +174,16 @@ final _retiredBadges = <Achievement>[
 
 int _pct(double pct, int pictureCount) => (pct * pictureCount).round().clamp(1, pictureCount < 1 ? 1 : pictureCount);
 
+/// What each series counts. Course master steps pass their own.
+const _seriesUnits = {
+  'Perfectionist': 'three-star pictures',
+  'Gallery': 'finished pictures',
+  'Days played': 'days',
+  'Sort combo': 'in a row',
+  'Time Attack': 'wins',
+  'Extreme': 'Extreme pictures',
+};
+
 Achievement _step(
   String series,
   BadgeTier tier,
@@ -179,6 +193,7 @@ Achievement _step(
   int target,
   int Function(ProgressFacts f) current, {
   String? mochiTitle,
+  String? unit,
 }) =>
     Achievement(
       id,
@@ -189,6 +204,7 @@ Achievement _step(
       series: series,
       mochiTitle: mochiTitle,
       progress: (f) => BadgeProgress(current(f), target),
+      unit: unit ?? _seriesUnits[series],
     );
 
 List<Achievement> _series(int n, int extremeTotal) {
@@ -232,29 +248,33 @@ List<Achievement> _series(int n, int extremeTotal) {
   ];
 }
 
+/// The series of every Course master badge starts with this, followed by the course id.
+const courseMasterSeries = 'Course master: ';
+
+/// The course id of a Course master [series], or null for any other series.
+String? courseMasterOf(String? series) =>
+    series != null && series.startsWith(courseMasterSeries) ? series.substring(courseMasterSeries.length) : null;
+
 List<Achievement> _courseMasters(List<Course> courses) => [
       for (final c in courses)
         if (c.puzzles.isNotEmpty) ...[
-          _step('Course master: ${c.id}', BadgeTier.bronze, 'course.${c.id}.bronze', '${c.title} finished',
-              'Finish every picture in ${c.title}', c.puzzles.length, (f) => f.perCourse[c.id]?.finished ?? 0),
-          _step(
-              'Course master: ${c.id}',
-              BadgeTier.silver,
-              'course.${c.id}.silver',
-              '${c.title} all 3★',
-              'Earn 3 stars on every picture in ${c.title}',
-              c.puzzles.length,
-              (f) => f.perCourse[c.id]?.threeStar ?? 0),
+          _step('$courseMasterSeries${c.id}', BadgeTier.bronze, 'course.${c.id}.bronze', '${c.title} finished',
+              'Finish every picture in ${c.title}', c.puzzles.length, (f) => f.perCourse[c.id]?.finished ?? 0,
+              unit: 'finished pictures'),
+          _step('$courseMasterSeries${c.id}', BadgeTier.silver, 'course.${c.id}.silver', '${c.title} all 3★',
+              'Earn 3 stars on every picture in ${c.title}', c.puzzles.length, (f) => f.perCourse[c.id]?.threeStar ?? 0,
+              unit: 'three-star pictures'),
           if (c.levels.any((l) => l.difficulty == Difficulty.extreme && l.puzzles.isNotEmpty))
             _step(
-                'Course master: ${c.id}',
+                '$courseMasterSeries${c.id}',
                 BadgeTier.gold,
                 'course.${c.id}.gold',
                 '${c.title} Extreme 3★',
                 'Earn 3 stars on every Extreme picture in ${c.title}',
                 c.levels.where((l) => l.difficulty == Difficulty.extreme).fold(0, (n, l) => n + l.puzzles.length),
                 (f) => f.perCourse[c.id]?.extremeThreeStar ?? 0,
-                mochiTitle: 'Course Champ'),
+                mochiTitle: 'Course Champ',
+                unit: 'Extreme three-star pictures'),
         ],
     ];
 
@@ -322,13 +342,16 @@ List<Achievement> achievementsShown(List<Course> courses, ProgressStore store) =
 
 // ---- Earned, progress, completion --------------------------------------------
 
-bool _counts(Achievement a) => a.tier != BadgeTier.rainbow && !a.retired;
+/// Whether [a] counts toward [completionPercent] and platinum.
+bool countsTowardCompletion(Achievement a) => a.tier != BadgeTier.rainbow && !a.retired;
 
 /// Facts for [courses], with the platinum counts filled in.
-ProgressFacts progressFacts(List<Course> courses, ProgressStore store) {
+ProgressFacts progressFacts(List<Course> courses, ProgressStore store) => badgeSnapshot(courses, store).facts;
+
+/// [progressFacts] and [earnedAchievements] from one pass over her progress.
+({ProgressFacts facts, Set<String> earned}) badgeSnapshot(List<Course> courses, ProgressStore store) {
   final facts = ProgressFacts(courses, store);
-  _earnedFrom(_listFor(courses), facts, store);
-  return facts;
+  return (facts: facts, earned: _earnedFrom(_listFor(courses), facts, store));
 }
 
 Set<String> _earnedFrom(List<Achievement> list, ProgressFacts facts, ProgressStore store) {
@@ -340,7 +363,7 @@ Set<String> _earnedFrom(List<Achievement> list, ProgressFacts facts, ProgressSto
   };
   final others = [
     for (final a in list)
-      if (a.tier != BadgeTier.platinum && _counts(a)) a
+      if (a.tier != BadgeTier.platinum && countsTowardCompletion(a)) a
   ];
   facts.platinumTarget = others.length;
   facts.platinumCurrent = others.where((a) => earned.contains(a.id)).length;
@@ -352,37 +375,122 @@ Set<String> _earnedFrom(List<Achievement> list, ProgressFacts facts, ProgressSto
 
 /// IDs of every badge earned so far. A badge stays earned once celebrated,
 /// even when the build grows or its rule is retired.
-Set<String> earnedAchievements(List<Course> courses, ProgressStore store) {
-  final list = _listFor(courses);
-  return _earnedFrom(list, ProgressFacts(courses, store), store);
-}
+Set<String> earnedAchievements(List<Course> courses, ProgressStore store) => badgeSnapshot(courses, store).earned;
 
-/// The title on her nameplate until she picks one (PAP-48 adds the picker).
+/// The title on her nameplate before her first Mochi title.
 const starterTitle = 'New Painter';
 
-/// Her nameplate title: the Mochi title of her highest-tier earned badge that
-/// [Achievement.givesTitle], or [starterTitle] before the first one.
+/// One title she can wear on her nameplate (the PAP-48 picker).
+@immutable
+class TitleChoice {
+  const TitleChoice(this.title, this.badge, {required this.earned});
+
+  final String title;
+
+  /// The badge that gives it, or null for [starterTitle].
+  final Achievement? badge;
+
+  final bool earned;
+
+  BadgeTier? get tier => badge?.tier;
+}
+
+/// The titles for the picker: [starterTitle] first, then one per Mochi title in badge order, earned ones first.
+/// A title that several badges give (Course Champ) is earned when any of them is.
+/// A rainbow title is listed only once earned, so the private badge stays a secret.
+List<TitleChoice> titleChoices(List<Achievement> shown, Set<String> earned) {
+  final byTitle = <String, TitleChoice>{};
+  for (final a in shown) {
+    if (!a.givesTitle) continue;
+    final has = earned.contains(a.id);
+    if (a.tier == BadgeTier.rainbow && !has) continue;
+    final prev = byTitle[a.mochiTitle];
+    if (prev == null || (!prev.earned && has)) byTitle[a.mochiTitle] = TitleChoice(a.mochiTitle, a, earned: has);
+  }
+  // Earned titles first, so the ones she can wear sit together above the locked ones.
+  final list = byTitle.values.toList();
+  return [
+    const TitleChoice(starterTitle, null, earned: true),
+    ...list.where((c) => c.earned),
+    ...list.where((c) => !c.earned),
+  ];
+}
+
+/// The title her nameplate wears: [chosen] when it is one she has earned, else the Mochi title of her
+/// highest-tier earned badge that [Achievement.givesTitle] (never rainbow), else [starterTitle].
 ///
 /// Pass [earned] and [shown] when the caller already has them, to skip a second pass.
-String currentTitle(List<Course> courses, ProgressStore store, {Set<String>? earned, List<Achievement>? shown}) {
+TitleChoice currentTitleChoice(
+  List<Course> courses,
+  ProgressStore store, {
+  String? chosen,
+  Set<String>? earned,
+  List<Achievement>? shown,
+}) {
   earned ??= earnedAchievements(courses, store);
-  Achievement? best;
-  for (final a in shown ?? achievementsShown(courses, store)) {
-    if (!a.givesTitle || !earned.contains(a.id) || a.tier == BadgeTier.rainbow) continue;
-    if (best == null || a.tier.index > best.tier.index) best = a;
+  shown ??= achievementsShown(courses, store);
+  final choices = titleChoices(shown, earned);
+  if (chosen != null) {
+    final pick = choices.where((c) => c.earned && c.title == chosen).firstOrNull;
+    if (pick != null) return pick;
   }
-  return best?.mochiTitle ?? starterTitle;
+  TitleChoice? best;
+  for (final c in choices) {
+    final tier = c.tier;
+    if (!c.earned || tier == null || tier == BadgeTier.rainbow) continue;
+    if (best == null || tier.index > best.tier!.index) best = c;
+  }
+  return best ?? choices.first;
+}
+
+/// One row of the Badges screen: the steps of a series in tier order, or a single badge.
+@immutable
+class BadgeRowView {
+  const BadgeRowView(this.steps, this.earned);
+
+  /// At least one. A single badge, or a retired one, is a row of its own.
+  final List<Achievement> steps;
+  final Set<String> earned;
+
+  bool get isSeries => steps.length > 1;
+
+  int get _topAt => steps.lastIndexWhere((a) => earned.contains(a.id));
+
+  /// The highest step earned, or null before the first.
+  Achievement? get top {
+    final at = _topAt;
+    return at < 0 ? null : steps[at];
+  }
+
+  /// The lowest step not yet earned, or null when the row is complete. A higher step can be earned first
+  /// (Course master gold needs only the Extreme pictures), so this is not always the step after [top].
+  Achievement? get next => steps.where((a) => !earned.contains(a.id)).firstOrNull;
+}
+
+/// The Badges screen's rows for [shown], in list order. Platinum and rainbow badges are left out:
+/// the screen shows them in their own slots at the top.
+List<BadgeRowView> badgeRows(List<Achievement> shown, Set<String> earned) {
+  final groups = <String, List<Achievement>>{};
+  for (final a in shown) {
+    if (a.tier == BadgeTier.platinum || a.tier == BadgeTier.rainbow) continue;
+    final key = a.series == null || a.retired ? 'badge:${a.id}' : 'series:${a.series}';
+    (groups[key] ??= []).add(a);
+  }
+  return [
+    for (final steps in groups.values) BadgeRowView(steps..sort((a, b) => a.tier.index.compareTo(b.tier.index)), earned)
+  ];
 }
 
 /// Progress toward [a], or null when it has nothing to count. Get [facts] from [progressFacts].
 BadgeProgress? badgeProgress(Achievement a, ProgressFacts facts) => a.progress?.call(facts);
 
 /// Share of the build's badges earned, 0 to 100. Rainbow and retired badges don't count.
-int completionPercent(List<Course> courses, ProgressStore store) {
-  final list = _listFor(courses).where(_counts).toList();
+/// Pass [earned] when the caller already has it, to skip a second pass.
+int completionPercent(List<Course> courses, ProgressStore store, {Set<String>? earned}) {
+  final list = _listFor(courses).where(countsTowardCompletion).toList();
   if (list.isEmpty) return 0;
-  final earned = earnedAchievements(courses, store);
-  final done = list.where((a) => earned.contains(a.id)).length;
+  final have = earned ?? earnedAchievements(courses, store);
+  final done = list.where((a) => have.contains(a.id)).length;
   return (done * 100 ~/ list.length).clamp(0, 100);
 }
 

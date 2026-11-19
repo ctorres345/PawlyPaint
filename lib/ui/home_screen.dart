@@ -34,7 +34,10 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+/// Tells Home when another screen opens over it. Register it in the app's `navigatorObservers`.
+final homeRouteObserver = RouteObserver<PageRoute<dynamic>>();
+
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   List<Course> get courses => widget.courses;
 
   /// Courses that were open at the last build, to spot one that just opened.
@@ -45,6 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) homeRouteObserver.subscribe(this, route);
     if (_caughtUp) return;
     _caughtUp = true;
     // One summary for everything open and never celebrated, after the first frame.
@@ -53,6 +58,17 @@ class _HomeScreenState extends State<HomeScreen> {
       final store = ProgressScope.of(context);
       final ids = catchUpIds(store.unlockState(courses));
       if (ids.isNotEmpty) await showCatchUp(context, store, ids);
+      // Badges she already qualified for when they reached the app (an update adds a course or a badge):
+      // one note now, not a pile on the next completion sheet.
+      // A read-only save can't remember the note was shown, so it would repeat on every launch.
+      if (!mounted || store.isReadOnly) return;
+      final badges = takeNewAchievements(courses, store);
+      if (badges.isEmpty) return;
+      final summary = _summary = showEarnedBadgesSummary(context, badges, onOpen: () => _go(DockItem.badges));
+      // Once it has left by itself, closing it again would hide some other note.
+      summary.closed.whenComplete(() {
+        if (identical(_summary, summary)) _summary = null;
+      });
     });
   }
 
@@ -69,6 +85,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     if (!mounted) return;
     await nav.push(MaterialPageRoute(builder: (_) => TimeAttackScreen(courses: courses)));
+  }
+
+  /// The badge summary while it is up. It is about Home, so it closes when another screen opens.
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _summary;
+
+  @override
+  void didPushNext() {
+    _summary?.close();
+    _summary = null;
+  }
+
+  @override
+  void dispose() {
+    homeRouteObserver.unsubscribe(this);
+    super.dispose();
   }
 
   void _go(DockItem item) {
@@ -113,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _TopBar(
                   name: settings?.playerName ?? AppSettings.defaultPlayerName,
-                  title: currentTitle(courses, store),
+                  title: currentTitleChoice(courses, store, chosen: settings?.playerTitle),
                   onNameplate: () => _go(DockItem.badges),
                 ),
                 Expanded(
@@ -250,7 +281,9 @@ class _TopBar extends StatelessWidget {
   const _TopBar({required this.name, required this.title, required this.onNameplate});
 
   final String name;
-  final String title;
+
+  /// Her chosen or best title, with the tier that colors the medal.
+  final TitleChoice title;
   final VoidCallback onNameplate;
 
   @override
@@ -282,7 +315,7 @@ class _TopBar extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Nameplate(name: name, title: title, onTap: onNameplate),
+            Nameplate(name: name, title: title.title, tier: title.tier, onTap: onNameplate),
             const SizedBox(width: 2),
             const MusicButton(sticker: true),
             SquareButton(
