@@ -42,6 +42,9 @@ class Achievement {
   final String? _mochiTitle;
   String get mochiTitle => _mochiTitle ?? title;
 
+  /// Whether this badge has its own nameplate title (at most 14 letters).
+  bool get givesTitle => _mochiTitle != null;
+
   /// Series this badge is a step of, or null for a single badge.
   final String? series;
 
@@ -224,7 +227,7 @@ List<Achievement> _series(int n, int extremeTotal) {
           (f) => f.extremeFinished),
       _step('Extreme', g, 'extreme.gold', 'Extreme gold', 'Finish every Extreme picture', extremeTotal,
           (f) => f.extremeFinished,
-          mochiTitle: 'Fearless Painter'),
+          mochiTitle: 'Brave Painter'),
     ],
   ];
 }
@@ -251,7 +254,7 @@ List<Achievement> _courseMasters(List<Course> courses) => [
                 'Earn 3 stars on every Extreme picture in ${c.title}',
                 c.levels.where((l) => l.difficulty == Difficulty.extreme).fold(0, (n, l) => n + l.puzzles.length),
                 (f) => f.perCourse[c.id]?.extremeThreeStar ?? 0,
-                mochiTitle: 'Course Champion'),
+                mochiTitle: 'Course Champ'),
         ],
     ];
 
@@ -352,6 +355,23 @@ Set<String> _earnedFrom(List<Achievement> list, ProgressFacts facts, ProgressSto
 Set<String> earnedAchievements(List<Course> courses, ProgressStore store) {
   final list = _listFor(courses);
   return _earnedFrom(list, ProgressFacts(courses, store), store);
+}
+
+/// The title on her nameplate until she picks one (PAP-48 adds the picker).
+const starterTitle = 'New Painter';
+
+/// Her nameplate title: the Mochi title of her highest-tier earned badge that
+/// [Achievement.givesTitle], or [starterTitle] before the first one.
+///
+/// Pass [earned] and [shown] when the caller already has them, to skip a second pass.
+String currentTitle(List<Course> courses, ProgressStore store, {Set<String>? earned, List<Achievement>? shown}) {
+  earned ??= earnedAchievements(courses, store);
+  Achievement? best;
+  for (final a in shown ?? achievementsShown(courses, store)) {
+    if (!a.givesTitle || !earned.contains(a.id) || a.tier == BadgeTier.rainbow) continue;
+    if (best == null || a.tier.index > best.tier.index) best = a;
+  }
+  return best?.mochiTitle ?? starterTitle;
 }
 
 /// Progress toward [a], or null when it has nothing to count. Get [facts] from [progressFacts].

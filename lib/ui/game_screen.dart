@@ -30,8 +30,9 @@ import 'star_meter.dart';
 import 'tray.dart';
 import 'unlock_ui.dart';
 import 'unlock_celebration.dart';
+import 'theme/paw_widgets.dart' show LightPlayTheme;
 
-class GameScreen extends StatefulWidget {
+class GameScreen extends StatelessWidget {
   const GameScreen({super.key, required this.puzzle, required this.store, this.daily = false, this.tutorial = false});
 
   final Puzzle puzzle;
@@ -43,11 +44,26 @@ class GameScreen extends StatefulWidget {
   /// The guided first picture: nothing is saved or scored.
   final bool tutorial;
 
+  // The page sits under the light theme, so the dialogs and sheets it opens
+  // from its own context are light too.
   @override
-  State<GameScreen> createState() => _GameScreenState();
+  Widget build(BuildContext context) => LightPlayTheme(builder: (_) => _GamePage(this));
 }
 
-class _GameScreenState extends State<GameScreen>
+class _GamePage extends StatefulWidget {
+  const _GamePage(this.screen);
+
+  final GameScreen screen;
+  Puzzle get puzzle => screen.puzzle;
+  ProgressStore get store => screen.store;
+  bool get daily => screen.daily;
+  bool get tutorial => screen.tutorial;
+
+  @override
+  State<_GamePage> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<_GamePage>
     with TickerProviderStateMixin, WidgetsBindingObserver
     implements PlayTimers {
   AppSettings get _settings => SettingsScope.read(context);

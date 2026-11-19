@@ -9,6 +9,8 @@ import 'game_screen.dart';
 import 'coach.dart';
 import 'gem_style.dart';
 import 'sort_screen.dart';
+import 'theme/paw_widgets.dart';
+import 'theme/tokens.dart';
 import 'unlock_ui.dart';
 
 class CourseScreen extends StatefulWidget {
@@ -40,154 +42,227 @@ class _CourseScreenState extends State<CourseScreen> {
   @override
   Widget build(BuildContext context) {
     final store = ProgressScope.of(context);
+    final t = context.paw;
     final sortOpen = store.currentUnlocks.isModeOpen(UnlockTables.modeSort);
     // Sort may still be locked when it was remembered from before; show Paint then.
     final shown = !sortOpen && mode == PlayMode.sort ? PlayMode.paint : mode;
+    final stars = store.starsIn(course.puzzles);
+    final maxStars = ProgressStore.maxStarsIn(course.puzzles);
+    final sorting = shown == PlayMode.sort;
     return Scaffold(
-      appBar: AppBar(title: Text(course.title)),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: t.courseTint(courseTintOf(course)),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(PawRadius.hero)),
+              ),
+              padding: EdgeInsets.fromLTRB(4, MediaQuery.paddingOf(context).top + 4, 4, 16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SegmentedButton<PlayMode>(
-                    segments: [
-                      const ButtonSegment(value: PlayMode.paint, icon: Icon(Icons.brush_rounded), label: Text('Paint')),
-                      ButtonSegment(
-                        value: PlayMode.sort,
-                        icon: Icon(sortOpen ? Icons.swap_horiz_rounded : Icons.lock_rounded),
-                        label: const Text('Sort'),
+                  Row(
+                    children: [
+                      const BackButton(),
+                      Expanded(
+                        child: Semantics(
+                          header: true,
+                          child: Text(course.title, style: Theme.of(context).textTheme.titleLarge),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: PawChip(
+                          color: context.paw.surface,
+                          icon: Icons.star_rounded,
+                          label: '$stars / $maxStars',
+                          semanticLabel: '$stars of $maxStars stars',
+                        ),
                       ),
                     ],
-                    selected: {shown},
-                    onSelectionChanged: (s) {
-                      if (s.first == PlayMode.sort && !sortOpen) {
-                        showLockedHint(context, unlockCondition(UnlockTables.modeSort));
-                        return;
-                      }
-                      setState(() => mode = _lastMode = s.first);
-                    },
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    shown == PlayMode.paint
-                        ? 'Fill each numbered spot with its matching drill.'
-                        : 'The picture starts scrambled. Pick up misplaced beads and drop them where they belong.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                    textAlign: TextAlign.center,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    child: PawSegmented<PlayMode>(
+                      items: [
+                        (PlayMode.paint, 'Paint', Icons.brush_rounded),
+                        (PlayMode.sort, 'Sort', sortOpen ? Icons.swap_horiz_rounded : Icons.lock_rounded),
+                      ],
+                      selected: shown,
+                      onSelect: (m) {
+                        if (m == PlayMode.sort && !sortOpen) {
+                          showLockedHint(context, unlockCondition(UnlockTables.modeSort));
+                          return;
+                        }
+                        setState(() => mode = _lastMode = m);
+                      },
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          for (var l = 0; l < course.levels.length; l++) ...[
-            SliverToBoxAdapter(
-              child: _LevelHeader(
-                course: course,
-                level: course.levels[l],
-                completed: store.completedIn(course.levels[l].puzzles, shown),
-                unlocked: store.isLevelUnlocked(course, l, shown),
-                previous: l == 0 ? null : course.levels[l - 1],
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              sliver: SliverGrid.builder(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 200,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 0.78,
-                ),
-                itemCount: course.levels[l].puzzles.length,
-                itemBuilder: (context, i) {
-                  final level = course.levels[l];
-                  final puzzle = level.puzzles[i];
-                  final levelOpen = store.isLevelUnlocked(course, l, shown);
-                  final sorting = shown == PlayMode.sort;
-                  return _PuzzleTile(
-                    index: i,
-                    puzzle: puzzle,
-                    // A picture already played (say, as the daily picture) stays open.
-                    unlocked: (levelOpen && store.isPuzzleUnlocked(level, i, shown)) ||
-                        store.isCompleted(shown.key(puzzle.id)),
-                    lockedHint: levelOpen
-                        ? 'Finish the picture before this one to unlock it.'
-                        : 'Finish $unlockAfter ${course.levels[l - 1].difficulty.label} pictures to unlock '
-                            '${level.difficulty.label}.',
-                    record: store.record(shown.key(puzzle.id)),
-                    saved: sorting ? null : store.savedFor(puzzle),
-                    sortProgress: sorting ? _sortProgress(store.sortSaved(puzzle.id), puzzle) : null,
-                    onOpen: () => openWithTutorial(
-                      context,
-                      mode: shown,
-                      store: store,
-                      tutorial: () => sorting
-                          ? SortScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true)
-                          : GameScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
-                      open: () =>
-                          sorting ? SortScreen(puzzle: puzzle, store: store) : GameScreen(puzzle: puzzle, store: store),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          for (var l = 0; l < course.levels.length; l++) ..._level(context, store, l, shown, sorting),
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );
   }
+
+  List<Widget> _level(BuildContext context, ProgressStore store, int l, PlayMode shown, bool sorting) {
+    final level = course.levels[l];
+    final open = store.isLevelUnlocked(course, l, shown);
+    final previous = l == 0 ? null : course.levels[l - 1];
+    final header = SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, l == 0 ? 18 : 24, 16, 12),
+        child: _LevelHeader(
+          level: level,
+          open: open,
+          completed: store.completedIn(level.puzzles, shown),
+          stars:
+              [for (final p in level.puzzles) store.record(shown.key(p.id))?.bestStars ?? 0].fold(0, (a, b) => a + b),
+        ),
+      ),
+    );
+    if (!open) {
+      final have = store.completedIn(previous!.puzzles, shown).clamp(0, unlockAfter);
+      return [
+        header,
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _LockedLevel(
+              message: 'Finish $unlockAfter ${previous.difficulty.label} pictures to open ${level.difficulty.label}',
+              have: have,
+              need: unlockAfter,
+            ),
+          ),
+        ),
+      ];
+    }
+    // The first open picture not finished yet is the one to play next.
+    final next = [
+      for (var i = 0; i < level.puzzles.length; i++)
+        if (!store.isCompleted(shown.key(level.puzzles[i].id)) && store.isPuzzleUnlocked(level, i, shown)) i,
+    ].firstOrNull;
+    return [
+      header,
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverGrid.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: .8,
+          ),
+          itemCount: level.puzzles.length,
+          itemBuilder: (context, i) {
+            final puzzle = level.puzzles[i];
+            return _PuzzleTile(
+              index: i,
+              puzzle: puzzle,
+              // A picture already played (say, as the daily picture) stays open.
+              unlocked: store.isPuzzleUnlocked(level, i, shown) || store.isCompleted(shown.key(puzzle.id)),
+              next: i == next,
+              lockedHint: 'Finish the picture before this one to unlock it.',
+              record: store.record(shown.key(puzzle.id)),
+              saved: sorting ? null : store.savedFor(puzzle),
+              sortProgress: sorting ? _sortProgress(store.sortSaved(puzzle.id), puzzle) : null,
+              onOpen: () => openWithTutorial(
+                context,
+                mode: shown,
+                store: store,
+                tutorial: () => sorting
+                    ? SortScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true)
+                    : GameScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
+                open: () =>
+                    sorting ? SortScreen(puzzle: puzzle, store: store) : GameScreen(puzzle: puzzle, store: store),
+              ),
+            );
+          },
+        ),
+      ),
+    ];
+  }
 }
 
+/// A difficulty as a colored sticker with Mochi, and how far she is in it.
 class _LevelHeader extends StatelessWidget {
-  const _LevelHeader({
-    required this.course,
-    required this.level,
-    required this.completed,
-    required this.unlocked,
-    required this.previous,
-  });
+  const _LevelHeader({required this.level, required this.open, required this.completed, required this.stars});
 
-  final Course course;
   final Level level;
+  final bool open;
   final int completed;
-  final bool unlocked;
-  final Level? previous;
+  final int stars;
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    final size = level.puzzles.first;
+    final t = context.paw;
+    final total = level.puzzles.length;
+    final d = level.difficulty;
+    return StickerHeader(
+      title: StickerTitle(
+        art: difficultyArt(d),
+        text: d.label,
+        artSize: 34,
+        fontSize: 19,
+        color: open ? difficultyColors[d] : t.tint,
+        foreground: open ? fixedInk : t.muted,
+        gray: !open,
+      ),
+      trailing: open
+          ? MiniChip(
+              label: stars > 0 ? '$completed/$total · $stars of ${total * 3} stars' : '$completed/$total',
+              semanticLabel: '$completed of $total finished, $stars of ${total * 3} stars',
+            )
+          : PawChip(icon: Icons.lock_rounded, iconColor: t.ink, label: 'Locked'),
+    );
+  }
+}
+
+/// What a locked difficulty needs, with a bar.
+class _LockedLevel extends StatelessWidget {
+  const _LockedLevel({required this.message, required this.have, required this.need});
+
+  final String message;
+  final int have;
+  final int need;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
     return Semantics(
-      header: true,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(level.difficulty.label, style: text.titleLarge),
-                  Text(
-                    unlocked
-                        ? '${level.difficulty.blurb} · ${size.width}×${size.height}'
-                        : 'Finish $unlockAfter ${previous!.difficulty.label} pictures to unlock',
-                    style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                ],
+      label: '$message. $have of $need',
+      excludeSemantics: true,
+      child: CustomPaint(
+        foregroundPainter: DashedBorder(t.outline, PawRadius.tile, width: 2),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(PawRadius.tile)),
+          child: Row(
+            children: [
+              Icon(Icons.lock_rounded, color: t.muted),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(message, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.ink)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(child: PawBar(value: have / need, track: t.surface)),
+                        const SizedBox(width: 8),
+                        Text('$have / $need', style: Theme.of(context).textTheme.bodySmall),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (unlocked)
-              Text('$completed/${level.puzzles.length}', style: text.titleSmall)
-            else
-              Icon(Icons.lock_rounded, color: scheme.onSurfaceVariant, semanticLabel: 'Locked'),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -199,6 +274,7 @@ class _PuzzleTile extends StatelessWidget {
     required this.index,
     required this.puzzle,
     required this.unlocked,
+    required this.next,
     required this.lockedHint,
     required this.record,
     required this.saved,
@@ -209,6 +285,9 @@ class _PuzzleTile extends StatelessWidget {
   final int index;
   final Puzzle puzzle;
   final bool unlocked;
+
+  /// The picture to play next: an accent ring and "Play next".
+  final bool next;
   final String lockedHint;
   final PuzzleRecord? record;
   final SavedGame? saved;
@@ -219,98 +298,74 @@ class _PuzzleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
+    final t = context.paw;
     final done = record != null;
     final progress = sortProgress ?? (saved == null ? 0.0 : saved!.placedCount / puzzle.cellCount);
-    final started = saved != null || sortProgress != null;
+    final started = !done && (saved != null || sortProgress != null);
     final label = done
         ? '${puzzle.title}, ${record!.bestStars} of 3 stars, best score ${record!.bestScore}'
         : !unlocked
             ? 'Picture ${index + 1}, locked'
             : started
                 ? 'Picture ${index + 1}, ${(progress * 100).floor()} percent done'
-                : 'Picture ${index + 1}, ${puzzle.width} by ${puzzle.height}, ${puzzle.colorCount} colors';
+                : 'Picture ${index + 1}${next ? ', play next' : ''}, ${puzzle.width} by ${puzzle.height}, ${puzzle.colorCount} colors';
+    final Widget foot;
+    if (done && record!.bestStars == 0) {
+      foot = Icon(Icons.check_circle_rounded, size: 16, color: t.success);
+    } else if (done) {
+      foot = StarRow(stars: record!.bestStars);
+    } else if (started) {
+      foot = Text('${(progress * 100).floor()}%', style: _foot(t.ink));
+    } else if (unlocked && next) {
+      foot = Text('Play next', style: _foot(t.accent));
+    } else if (unlocked) {
+      foot = Text('Open', style: _foot(t.ink));
+    } else {
+      foot = Text('Mystery', style: _foot(t.muted, FontWeight.w600));
+    }
     return Semantics(
       button: true,
       label: label,
       excludeSemantics: true,
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: unlocked
-              ? onOpen
-              : () => ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(SnackBar(
-                  content: Text(lockedHint),
-                  behavior: SnackBarBehavior.floating,
-                )),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CustomPaint(painter: PuzzleThumbPainter(puzzle, placed: saved?.placed, complete: done)),
-                        if (!done)
-                          Center(
-                            child: Icon(
-                              unlocked ? Icons.question_mark_rounded : Icons.lock_rounded,
-                              size: 40,
-                              color: scheme.outline,
+      child: Container(
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(PawRadius.tile), boxShadow: t.shadow),
+        child: Material(
+          color: t.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(PawRadius.tile),
+            side: BorderSide(color: next ? t.accent : t.outline, width: next ? 2 : 1),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: unlocked ? onOpen : () => showLockedHint(context, lockedHint),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: done || started
+                          ? CustomPaint(
+                              painter: PuzzleThumbPainter(puzzle, placed: saved?.placed, complete: done),
+                              child: const SizedBox.expand(),
+                            )
+                          : ColoredBox(
+                              color: t.tint,
+                              child: Center(child: Icon(Icons.help_rounded, size: 36, color: t.muted)),
                             ),
-                          ),
-                      ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  done ? puzzle.title : 'No. ${index + 1}',
-                  style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                if (done && record!.bestStars == 0)
-                  Row(
-                    children: [
-                      Icon(Icons.check_circle_rounded, size: 18, color: scheme.primary),
-                      const SizedBox(width: 4),
-                      Text('Finished', style: text.labelMedium),
-                    ],
-                  )
-                else if (done)
-                  Row(
-                    children: [
-                      for (var s = 0; s < 3; s++)
-                        Icon(
-                          s < record!.bestStars ? Icons.star_rounded : Icons.star_outline_rounded,
-                          size: 18,
-                          color: s < record!.bestStars ? const Color(0xFFFFC107) : scheme.outlineVariant,
-                        ),
-                      const Spacer(),
-                      Text('${record!.bestScore}', style: text.labelMedium),
-                    ],
-                  )
-                else
-                  Text(
-                    started
-                        ? '${(progress * 100).floor()}% done'
-                        : '${puzzle.width}×${puzzle.height} · ${puzzle.colorCount} colors',
-                    style: text.labelMedium,
-                  ),
-              ],
+                  const SizedBox(height: 4),
+                  SizedBox(height: 18, child: FittedBox(fit: BoxFit.scaleDown, child: foot)),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+
+  static TextStyle _foot(Color c, [FontWeight w = FontWeight.w700]) => TextStyle(fontSize: 13, fontWeight: w, color: c);
 }

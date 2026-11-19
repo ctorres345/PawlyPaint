@@ -8,6 +8,7 @@ import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import 'coach.dart';
 import 'sort_screen.dart';
+import 'theme/paw_widgets.dart' show LightPlayTheme;
 
 /// Time Attack: pick a difficulty, then sort a random picture of that size
 /// before the clock runs out.
@@ -53,7 +54,9 @@ class TimeAttackScreen extends StatelessWidget {
       );
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => LightPlayTheme(builder: _build);
+
+  Widget _build(BuildContext context) {
     final store = ProgressScope.of(context);
     final text = Theme.of(context).textTheme;
     return Scaffold(

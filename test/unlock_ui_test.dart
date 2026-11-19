@@ -66,12 +66,12 @@ void main() {
         expect(s.isCourseOpen('garden'), isFalse);
         expect(find.byType(AlertDialog), findsNothing);
         // Locked cards show their star progress, and Time Attack shows a lock.
-        expect(find.text('★ 0 / 15'), findsOneWidget);
-        expect(find.text('★ 0 / 35'), findsOneWidget);
+        expect(find.text('★ 0/15'), findsOneWidget);
+        expect(find.text('★ 0/35'), findsOneWidget);
         expect(find.text('Time Attack'), findsOneWidget);
         expect(find.byIcon(Icons.lock_rounded), findsWidgets);
-        // The teaser names the nearest course.
-        expect(find.textContaining('15 more stars to open Garden!'), findsOneWidget);
+        // The locked course says what opens it.
+        expect(find.bySemanticsLabel(RegExp('15 more stars to open Garden')), findsOneWidget);
       });
 
       testWidgets('a new player can always start a picture', (tester) async {
@@ -116,14 +116,14 @@ void main() {
       testWidgets('locked cards turn into open cards as stars arrive', (tester) async {
         var store = await _load(courses, _save(courses, paint: 1));
         await pumpHome(tester, store, courses);
-        expect(find.text('★ 3 / 15'), findsOneWidget);
-        expect(find.text('★ 3 / 35'), findsOneWidget);
+        expect(find.text('★ 3/15'), findsOneWidget);
+        expect(find.text('★ 3/35'), findsOneWidget);
         store = await _load(courses, _save(courses, paint: 5));
         await tester.pumpWidget(const SizedBox());
         await pumpHome(tester, store, courses);
         // Garden (15 stars) is open now: its locked card is gone, Sweets still shows progress.
-        expect(find.text('★ 15 / 15'), findsNothing);
-        expect(find.text('★ 15 / 35'), findsOneWidget);
+        expect(find.text('★ 15/15'), findsNothing);
+        expect(find.text('★ 15/35'), findsOneWidget);
       });
 
       testWidgets('gates open at their conditions', (tester) async {
