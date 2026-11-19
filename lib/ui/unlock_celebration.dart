@@ -7,6 +7,7 @@ import '../logic/unlocks.dart';
 import '../state/progress_store.dart';
 import 'cat_mascot.dart';
 import 'unlock_ui.dart';
+import 'theme/tokens.dart';
 import 'unlocks_screen.dart';
 
 /// Leaves a finished picture: celebrates new rewards, shows the 7-days gift
@@ -98,7 +99,7 @@ class _UnlockCelebrationState extends State<UnlockCelebration> with TickerProvid
       'You earned ${one ? 'it' : 'them'} with $at three-star ${picturesWord(at)}.',
       if (soon) one ? 'It arrives in an update soon.' : 'Some arrive in an update soon.',
     ].join(' ');
-    final star = starColor(context);
+    final star = context.paw.star;
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,

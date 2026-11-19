@@ -83,7 +83,7 @@ void main() {
     return frames;
   }
 
-  Type screenType(String name) => name == 'Paint' ? GameScreen : SortScreen;
+  Finder screenType(String name) => _page(name == 'Paint' ? '_GamePage' : '_SortPage');
 
   final screens = <String, Widget Function(ProgressStore)>{
     'Paint': (store) => GameScreen(puzzle: puzzle, store: store),
@@ -93,7 +93,7 @@ void main() {
   for (final MapEntry(key: name, value: screen) in screens.entries) {
     testWidgets('$name: effects run at first, then the idle screen asks for no frames', (tester) async {
       await pumpScreen(tester, screen);
-      final timers = tester.state(find.byType(screenType(name))) as PlayTimers;
+      final timers = tester.state(screenType(name)) as PlayTimers;
       expect(timers.effects.isRunning, isTrue, reason: 'shimmer after opening');
       await tester.pump(const Duration(seconds: 16));
       expect(timers.effects.isRunning, isFalse, reason: 'effects rest once idle');
@@ -106,7 +106,7 @@ void main() {
     for (final state in [AppLifecycleState.inactive, AppLifecycleState.paused]) {
       testWidgets('$name: $state stops every timer and ticker, resumed starts the clock again', (tester) async {
         await pumpScreen(tester, screen);
-        final timers = tester.state(find.byType(screenType(name))) as PlayTimers;
+        final timers = tester.state(screenType(name)) as PlayTimers;
         expect(timers.clockTicking, isTrue);
         expect(timers.effects.isRunning, isTrue, reason: 'shimmer after opening');
 
@@ -128,7 +128,7 @@ void main() {
     testWidgets('$name: covered by another screen, the effects and the clock stop, and start again on return',
         (tester) async {
       await pumpScreen(tester, screen);
-      final timers = tester.state(find.byType(screenType(name))) as PlayTimers;
+      final timers = tester.state(screenType(name)) as PlayTimers;
       expect(timers.effects.isRunning, isTrue);
       nav.currentState!.push(MaterialPageRoute<void>(builder: (_) => const Scaffold()));
       await tester.pump();
@@ -147,7 +147,7 @@ void main() {
   group('Sort hint', () {
     Future<PlayTimers> openSort(WidgetTester tester) async {
       await pumpScreen(tester, (store) => SortScreen(puzzle: puzzle, store: store));
-      return tester.state(find.byType(SortScreen)) as PlayTimers;
+      return tester.state(_page('_SortPage')) as PlayTimers;
     }
 
     testWidgets('keeps the effects running past the idle time while it shows', (tester) async {
@@ -213,7 +213,7 @@ void main() {
       // Taps play sounds, and the audio plugin is missing in tests.
       await tester.runAsync(() => music.setSfx(false));
       await pumpScreen(tester, (store) => GameScreen(puzzle: puzzle, store: store));
-      return (tester.state(find.byType(GameScreen)) as PlayTimers, tester.widget<Board>(find.byType(Board)));
+      return (tester.state(_page('_GamePage')) as PlayTimers, tester.widget<Board>(find.byType(Board)));
     }
 
     /// Where cell [i] sits on screen.
@@ -322,3 +322,6 @@ void main() {
     });
   });
 }
+
+/// The play screen's stateful page (it sits under the screen's light theme).
+Finder _page(String name) => find.byWidgetPredicate((w) => w.runtimeType.toString() == name);

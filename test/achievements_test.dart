@@ -181,7 +181,7 @@ void main() {
       earned = earnedAchievements(courses, store);
       expect(earned, containsAll(['course.a.silver', 'course.a.gold']));
       final gold = achievementsFor(store: false, courses: courses).firstWhere((a) => a.id == 'course.a.gold');
-      expect(gold.mochiTitle, 'Course Champion');
+      expect(gold.mochiTitle, 'Course Champ');
     });
 
     test('store build offers Course master for its own courses only', () {
@@ -211,7 +211,7 @@ void main() {
         expect(byId['days.gold']!.mochiTitle, 'Loyal Regular');
         expect(byId['combo.gold']!.mochiTitle, 'Combo Cat');
         expect(byId['clock.gold']!.mochiTitle, 'Speedy Paws');
-        expect(byId['extreme.gold']!.mochiTitle, 'Fearless Painter');
+        expect(byId['extreme.gold']!.mochiTitle, 'Brave Painter');
         expect(byId['platinum']!.mochiTitle, 'Pawly Master');
       });
     });

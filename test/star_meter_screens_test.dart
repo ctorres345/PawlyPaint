@@ -11,6 +11,7 @@ import 'package:pawlypaint/state/settings.dart';
 import 'package:pawlypaint/ui/game_screen.dart';
 import 'package:pawlypaint/ui/sort_screen.dart';
 import 'package:pawlypaint/ui/star_meter.dart';
+import 'package:pawlypaint/ui/theme/tokens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// PAP-8: the star meter shows in Paint and Sort, and stays hidden wherever
@@ -29,7 +30,7 @@ void main() {
   tearDown(() => music.dispose());
 
   Future<void> pumpScreen(WidgetTester tester, Widget Function(ProgressStore store) screen,
-      {bool relaxed = false}) async {
+      {bool relaxed = false, ThemeData? theme}) async {
     SharedPreferences.setMockInitialValues({
       'relaxed_mode': relaxed,
       'progress_v1': jsonEncode({'version': 2, 'seenTutorial': true, 'seenSortTutorial2': true}),
@@ -56,7 +57,8 @@ void main() {
     final nav = GlobalKey<NavigatorState>();
     await tester.pumpWidget(MusicScope(
       music: music,
-      child: SettingsScope(settings: settings, child: MaterialApp(navigatorKey: nav, home: const SizedBox())),
+      child: SettingsScope(
+          settings: settings, child: MaterialApp(navigatorKey: nav, theme: theme, home: const SizedBox())),
     ));
     nav.currentState!.push(MaterialPageRoute<void>(builder: (_) => screen(store)));
     await tester.pump();
@@ -100,4 +102,17 @@ void main() {
     await pumpScreen(tester, (store) => SortScreen(puzzle: puzzle, store: store, timeAttack: Difficulty.easy));
     expect(find.byType(StarMeterBar), findsNothing);
   });
+
+  // PAP-20: until PAP-22 the play pages stay light, and so does the context
+  // their dialogs and sheets open from.
+  for (final (name, page) in [
+    ('_GamePage', (ProgressStore store) => GameScreen(puzzle: puzzle, store: store)),
+    ('_SortPage', (ProgressStore store) => SortScreen(puzzle: puzzle, store: store)),
+  ]) {
+    testWidgets('$name and its dialogs stay light under a dark app theme', (tester) async {
+      await pumpScreen(tester, page, theme: pawTheme(PawTokens.espresso, Brightness.dark));
+      final state = tester.element(find.byWidgetPredicate((w) => w.runtimeType.toString() == name));
+      expect(Theme.of(state).brightness, Brightness.light);
+    });
+  }
 }

@@ -8,105 +8,276 @@ import '../logic/photo_frames.dart';
 import '../models/puzzle.dart';
 import '../state/progress_store.dart';
 import '../state/settings.dart';
-import 'badges.dart';
 import 'effect_clock.dart';
 import 'frame_picker.dart';
 import 'gem_style.dart';
 import 'picture_export.dart';
+import 'theme/paw_widgets.dart';
+import 'theme/tokens.dart';
+import 'unlock_ui.dart' show picturesWord;
 
-/// Every finished picture, to admire.
-class GalleryScreen extends StatelessWidget {
+/// Which finished pictures the Gallery shows.
+enum GalleryFilter {
+  all('All'),
+  paint('Paint'),
+  sort('Sort'),
+  threeStars('3 stars');
+
+  const GalleryFilter(this.label);
+
+  final String label;
+}
+
+/// Best stars for [p] in [mode], or in either mode when [mode] is null.
+int bestStars(ProgressStore store, Puzzle p, [PlayMode? mode]) =>
+    (mode == null ? PlayMode.values : [mode]).map((m) => store.record(m.key(p.id))?.bestStars ?? 0).fold(0, math.max);
+
+/// Every finished picture, to admire, course by course (PAP-19 "Gallery" board).
+class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key, required this.courses});
 
   final List<Course> courses;
 
   @override
+  State<GalleryScreen> createState() => _GalleryScreenState();
+}
+
+class _GalleryScreenState extends State<GalleryScreen> {
+  GalleryFilter _filter = GalleryFilter.all;
+
+  bool _shows(ProgressStore store, Puzzle p) => switch (_filter) {
+        GalleryFilter.all => store.isDone(p.id),
+        GalleryFilter.paint => store.isDone(p.id, PlayMode.paint),
+        GalleryFilter.sort => store.isDone(p.id, PlayMode.sort),
+        GalleryFilter.threeStars => bestStars(store, p) == 3,
+      };
+
+  @override
   Widget build(BuildContext context) {
     final store = ProgressScope.of(context);
+    final t = context.paw;
     final text = Theme.of(context).textTheme;
-    final done = [
-      for (final c in courses)
-        for (final p in c.puzzles)
-          if (store.isDone(p.id)) (c, p),
-    ];
+    final courses = widget.courses;
     final total = courses.fold(0, (s, c) => s + c.puzzles.length);
+    final finished = courses.fold(0, (s, c) => s + store.completedIn(c.puzzles));
+    final mode = switch (_filter) {
+      GalleryFilter.paint => PlayMode.paint,
+      GalleryFilter.sort => PlayMode.sort,
+      _ => null,
+    };
+    final sections = [
+      for (final c in courses)
+        if (c.puzzles.where((p) => _shows(store, p)).toList() case final shown when shown.isNotEmpty) (c, shown),
+    ];
     return Scaffold(
-      appBar: AppBar(title: const Text('Gallery')),
+      appBar: AppBar(
+        title: const Text('Gallery'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: PawChip(
+              icon: Icons.photo_library_rounded,
+              iconColor: t.ink,
+              label: '$finished / $total',
+              semanticLabel: '$finished of $total pictures finished',
+            ),
+          ),
+        ],
+      ),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Text('Badges', style: text.titleLarge),
-                  const SizedBox(height: 4),
-                  Text('Tap a badge to see how to earn it.', style: text.bodySmall),
-                  const SizedBox(height: 12),
-                  BadgeGrid(courses: courses, store: store),
-                  const SizedBox(height: 20),
-                  Text('Pictures', style: text.titleLarge),
+                  for (final f in GalleryFilter.values)
+                    _FilterChip(filter: f, selected: f == _filter, onTap: () => setState(() => _filter = f)),
                 ],
               ),
             ),
           ),
-          if (done.isEmpty)
+          if (sections.isEmpty)
             SliverToBoxAdapter(
-                child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.collections_outlined, size: 56, color: Theme.of(context).colorScheme.outline),
+                    const Art('mochi/painting.png', size: 96),
                     const SizedBox(height: 12),
-                    Text('Finished pictures will hang here.', style: text.titleMedium, textAlign: TextAlign.center),
+                    Text(
+                      finished == 0 ? 'Finished pictures will hang here.' : 'No pictures match this filter yet.',
+                      style: text.titleMedium,
+                      textAlign: TextAlign.center,
+                    ),
                   ],
                 ),
               ),
-            ))
+            )
           else ...[
+            for (final (course, shown) in sections) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+                  child: StickerHeader(
+                    title: StickerTitle(art: courseArt(course), text: course.title, artSize: 30),
+                    trailing: MiniChip(label: '${shown.length} of ${course.puzzles.length}'),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: .82,
+                  ),
+                  delegate: SliverChildListDelegate([
+                    for (final p in shown) _PictureTile(course: course, puzzle: p, stars: bestStars(store, p, mode)),
+                    // Counts pictures not finished in any mode, whatever the filter hides.
+                    if (course.puzzles.length - store.completedIn(course.puzzles) case final left when left > 0)
+                      _MysteryTile(left: left),
+                  ]),
+                ),
+              ),
+            ],
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Text('${done.length} of $total pictures finished', style: text.titleSmall),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              sliver: SliverGrid.builder(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 150,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
+                padding: const EdgeInsets.fromLTRB(24, 18, 24, 32),
+                child: Text(
+                  'The ? tile counts the pictures still to paint. Tap a finished one to see it big.',
+                  style: text.bodySmall,
+                  textAlign: TextAlign.center,
                 ),
-                itemCount: done.length,
-                itemBuilder: (context, i) {
-                  final (course, puzzle) = done[i];
-                  return Semantics(
-                    button: true,
-                    label: '${puzzle.title}, from ${course.title}',
-                    excludeSemantics: true,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => PictureViewer(puzzle: puzzle, course: course)),
-                      ),
-                      child: Hero(
-                        tag: 'gallery-${puzzle.id}',
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CustomPaint(painter: PuzzleThumbPainter(puzzle, complete: true)),
-                        ),
-                      ),
-                    ),
-                  );
-                },
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({required this.filter, required this.selected, required this.onTap});
+
+  final GalleryFilter filter;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: filter.label,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        // 32 to see, padded to 44 to touch.
+        child: SizedBox(
+          height: 44,
+          child: Center(
+            widthFactor: 1,
+            child: PawChip(
+              label: filter.label,
+              icon: filter == GalleryFilter.threeStars ? Icons.star_rounded : null,
+              selected: selected,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PictureTile extends StatelessWidget {
+  const _PictureTile({required this.course, required this.puzzle, required this.stars});
+
+  final Course course;
+  final Puzzle puzzle;
+  final int stars;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
+    return Semantics(
+      button: true,
+      label: '${puzzle.title}, from ${course.title}, $stars ${stars == 1 ? 'star' : 'stars'}',
+      excludeSemantics: true,
+      child: Material(
+        color: t.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(PawRadius.tile),
+          side: BorderSide(color: t.outline),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => PictureViewer(puzzle: puzzle, course: course)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Hero(
+                    tag: 'gallery-${puzzle.id}',
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: CustomPaint(
+                          painter: PuzzleThumbPainter(puzzle, complete: true), child: const SizedBox.expand()),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                StarRow(stars: stars),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The pictures of a course still to finish, as one gray tile.
+class _MysteryTile extends StatelessWidget {
+  const _MysteryTile({required this.left});
+
+  final int left;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
+    return Semantics(
+      label: '$left more ${picturesWord(left)} to finish',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+        decoration: BoxDecoration(
+          color: t.surface,
+          borderRadius: BorderRadius.circular(PawRadius.tile),
+          border: Border.all(color: t.outline),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(14)),
+                alignment: Alignment.center,
+                child: Icon(Icons.help_rounded, size: 40, color: t.muted),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text('+$left', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: t.muted, height: 1.33)),
+          ],
+        ),
       ),
     );
   }
@@ -152,12 +323,7 @@ class _PictureViewerState extends State<PictureViewer> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('${mode.label} ', style: text.labelLarge),
-          for (var s = 0; s < 3; s++)
-            Icon(
-              r != null && s < r.bestStars ? Icons.star_rounded : Icons.star_outline_rounded,
-              size: 20,
-              color: r != null && s < r.bestStars ? const Color(0xFFFFC107) : Theme.of(context).colorScheme.outline,
-            ),
+          StarRow(stars: r?.bestStars ?? 0, size: 20),
         ],
       );
     }

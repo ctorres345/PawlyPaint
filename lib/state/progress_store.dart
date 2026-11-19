@@ -62,6 +62,7 @@ class SavedGame {
     this.excusedMistakes = false,
     this.brushColor,
     this.order = const [],
+    this.savedAt,
   });
 
   /// [Puzzle.signature] of the picture this was saved from.
@@ -83,6 +84,23 @@ class SavedGame {
   /// Cells in the order they were filled, for the replay at the end.
   final List<int> order;
 
+  /// When it was last saved, for Keep painting on Home. Null in saves from before PAP-20.
+  final DateTime? savedAt;
+
+  /// This game stamped with [at].
+  SavedGame savedOn(DateTime at) => SavedGame(
+        signature: signature,
+        placed: placed,
+        score: score,
+        combo: combo,
+        mistakes: mistakes,
+        seconds: seconds,
+        excusedMistakes: excusedMistakes,
+        brushColor: brushColor,
+        order: order,
+        savedAt: at,
+      );
+
   int get placedCount => '1'.allMatches(placed).length;
 
   Map<String, Object> toJson() => {
@@ -95,6 +113,7 @@ class SavedGame {
         'relaxed': excusedMistakes,
         if (brushColor != null) 'brush': brushColor!,
         if (order.isNotEmpty) 'order': order,
+        if (savedAt != null) 'at': savedAt!.millisecondsSinceEpoch,
       };
 
   static SavedGame fromJson(Map<String, dynamic> j) => SavedGame(
@@ -107,6 +126,7 @@ class SavedGame {
         excusedMistakes: j['relaxed'] == true,
         brushColor: j['brush'] as int?,
         order: j['order'] is List ? (j['order'] as List).whereType<int>().toList() : const [],
+        savedAt: j['at'] is int ? DateTime.fromMillisecondsSinceEpoch(j['at'] as int) : null,
       );
 }
 
@@ -715,7 +735,7 @@ class ProgressStore extends ChangeNotifier {
   }
 
   Future<void> saveGame(String id, SavedGame game) {
-    _saved[id] = game;
+    _saved[id] = game.savedOn(clock());
     notifyListeners();
     return _persist();
   }

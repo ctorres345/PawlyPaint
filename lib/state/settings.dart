@@ -31,7 +31,9 @@ class AppSettings extends ChangeNotifier {
       required this.haptics,
       required this.theme,
       required GemShape shape,
-      this.frame = PhotoFrame.none})
+      this.frame = PhotoFrame.none,
+      this.themeMode = ThemeMode.system,
+      this.playerName = defaultPlayerName})
       : _shape = shape {
     canvasTheme = theme;
   }
@@ -41,6 +43,14 @@ class AppSettings extends ChangeNotifier {
   static const _themeKey = 'canvas_theme';
   static const _shapeKey = 'drill_shape';
   static const _frameKey = 'photo_frame';
+  static const _themeModeKey = 'theme_mode';
+  static const _nameKey = 'player_name';
+
+  /// The name on the nameplate until she picks one.
+  static const defaultPlayerName = 'Painter';
+
+  /// The longest name the nameplate shows whole (PAP-20).
+  static const maxNameLength = 12;
 
   static Future<AppSettings> load() async {
     SharedPreferences? prefs;
@@ -58,6 +68,8 @@ class AppSettings extends ChangeNotifier {
       theme: pick(CanvasTheme.values, prefs?.getString(_themeKey), CanvasTheme.linen),
       shape: pick(GemShape.values, prefs?.getString(_shapeKey), GemShape.square),
       frame: pick(PhotoFrame.values, prefs?.getString(_frameKey), PhotoFrame.none),
+      themeMode: pick(ThemeMode.values, prefs?.getString(_themeModeKey), ThemeMode.system),
+      playerName: cleanName(prefs?.getString(_nameKey)),
     );
   }
 
@@ -77,6 +89,20 @@ class AppSettings extends ChangeNotifier {
   /// The frame last picked for Save to Photos. It may not be open: use [PhotoFrame.usable].
   PhotoFrame frame;
 
+  /// Light, dark or follow the phone (the default).
+  ThemeMode themeMode;
+
+  /// Her name on the nameplate, at most [maxNameLength] characters.
+  String playerName;
+
+  /// [raw] trimmed and cut to [maxNameLength], or the default when empty.
+  static String cleanName(String? raw) {
+    final s = (raw ?? '').trim();
+    if (s.isEmpty) return defaultPlayerName;
+    final chars = s.characters;
+    return chars.length <= maxNameLength ? s : chars.take(maxNameLength).toString().trimRight();
+  }
+
   Future<void> setRelaxed(bool v) => _set(() => relaxed = v, (p) => p.setBool(_relaxedKey, v));
   Future<void> setHaptics(bool v) => _set(() => haptics = v, (p) => p.setBool(_hapticsKey, v));
   Future<void> setTheme(CanvasTheme v) => _set(() {
@@ -86,6 +112,13 @@ class AppSettings extends ChangeNotifier {
   Future<void> setShape(GemShape v) => _set(() {
         _shape = v;
       }, (p) => p.setString(_shapeKey, v.name));
+
+  Future<void> setThemeMode(ThemeMode v) => _set(() => themeMode = v, (p) => p.setString(_themeModeKey, v.name));
+
+  Future<void> setPlayerName(String v) {
+    final name = cleanName(v);
+    return _set(() => playerName = name, (p) => p.setString(_nameKey, name));
+  }
 
   Future<void> setFrame(PhotoFrame v) => _set(() => frame = v, (p) => p.setString(_frameKey, v.name));
 
@@ -119,6 +152,10 @@ class SettingsScope extends InheritedNotifier<AppSettings> {
   const SettingsScope({super.key, required AppSettings settings, required super.child}) : super(notifier: settings);
 
   static AppSettings of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<SettingsScope>()!.notifier!;
+
+  /// The settings, or null when the tree has none (some widget tests).
+  static AppSettings? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<SettingsScope>()?.notifier;
 
   static AppSettings read(BuildContext context) => context.getInheritedWidgetOfExactType<SettingsScope>()!.notifier!;
 }

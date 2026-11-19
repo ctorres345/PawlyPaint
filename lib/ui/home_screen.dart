@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 
 import '../data/rewards.dart';
+import '../data/tutorial.dart';
 import '../logic/unlocks.dart';
 import '../models/puzzle.dart';
+import '../state/achievements.dart';
 import '../state/progress_store.dart';
-import '../data/tutorial.dart';
-import 'coach.dart';
+import '../state/settings.dart';
+import 'badges_screen.dart';
 import 'cat_mascot.dart';
+import 'coach.dart';
 import 'course_screen.dart';
 import 'gallery_screen.dart';
 import 'game_screen.dart';
 import 'gem_style.dart';
-import 'jewel_paw.dart';
-import 'sort_screen.dart';
 import 'music_sheet.dart';
 import 'settings_screen.dart';
+import 'sort_screen.dart';
+import 'theme/paw_widgets.dart';
+import 'theme/tokens.dart';
 import 'time_attack_screen.dart';
 import 'unlock_ui.dart';
 import 'unlocks_screen.dart';
 
+/// Home C from the PAP-19 canvas: top bar with the nameplate, today's picture
+/// and Time Attack, the courses, Keep painting, the unlock strip and the dock.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.courses});
 
@@ -65,144 +71,227 @@ class _HomeScreenState extends State<HomeScreen> {
     await nav.push(MaterialPageRoute(builder: (_) => TimeAttackScreen(courses: courses)));
   }
 
+  void _go(DockItem item) {
+    final nav = Navigator.of(context);
+    switch (item) {
+      case DockItem.home:
+        return;
+      case DockItem.gallery:
+        nav.push(MaterialPageRoute(builder: (_) => GalleryScreen(courses: courses)));
+      case DockItem.unlocks:
+        openUnlocks(nav);
+      case DockItem.badges:
+        nav.push(MaterialPageRoute(builder: (_) => BadgesScreen(courses: courses)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = ProgressScope.of(context);
     final unlocks = store.unlockState(courses);
-    final gateStars = unlocks.gateStars;
     final openNow = {
       for (final c in courses)
         if (unlocks.isCourseOpen(c.id)) c.id,
     };
     _justOpened.addAll(openNow.difference(_open ?? openNow));
     _open = openNow;
-    final taOpen = unlocks.isModeOpen(UnlockTables.modeTimeAttack);
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
     final totalStars = courses.fold(0, (s, c) => s + store.starsIn(c.puzzles));
     final maxStars = courses.fold(0, (s, c) => s + ProgressStore.maxStarsIn(c.puzzles));
+    final dailyId = store.dailyPuzzleId(DateTime.now(), [for (final c in courses) ...c.puzzles]);
+    final inProgress = keepPainting(store, courses, unlocks, dailyId: dailyId);
+    final now = nowPainting(inProgress, store, courses, unlocks);
+    final settings = SettingsScope.maybeOf(context);
+    const gap = SizedBox(height: 10);
+    const sectionGap = SizedBox(height: 18);
     return Scaffold(
       body: Stack(
         children: [
           const Positioned.fill(child: PawPattern()),
           SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+            bottom: false,
+            child: Column(
               children: [
-                Row(
-                  children: [
-                    const JewelPawLogo(size: 44),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text('PawlyPaint', style: text.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
-                      ),
-                    ),
-                    const MusicButton(),
-                    IconButton(
-                      tooltip: 'Settings',
-                      icon: const Icon(Icons.settings_rounded),
-                      onPressed: () =>
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-                    ),
-                    const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
-                    const SizedBox(width: 4),
-                    Text('$totalStars / $maxStars', style: text.titleMedium),
-                  ],
+                _TopBar(
+                  name: settings?.playerName ?? AppSettings.defaultPlayerName,
+                  title: currentTitle(courses, store),
+                  onNameplate: () => _go(DockItem.badges),
                 ),
-                const SizedBox(height: 12),
-                if (store.isReadOnly) ...[
-                  const _ReadOnlyBanner(),
-                  const SizedBox(height: 12),
-                ],
-                MascotBubble(text: _withTeaser(_greeting(store, courses), unlocks, courses)),
-                const SizedBox(height: 16),
-                _DailyCard(courses: courses, store: store, unlocks: unlocks),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => GalleryScreen(courses: courses)),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.fromLTRB(16, 12, 16, 184 + MediaQuery.paddingOf(context).bottom),
+                    children: [
+                      if (store.isReadOnly) ...[const _ReadOnlyBanner(), const SizedBox(height: 16)],
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        height: 176,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(flex: 12, child: _DailyCard(courses: courses, store: store, unlocks: unlocks)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 10,
+                              child: _TimeAttackCard(
+                                store: store,
+                                open: unlocks.isModeOpen(UnlockTables.modeTimeAttack),
+                                onRace: () => _openTimeAttack(store),
+                              ),
+                            ),
+                          ],
                         ),
-                        icon: const Icon(Icons.collections_rounded),
-                        label: const Text('Gallery'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        onPressed: () => _showHowToPlay(context, store),
-                        icon: const Icon(Icons.school_rounded),
-                        label: const Text('How to play'),
+                      sectionGap,
+                      StickerHeader(
+                        title: const StickerTitle(art: 'icons/gem_paw.png', text: 'Courses', artSize: 30),
+                        trailing: MiniChip(
+                          icon: Icons.star_rounded,
+                          label: '$totalStars / $maxStars',
+                          semanticLabel: '$totalStars of $maxStars stars',
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _UnlockStrip(unlocks: unlocks),
-                const SizedBox(height: 12),
-                if (taOpen)
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    onPressed: () => _openTimeAttack(store),
-                    icon: const Icon(Icons.timer_rounded),
-                    label: const Text('Time Attack'),
-                  )
-                else
-                  FilledButton.tonalIcon(
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                      side: BorderSide(color: Theme.of(context).colorScheme.outline),
-                    ),
-                    onPressed: () => showLockedHint(context, unlockCondition(UnlockTables.modeTimeAttack)),
-                    icon: const Icon(Icons.lock_rounded),
-                    label: const Text('Time Attack'),
-                  ),
-                const SizedBox(height: 24),
-                for (final course in courses.where((c) => !c.special)) ...[
-                  _CourseCard(
-                    course: course,
-                    store: store,
-                    open: unlocks.isCourseOpen(course.id),
-                    gateStars: gateStars,
-                    celebrate: _justOpened.contains(course.id),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                if (courses.any((c) => c.special)) ...[
-                  const SizedBox(height: 8),
-                  Semantics(
-                    header: true,
-                    child: Row(
-                      children: [
-                        Icon(Icons.auto_awesome_rounded, color: scheme.primary),
-                        const SizedBox(width: 8),
-                        Flexible(child: Text('Special collections', style: text.titleLarge)),
+                      gap,
+                      if (now != null) ...[_NowPaintingCard(course: now, store: store), gap],
+                      _CourseShelf(
+                        courses: [
+                          for (final c in courses)
+                            if (c != now) c,
+                        ],
+                        store: store,
+                        unlocks: unlocks,
+                        justOpened: _justOpened,
+                      ),
+                      if (inProgress.isNotEmpty) ...[
+                        sectionGap,
+                        StickerHeader(
+                          title: const StickerTitle(art: 'icons/brush.png', text: 'Keep painting', artSize: 30),
+                          trailing: MiniChip(label: '${inProgress.length} in progress'),
+                        ),
+                        const SizedBox(height: 18),
+                        _KeepPaintingRow(
+                          items: inProgress.take(3).toList(),
+                          store: store,
+                          dailyId: dailyId,
+                        ),
                       ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  for (final course in courses.where((c) => c.special)) ...[
-                    _CourseCard(
-                      course: course,
-                      store: store,
-                      open: unlocks.isCourseOpen(course.id),
-                      gateStars: gateStars,
-                      celebrate: _justOpened.contains(course.id),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                ],
+                ),
               ],
             ),
           ),
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 96 + MediaQuery.paddingOf(context).bottom,
+            child: _UnlockStrip(unlocks: unlocks),
+          ),
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12 + MediaQuery.paddingOf(context).bottom,
+            child: PawDock(
+              onSelect: _go,
+              dots: {if (unlocks.newRewards.isNotEmpty) DockItem.unlocks},
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// A picture she started and left: where it lives and how far she got.
+class InProgress {
+  const InProgress(this.course, this.level, this.puzzle, this.game);
+
+  final Course course;
+  final Level level;
+  final Puzzle puzzle;
+  final SavedGame game;
+
+  double get progress => puzzle.cellCount == 0 ? 0 : game.placedCount / puzzle.cellCount;
+}
+
+/// Every started Paint picture she can open, newest save first; saves without
+/// a time keep course order after them (PAP-20 Keep painting). A picture in a
+/// locked course or level (say, an old daily) is left out, except [dailyId],
+/// today's picture, which opens as the daily.
+List<InProgress> keepPainting(ProgressStore store, List<Course> courses, UnlockState unlocks, {String? dailyId}) {
+  final list = <InProgress>[
+    for (final c in courses)
+      for (final (li, l) in c.levels.indexed)
+        for (final p in l.puzzles)
+          if (store.savedFor(p) case final g? when g.placedCount > 0 && !store.isDone(p.id))
+            if (p.id == dailyId || (unlocks.isCourseOpen(c.id) && store.isLevelUnlocked(c, li, PlayMode.paint)))
+              InProgress(c, l, p, g),
+  ];
+  final order = {for (var i = 0; i < list.length; i++) list[i]: i};
+  list.sort((a, b) {
+    final ta = a.game.savedAt, tb = b.game.savedAt;
+    if (ta != null && tb != null && ta != tb) return tb.compareTo(ta);
+    if (ta != null && tb == null) return -1;
+    if (ta == null && tb != null) return 1;
+    return order[a]!.compareTo(order[b]!);
+  });
+  return list;
+}
+
+/// The course for the "Now painting" card: the latest picture she left, else
+/// the first open course with pictures left, else the first course.
+Course? nowPainting(List<InProgress> inProgress, ProgressStore store, List<Course> courses, UnlockState unlocks) {
+  // Today's picture can come from a locked course; the card must not open one.
+  final latest = inProgress.where((i) => unlocks.isCourseOpen(i.course.id)).firstOrNull;
+  if (latest != null) return latest.course;
+  final open = courses.where((c) => unlocks.isCourseOpen(c.id));
+  return open.where((c) => store.completedIn(c.puzzles) < c.puzzles.length).firstOrNull ?? open.firstOrNull;
+}
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.name, required this.title, required this.onNameplate});
+
+  final String name;
+  final String title;
+  final VoidCallback onNameplate;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mode = dark ? 'dark' : 'light';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 0),
+      child: LayoutBuilder(
+        builder: (context, box) => Row(
+          children: [
+            Semantics(
+              header: true,
+              label: 'PawlyPaint',
+              excludeSemantics: true,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset('assets/art/brand/mark_$mode.png', width: 34, height: 32, fit: BoxFit.contain),
+                  // The wordmark needs about 90 pt; on narrow phones the mark stands alone.
+                  if (box.maxWidth >= 372) ...[
+                    const SizedBox(width: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Image.asset('assets/art/brand/wordmark_$mode.png', width: 82, height: 15),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Spacer(),
+            Nameplate(name: name, title: title, onTap: onNameplate),
+            const SizedBox(width: 2),
+            const MusicButton(sticker: true),
+            SquareButton(
+              icon: Icons.settings_rounded,
+              tooltip: 'Settings',
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -214,268 +303,30 @@ class _ReadOnlyBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final t = context.paw;
     return Semantics(
       liveRegion: true,
-      child: Card(
-        color: scheme.secondaryContainer,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Icon(Icons.info_rounded, color: scheme.onSecondaryContainer),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'This progress comes from a newer PawlyPaint, so changes are not saved. '
-                  'Update the app to keep your progress safe.',
-                  style: TextStyle(color: scheme.onSecondaryContainer),
-                ),
-              ),
-            ],
-          ),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: t.soft,
+          borderRadius: BorderRadius.circular(PawRadius.tile),
+          border: Border.all(color: t.outline, width: 2),
         ),
-      ),
-    );
-  }
-}
-
-/// The nearest course to open, as a line for Mochi. Nothing when none is next.
-String _withTeaser(String greeting, UnlockState unlocks, List<Course> courses) {
-  final next = unlocks.nextCourse;
-  if (next == null || next.remaining <= 0) return greeting;
-  final name = unlockLabel(next.id, courses);
-  final n = next.remaining;
-  return "$greeting $n more ${n == 1 ? 'star' : 'stars'} to open $name!";
-}
-
-/// What the mascot says on the home screen: the next thing worth doing.
-String _greeting(ProgressStore store, List<Course> courses) {
-  final today = DateTime.now();
-  final streak = store.streak(today);
-  if (!store.dailyDoneToday(today) && streak > 0) {
-    return "Welcome back! Today's picture keeps your $streak day streak going.";
-  }
-  final totalDone = courses.fold(0, (s, c) => s + store.completedIn(c.puzzles));
-  if (totalDone == 0) return "Hi, I'm $mascotName! Pick a course and let's fill a picture with sparkles.";
-  for (final course in courses) {
-    final left = course.puzzles.length - store.completedIn(course.puzzles);
-    if (left > 0 && store.completedIn(course.puzzles) > 0) {
-      return 'Welcome back! ${course.title} has $left ${left == 1 ? 'picture' : 'pictures'} left'
-          '${store.dailyDoneToday(today) ? '.' : ", and today's surprise is waiting."}';
-    }
-  }
-  final allDone = courses.every((c) => store.completedIn(c.puzzles) == c.puzzles.length);
-  if (allDone) return 'Every picture is finished. You are purr-fection itself.';
-  return store.dailyDoneToday(today)
-      ? 'Welcome back! A new course is waiting for you.'
-      : "Welcome back! Today's surprise picture is waiting.";
-}
-
-class _CourseCard extends StatelessWidget {
-  const _CourseCard({
-    required this.course,
-    required this.store,
-    required this.open,
-    required this.gateStars,
-    required this.celebrate,
-  });
-
-  final Course course;
-  final ProgressStore store;
-  final bool open;
-  final int gateStars;
-
-  /// True when the course opened while she was playing: the card pops in once.
-  final bool celebrate;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!open) return _LockedCourseCard(course: course, have: gateStars);
-    final text = Theme.of(context).textTheme;
-    final total = course.puzzles.length;
-    final painted = store.completedIn(course.puzzles, PlayMode.paint);
-    final sorted = store.completedIn(course.puzzles, PlayMode.sort);
-    final stars = store.starsIn(course.puzzles);
-    final card = Semantics(
-      button: true,
-      label: '${course.title}, $painted of $total painted, $sorted of $total sorted, $stars stars',
-      excludeSemantics: true,
-      child: EarsCard(
-        color: course.accent,
-        child: Material(
-          borderRadius: BorderRadius.circular(24),
-          clipBehavior: Clip.antiAlias,
-          child: Ink(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [course.accent, Color.lerp(course.accent, Colors.white, 0.55)!],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+        child: Row(
+          children: [
+            Icon(Icons.info_rounded, color: t.onSoft),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'This progress comes from a newer PawlyPaint, so changes are not saved. '
+                'Update the app to keep your progress safe.',
+                style: TextStyle(color: t.onSoft),
               ),
             ),
-            child: InkWell(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CourseScreen(course: course))),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(course.title, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                        ),
-                        const Icon(Icons.star_rounded, color: Color(0xFFFFC107)),
-                        Text(' $stars / ${ProgressStore.maxStarsIn(course.puzzles)}', style: text.titleSmall),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(course.subtitle, style: text.bodyMedium),
-                    const SizedBox(height: 14),
-                    _ModeProgress(icon: Icons.brush_rounded, label: 'Paint', done: painted, total: total),
-                    const SizedBox(height: 6),
-                    _ModeProgress(icon: Icons.swap_horiz_rounded, label: 'Sort', done: sorted, total: total),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (var i = 0; i < course.levels.length; i++)
-                          _LevelPill(
-                            level: course.levels[i],
-                            painted: store.completedIn(course.levels[i].puzzles, PlayMode.paint),
-                            sorted: store.completedIn(course.levels[i].puzzles, PlayMode.sort),
-                            unlocked: store.isLevelUnlocked(course, i),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          ],
         ),
       ),
-    );
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: celebrate ? 0 : 1, end: 1),
-      duration: const Duration(milliseconds: 700),
-      curve: Curves.easeOutBack,
-      builder: (context, v, child) => Opacity(
-        opacity: v.clamp(0.0, 1.0),
-        child: Transform.scale(scale: 0.9 + 0.1 * v, child: child),
-      ),
-      child: card,
-    );
-  }
-}
-
-/// A course that is not open yet: dimmed, with its star progress and what it needs.
-class _LockedCourseCard extends StatelessWidget {
-  const _LockedCourseCard({required this.course, required this.have});
-
-  final Course course;
-  final int have;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    final id = UnlockTables.courseId(course.id);
-    final need = UnlockTables.courseStars[course.id] ?? 0;
-    final left = (need - have).clamp(0, need);
-    final condition = unlockCondition(id, starsLeft: left);
-    return Semantics(
-      button: true,
-      label: '${course.title}, locked. $have of $need stars. $condition',
-      excludeSemantics: true,
-      child: LockedSurface(
-        child: InkWell(
-          onTap: () => showLockedHint(context, '$condition ${course.title}'),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Icon(Icons.lock_rounded, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(course.title, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 2),
-                      Text(
-                        '\u2605 ${have.clamp(0, need)} / $need',
-                        style: text.titleSmall?.copyWith(color: scheme.onSurface),
-                      ),
-                      Text(condition, style: text.bodySmall),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LevelPill extends StatelessWidget {
-  const _LevelPill({required this.level, required this.painted, required this.sorted, required this.unlocked});
-
-  final Level level;
-  final int painted;
-  final int sorted;
-  final bool unlocked;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: Colors.white70, borderRadius: BorderRadius.circular(20)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!unlocked) ...[const Icon(Icons.lock_rounded, size: 14), const SizedBox(width: 4)],
-          Text('${level.difficulty.label}  ', style: text.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const Icon(Icons.brush_rounded, size: 13),
-          Text(' $painted  ', style: text.labelMedium),
-          const Icon(Icons.swap_horiz_rounded, size: 14),
-          Text(' $sorted  /${level.puzzles.length}', style: text.labelMedium),
-        ],
-      ),
-    );
-  }
-}
-
-/// One labelled progress bar for a course in Paint or Sort.
-class _ModeProgress extends StatelessWidget {
-  const _ModeProgress({required this.icon, required this.label, required this.done, required this.total});
-
-  final IconData icon;
-  final String label;
-  final int done;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Row(
-      children: [
-        Icon(icon, size: 16),
-        const SizedBox(width: 4),
-        SizedBox(width: 38, child: Text(label, style: text.labelMedium)),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(value: done / total, minHeight: 8, backgroundColor: Colors.white54),
-          ),
-        ),
-        SizedBox(width: 48, child: Text('$done/$total', textAlign: TextAlign.end, style: text.labelMedium)),
-      ],
     );
   }
 }
@@ -490,116 +341,548 @@ class _DailyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
+    final t = context.paw;
     final today = DateTime.now();
     final all = [for (final c in courses) ...c.puzzles];
     final id = store.dailyPuzzleId(today, all);
     final puzzle = all.firstWhere((p) => p.id == id);
     final done = store.dailyDoneToday(today);
     final streak = store.streak(today);
-    final open = unlocks.isModeOpen(UnlockTables.modeDaily);
-    if (!open) {
-      final condition = unlockCondition(UnlockTables.modeDaily);
-      return Semantics(
-        button: true,
-        label: "Today's picture, locked. $condition",
-        excludeSemantics: true,
-        child: LockedSurface(
-          child: InkWell(
-            onTap: () => showLockedHint(context, condition),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(Icons.lock_rounded, color: scheme.onSurfaceVariant),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Today's picture", style: text.titleMedium),
-                        Text(condition, style: text.bodySmall)
-                      ],
-                    ),
-                  ),
-                ],
+    if (!unlocks.isModeOpen(UnlockTables.modeDaily)) {
+      return _LockedHero(
+        icon: Icons.calendar_today_rounded,
+        title: "Today's picture",
+        condition: unlockCondition(UnlockTables.modeDaily),
+      );
+    }
+    void play() => _pickDailyMode(context, store, puzzle, sortOpen: unlocks.isModeOpen(UnlockTables.modeSort));
+    return Semantics(
+      container: true,
+      label: done ? "Today's picture is done. Streak: $streak days" : "Today's surprise picture. Streak: $streak days",
+      child: HeroCard(
+        color: t.soft,
+        tag: TagPill(
+          icon: Icons.calendar_today_rounded,
+          label: "Today's picture",
+          color: t.accent,
+          foreground: t.onAccent,
+        ),
+        onTap: play,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, box) {
+                  final thumb = (box.maxWidth * .46).clamp(44.0, 66.0);
+                  return Row(
+                    children: [
+                      _TiltedThumb(puzzle: puzzle, done: done, placed: store.savedFor(puzzle)?.placed, size: thumb),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: MiniChip(
+                            icon: Icons.local_fire_department_rounded,
+                            iconColor: t.streak,
+                            label: streak == 1 ? '1 day' : '$streak days',
+                            semanticLabel: '$streak day streak',
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            ChunkyButton(
+              label: done ? 'Done' : 'Paint',
+              icon: done ? Icons.check_rounded : Icons.brush_rounded,
+              color: t.accent,
+              foreground: t.onAccent,
+              onPressed: play,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Today's picture as a tilted photo with a sparkle.
+class _TiltedThumb extends StatelessWidget {
+  const _TiltedThumb({required this.puzzle, required this.done, required this.placed, required this.size});
+
+  final Puzzle puzzle;
+  final bool done;
+  final String? placed;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
+    return Transform.rotate(
+      angle: -0.07,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: t.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: t.outline, width: 2),
+              boxShadow: lip(t, 3),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(9),
+              child: SizedBox.square(
+                dimension: size,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CustomPaint(painter: PuzzleThumbPainter(puzzle, complete: done, placed: placed)),
+                    if (!done) Center(child: Icon(Icons.card_giftcard_rounded, color: t.accent, size: size * .45)),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+          Positioned(top: -12, right: -12, child: Icon(Icons.auto_awesome_rounded, size: 22, color: t.star)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimeAttackCard extends StatelessWidget {
+  const _TimeAttackCard({required this.store, required this.open, required this.onRace});
+
+  final ProgressStore store;
+  final bool open;
+  final VoidCallback onRace;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
+    if (!open) {
+      return _LockedHero(
+        icon: Icons.bolt_rounded,
+        title: 'Time Attack',
+        condition: unlockCondition(UnlockTables.modeTimeAttack),
       );
     }
+    final best = Difficulty.values.map((d) => store.timeAttack(d)).where((r) => r.wins > 0).fold(0, (m, r) {
+      return r.bestLeft > m ? r.bestLeft : m;
+    });
+    final bestText = best > 0 ? '${best ~/ 60}:${(best % 60).toString().padLeft(2, '0')}' : '--';
     return Semantics(
-      button: true,
-      label: done ? "Today's picture is done. Streak: $streak days" : "Today's surprise picture. Streak: $streak days",
-      excludeSemantics: true,
-      child: EarsCard(
-        color: scheme.primaryContainer,
-        child: Material(
-          color: scheme.primaryContainer,
-          borderRadius: BorderRadius.circular(24),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => _pickDailyMode(context, store, puzzle, sortOpen: unlocks.isModeOpen(UnlockTables.modeSort)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+      container: true,
+      label: best > 0 ? 'Time Attack. Best: $bestText left' : 'Time Attack',
+      child: HeroCard(
+        color: t.courseTint(CourseTint.purple),
+        tag: TagPill(icon: Icons.bolt_rounded, label: 'Time Attack', color: t.surface, foreground: t.ink),
+        onTap: onRace,
+        child: Column(
+          children: [
+            Expanded(
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox.square(
-                      dimension: 72,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          CustomPaint(
-                            painter: PuzzleThumbPainter(
-                              puzzle,
-                              complete: done,
-                              placed: store.savedFor(puzzle)?.placed,
-                            ),
-                          ),
-                          if (!done) Center(child: Icon(Icons.card_giftcard_rounded, color: scheme.primary, size: 32)),
-                        ],
+                  Transform.rotate(angle: .17, child: const Art('mochi/stopwatch.png', size: 52)),
+                  const SizedBox(width: 8),
+                  // Shrinks on narrow phones and big text instead of overflowing.
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: ExcludeSemantics(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text('Best', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: t.ink)),
+                            Text(bestText, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: t.ink)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Today's picture", style: text.titleMedium),
-                        const SizedBox(height: 2),
-                        Text(
-                          done ? 'Done! Come back tomorrow for a new one.' : 'A surprise picture, just for today.',
-                          style: text.bodySmall,
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.local_fire_department_rounded,
-                              size: 20,
-                              color: streak > 0 ? const Color(0xFFFF7043) : scheme.outline,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              streak == 1 ? '1 day streak' : '$streak day streak',
-                              style: text.labelLarge,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right_rounded),
                 ],
               ),
             ),
+            const SizedBox(height: 10),
+            ChunkyButton(
+              label: 'Race',
+              icon: Icons.play_arrow_rounded,
+              color: t.star,
+              foreground: fixedInk,
+              onPressed: onRace,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A hero card that is not open yet: dashed, with what it needs.
+class _LockedHero extends StatelessWidget {
+  const _LockedHero({required this.icon, required this.title, required this.condition});
+
+  final IconData icon;
+  final String title;
+  final String condition;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
+    return Semantics(
+      button: true,
+      label: '$title, locked. $condition',
+      excludeSemantics: true,
+      child: LockedSurface(
+        child: InkWell(
+          onTap: () => showLockedHint(context, condition),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.lock_rounded, size: 20, color: t.muted),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontWeight: FontWeight.w800, color: t.ink),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // The card has a fixed height; a tap shows the whole condition.
+                Flexible(
+                  child: Text(
+                    condition,
+                    maxLines: 6,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NowPaintingCard extends StatelessWidget {
+  const _NowPaintingCard({required this.course, required this.store});
+
+  final Course course;
+  final ProgressStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
+    final stars = store.starsIn(course.puzzles);
+    final max = ProgressStore.maxStarsIn(course.puzzles);
+    return Semantics(
+      button: true,
+      label: 'Now painting: ${course.title}, $stars of $max stars',
+      excludeSemantics: true,
+      child: HeroCard(
+        color: t.courseTint(courseTintOf(course)),
+        padding: const EdgeInsets.all(12),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CourseScreen(course: course))),
+        child: Row(
+          children: [
+            Art(courseArt(course), size: 84),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Now painting', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: t.onSoft)),
+                  const SizedBox(height: 4),
+                  Text(
+                    course.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: t.ink),
+                  ),
+                  const SizedBox(height: 6),
+                  PawBar(value: max == 0 ? 0 : stars / max, track: t.surface, height: 7),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.star_rounded, size: 15, color: t.star),
+                      const SizedBox(width: 2),
+                      Text('$stars/$max', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.ink)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 28, color: t.accent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Every other course as a round sticker in one sideways row.
+class _CourseShelf extends StatelessWidget {
+  const _CourseShelf({required this.courses, required this.store, required this.unlocks, required this.justOpened});
+
+  final List<Course> courses;
+  final ProgressStore store;
+  final UnlockState unlocks;
+  final Set<String> justOpened;
+
+  @override
+  Widget build(BuildContext context) {
+    // Art and gaps, plus two caption lines that grow with the text size.
+    final captions = MediaQuery.textScalerOf(context).scale(32);
+    return SizedBox(
+      height: 86 + captions,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        padding: const EdgeInsets.only(top: 2),
+        itemCount: courses.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, i) => _ShelfCourse(
+          course: courses[i],
+          store: store,
+          unlocks: unlocks,
+          celebrate: justOpened.contains(courses[i].id),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShelfCourse extends StatelessWidget {
+  const _ShelfCourse({required this.course, required this.store, required this.unlocks, required this.celebrate});
+
+  final Course course;
+  final ProgressStore store;
+  final UnlockState unlocks;
+
+  /// True when the course opened while she was playing: it pops in once.
+  final bool celebrate;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
+    final open = unlocks.isCourseOpen(course.id);
+    final String caption;
+    final String label;
+    final VoidCallback onTap;
+    if (open) {
+      final stars = store.starsIn(course.puzzles);
+      final max = ProgressStore.maxStarsIn(course.puzzles);
+      caption = '$stars/$max';
+      label = '${course.title}, $stars of $max stars';
+      onTap = () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CourseScreen(course: course)));
+    } else {
+      final need = UnlockTables.courseStars[course.id] ?? 0;
+      final have = unlocks.gateStars.clamp(0, need);
+      final condition = '${unlockCondition(UnlockTables.courseId(course.id), starsLeft: need - have)} ${course.title}';
+      caption = '★ $have/$need';
+      label = '${course.title}, locked. $have of $need stars. $condition';
+      onTap = () => showLockedHint(context, condition);
+    }
+    final item = Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(PawRadius.tile),
+        onTap: onTap,
+        child: SizedBox(
+          width: 88,
+          child: Column(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 68,
+                    height: 68,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: t.courseTint(courseTintOf(course)),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: t.outline, width: 3),
+                      boxShadow: lip(t, 3),
+                    ),
+                    child: Art(courseArt(course), size: 52, gray: !open),
+                  ),
+                  if (!open)
+                    Positioned(
+                      right: -6,
+                      bottom: -8,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: t.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: t.outline, width: 2),
+                        ),
+                        child: Icon(Icons.lock_rounded, size: 15, color: t.ink),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                course.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: t.ink),
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  caption,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: t.muted),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: celebrate ? 0 : 1, end: 1),
+      duration: const Duration(milliseconds: 700),
+      curve: Curves.easeOutBack,
+      builder: (context, v, child) => Opacity(
+        opacity: v.clamp(0.0, 1.0),
+        child: Transform.scale(scale: 0.9 + 0.1 * v, child: child),
+      ),
+      child: item,
+    );
+  }
+}
+
+/// Up to three pictures she left half done.
+class _KeepPaintingRow extends StatelessWidget {
+  const _KeepPaintingRow({required this.items, required this.store, required this.dailyId});
+
+  final List<InProgress> items;
+  final ProgressStore store;
+
+  /// Today's picture: resuming it here still counts for the streak.
+  final String dailyId;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, box) {
+        final w = (box.maxWidth - 20) / 3;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              SizedBox(
+                width: w,
+                child: _KeepPaintingCard(item: items[i], store: store, daily: items[i].puzzle.id == dailyId),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _KeepPaintingCard extends StatelessWidget {
+  const _KeepPaintingCard({required this.item, required this.store, required this.daily});
+
+  final InProgress item;
+  final ProgressStore store;
+  final bool daily;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
+    final pct = (item.progress * 100).round();
+    final level = item.level.difficulty.label;
+    return Semantics(
+      button: true,
+      label: '${item.puzzle.title}, ${item.course.title}, $level, $pct percent painted',
+      excludeSemantics: true,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(PawRadius.tile), boxShadow: lip(t)),
+            child: Material(
+              color: t.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(PawRadius.tile),
+                side: BorderSide(color: t.outline, width: 3),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => GameScreen(puzzle: item.puzzle, store: store, daily: daily)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
+                  child: Column(
+                    children: [
+                      LayoutBuilder(
+                        builder: (context, box) {
+                          final side = box.maxWidth.clamp(0.0, 78.0);
+                          return Container(
+                            width: side,
+                            height: side,
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: t.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: t.outline, width: 2),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: CustomPaint(painter: PuzzleThumbPainter(item.puzzle, placed: item.game.placed)),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 6),
+                      PawBar(value: item.progress),
+                      const SizedBox(height: 5),
+                      Text(
+                        item.course.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: t.ink),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(left: -8, top: -10, child: Art(difficultyArt(item.level.difficulty), size: 30)),
+        ],
       ),
     );
   }
@@ -660,45 +943,7 @@ void _pickDailyMode(BuildContext context, ProgressStore store, Puzzle puzzle, {r
   );
 }
 
-/// Lets the player replay either tutorial.
-void _showHowToPlay(BuildContext context, ProgressStore store) {
-  showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (sheet) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.brush_rounded),
-            title: const Text('Paint tutorial'),
-            subtitle: const Text('Fill numbered spots with matching drills'),
-            onTap: () {
-              Navigator.pop(sheet);
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => GameScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
-              ));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.swap_horiz_rounded),
-            title: const Text('Sort tutorial'),
-            subtitle: const Text('Unscramble a picture using the tray'),
-            onTap: () {
-              Navigator.pop(sheet);
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => SortScreen(puzzle: tutorialPuzzle(), store: store, tutorial: true),
-              ));
-            },
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    ),
-  );
-}
-
-/// Opens the Unlocks screen and says what the next reward is (PAP-38).
+/// The next 3-star reward and how close it is; opens Unlocks (PAP-38).
 class _UnlockStrip extends StatelessWidget {
   const _UnlockStrip({required this.unlocks});
 
@@ -706,40 +951,52 @@ class _UnlockStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final t = context.paw;
     final next = unlocks.nextReward;
     final reward = UnlockTables.rewardById(next?.id);
     final line = reward == null
         ? 'Every reward is yours!'
-        : 'Next: ${rewardInfo(reward).name} · ${next!.remaining} more three-star ${picturesWord(next.remaining)}';
-    return Material(
-      color: scheme.surface,
-      borderRadius: BorderRadius.circular(20),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => openUnlocks(Navigator.of(context)),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 64),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: scheme.outlineVariant),
-          ),
-          child: Row(
-            children: [
-              Image.asset('assets/art/icons/gift.png', width: 40, height: 40, excludeFromSemantics: true),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Unlocks', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                    Text(line, style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
-                  ],
-                ),
+        : '${next!.remaining} more 3-star ${picturesWord(next.remaining)}: ${rewardInfo(reward).name}';
+    final value = reward == null ? 1.0 : unlocks.threeStars / unlocks.threshold(reward);
+    return Semantics(
+      button: true,
+      label: 'Unlocks. $line',
+      excludeSemantics: true,
+      child: Container(
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(PawRadius.pill), boxShadow: lip(t, 3)),
+        child: Material(
+          color: t.surface,
+          shape: StadiumBorder(side: BorderSide(color: t.outline, width: 2)),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => openUnlocks(Navigator.of(context)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
+              child: Row(
+                children: [
+                  const Art('mochi/avatar.png', size: 40),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          line,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.ink),
+                        ),
+                        const SizedBox(height: 4),
+                        PawBar(value: value),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.chevron_right_rounded, color: t.muted),
+                ],
               ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
-            ],
+            ),
           ),
         ),
       ),

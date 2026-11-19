@@ -3,7 +3,7 @@ part of '../sort_screen.dart';
 /// The Sort screen's state: the game, its timers and what each tap does.
 /// The end-of-round flow and the layout are mixed in from [_SortFlow] and
 /// [_SortLayout].
-abstract class _SortStateBase extends State<SortScreen>
+abstract class _SortStateBase extends State<_SortPage>
     with TickerProviderStateMixin, WidgetsBindingObserver
     implements PlayTimers {
   AppSettings get _settings => SettingsScope.read(context);

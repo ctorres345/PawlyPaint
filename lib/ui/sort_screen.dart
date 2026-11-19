@@ -30,6 +30,7 @@ import 'music_sheet.dart';
 import 'star_meter.dart';
 import 'unlock_ui.dart';
 import 'unlock_celebration.dart';
+import 'theme/paw_widgets.dart' show LightPlayTheme;
 
 part 'sort/sort_state.dart';
 part 'sort/sort_flow.dart';
@@ -40,7 +41,7 @@ part 'sort/sort_hud.dart';
 
 /// Sort mode: the picture starts scrambled. Tap misplaced beads to pick them
 /// up, then tap the tray or an empty spot that wants their color.
-class SortScreen extends StatefulWidget {
+class SortScreen extends StatelessWidget {
   const SortScreen({
     super.key,
     required this.puzzle,
@@ -70,8 +71,26 @@ class SortScreen extends StatefulWidget {
   final bool dailyChallenge;
   final int seed;
 
+  // The page sits under the light theme, so the dialogs and sheets it opens
+  // from its own context are light too.
   @override
-  State<SortScreen> createState() => _SortScreenState();
+  Widget build(BuildContext context) => LightPlayTheme(builder: (_) => _SortPage(this));
+}
+
+class _SortPage extends StatefulWidget {
+  const _SortPage(this.screen);
+
+  final SortScreen screen;
+  Puzzle get puzzle => screen.puzzle;
+  ProgressStore get store => screen.store;
+  bool get daily => screen.daily;
+  bool get tutorial => screen.tutorial;
+  Difficulty? get timeAttack => screen.timeAttack;
+  bool get dailyChallenge => screen.dailyChallenge;
+  int get seed => screen.seed;
+
+  @override
+  State<_SortPage> createState() => _SortScreenState();
 }
 
 class _SortScreenState extends _SortStateBase with _SortFlow, _SortLayout {}

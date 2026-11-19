@@ -164,7 +164,7 @@ class LockedSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return CustomPaint(
-      foregroundPainter: _DashedBorder(scheme.outline, radius),
+      foregroundPainter: DashedBorder(scheme.outline, radius),
       child: Material(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(radius),
@@ -175,11 +175,13 @@ class LockedSurface extends StatelessWidget {
   }
 }
 
-class _DashedBorder extends CustomPainter {
-  const _DashedBorder(this.color, this.radius);
+/// A dashed rounded outline, for locked things.
+class DashedBorder extends CustomPainter {
+  const DashedBorder(this.color, this.radius, {this.width = 1});
 
   final Color color;
   final double radius;
+  final double width;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -187,7 +189,7 @@ class _DashedBorder extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = width;
     for (final m in path.computeMetrics()) {
       for (var d = 0.0; d < m.length; d += 10) {
         canvas.drawPath(m.extractPath(d, (d + 6).clamp(0, m.length)), paint);
@@ -196,5 +198,5 @@ class _DashedBorder extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DashedBorder old) => old.color != color || old.radius != radius;
+  bool shouldRepaint(DashedBorder old) => old.color != color || old.radius != radius || old.width != width;
 }

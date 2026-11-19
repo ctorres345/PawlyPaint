@@ -290,7 +290,7 @@ void main() {
       ));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 900));
-      expect(find.textContaining('Next: Sakura canvas'), findsOneWidget);
+      expect(find.textContaining(': Sakura canvas'), findsOneWidget);
       await tester.tap(find.text('Unlocks'));
       await tester.pumpAndSettle();
       expect(find.byType(UnlocksScreen), findsOneWidget);

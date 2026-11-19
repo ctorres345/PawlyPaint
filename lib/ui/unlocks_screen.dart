@@ -1,16 +1,12 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../data/rewards.dart';
 import '../logic/unlocks.dart';
 import '../state/progress_store.dart';
 import 'cat_mascot.dart';
+import 'theme/paw_widgets.dart';
+import 'theme/tokens.dart';
 import 'unlock_ui.dart';
-
-/// The star color of the PAP-19 tokens, light and dark.
-Color starColor(BuildContext context) =>
-    Theme.of(context).brightness == Brightness.dark ? const Color(0xFFF2C14E) : const Color(0xFFE0A21B);
 
 /// Opens the Unlocks screen.
 Future<void> openUnlocks(NavigatorState nav) =>
@@ -51,7 +47,7 @@ class UnlocksScreen extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.star_rounded, size: 18, color: starColor(context)),
+                    Icon(Icons.star_rounded, size: 18, color: context.paw.star),
                     const SizedBox(width: 4),
                     Text('${unlocks.threeStars} three-star',
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
@@ -82,51 +78,6 @@ class UnlocksScreen extends StatelessWidget {
               ],
             ],
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A section heading in the sticker style of the redesign: a tilted pill with
-/// an illustration.
-class StickerTitle extends StatelessWidget {
-  const StickerTitle({super.key, required this.art, required this.text});
-
-  /// Path under `assets/art/`.
-  final String art;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      header: true,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Transform.rotate(
-          angle: -2 * math.pi / 180,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 38),
-            padding: const EdgeInsets.only(left: 6, right: 16),
-            decoration: BoxDecoration(
-              color: scheme.primary,
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(color: scheme.outlineVariant, width: 3),
-              boxShadow: [BoxShadow(color: scheme.outlineVariant, offset: const Offset(0, 3))],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/art/$art', width: 30, height: 30, excludeFromSemantics: true),
-                const SizedBox(width: 6),
-                Text(
-                  text,
-                  style: TextStyle(color: scheme.onPrimary, fontSize: 18, fontWeight: FontWeight.w800, height: 1),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
