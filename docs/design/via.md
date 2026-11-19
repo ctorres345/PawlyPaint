@@ -6,7 +6,7 @@
   "findings": [
     {
       "id": "VIA-badges-82d5e463",
-      "status": "new",
+      "status": "fixed",
       "first_seen": "2026-11-18T19:04:51",
       "screen": "badges",
       "rule": "badge-progress",
@@ -15,7 +15,21 @@
       "line": 227,
       "issue": "Locked badges show no progress counter and tier names are plain text.",
       "last_seen": "2026-11-18T19:04:51",
-      "run": "20261118T234807Z"
+      "run": "20261118T234807Z",
+      "fixed_in": "20261119T034952Z"
+    },
+    {
+      "id": "VIA-badges-fc5dea80",
+      "status": "new",
+      "first_seen": "2026-11-18T22:50:09",
+      "screen": "badges",
+      "rule": "nameplate-not-tappable",
+      "severity": "low",
+      "file": "lib/ui/badges_screen.dart",
+      "line": 58,
+      "issue": "The nameplate pill on Badges does nothing when tapped; only the Name button edits.",
+      "last_seen": "2026-11-18T22:50:09",
+      "run": "20261119T034952Z"
     },
     {
       "id": "VIA-catch-up-summary-c7b9b25c",
@@ -108,6 +122,20 @@
       "last_seen": "2026-11-18T14:12:34",
       "run": "20261118T190747Z",
       "fixed_in": "20261118T195952Z"
+    },
+    {
+      "id": "VIA-course-65d0d4fb",
+      "status": "new",
+      "first_seen": "2026-11-18T22:50:09",
+      "screen": "course",
+      "rule": "filled-star-contrast",
+      "severity": "med",
+      "file": "lib/ui/theme/tokens.dart",
+      "line": 81,
+      "issue": "Light-theme star #E0A21B on surface #FFFDF9 is about 2.25:1, under the 3:1 non-text minimum. The value is the PAP-19 prototype's --star token.",
+      "last_seen": "2026-11-18T22:50:09",
+      "run": "20261119T034952Z",
+      "ticket": "PAP-63"
     },
     {
       "id": "VIA-course-70c78701",
@@ -232,8 +260,21 @@
       "run": "20261118T204245Z"
     },
     {
-      "id": "VIA-settings-af984119",
+      "id": "VIA-settings-25814e62",
       "status": "new",
+      "first_seen": "2026-11-18T22:50:09",
+      "screen": "settings",
+      "rule": "canvas-swatch-edge",
+      "severity": "low",
+      "file": "lib/ui/settings_screen.dart",
+      "line": 330,
+      "issue": "Night sky swatch blends into the dark card; Linen has a faint edge on the light card.",
+      "last_seen": "2026-11-18T22:50:09",
+      "run": "20261119T034952Z"
+    },
+    {
+      "id": "VIA-settings-af984119",
+      "status": "fixed",
       "first_seen": "2026-11-18T19:04:51",
       "screen": "settings",
       "rule": "drills-vs-beads",
@@ -242,7 +283,8 @@
       "line": 69,
       "issue": "Settings says Drills while the Vibration caption says beads (wording from main).",
       "last_seen": "2026-11-18T19:04:51",
-      "run": "20261118T234807Z"
+      "run": "20261118T234807Z",
+      "fixed_in": "20261119T034952Z"
     },
     {
       "id": "VIA-sort-1e27ace6",
@@ -367,7 +409,8 @@
 
 | ID | Screen | Severity | Status | Location | Issue |
 |---|---|---|---|---|---|
-| VIA-badges-82d5e463 | badges | low | new | lib/ui/badges\_screen.dart\:227 | Locked badges show no progress counter and tier names are plain text. |
+| VIA-badges-82d5e463 | badges | low | fixed | lib/ui/badges\_screen.dart\:227 | Locked badges show no progress counter and tier names are plain text. |
+| VIA-badges-fc5dea80 | badges | low | new | lib/ui/badges\_screen.dart\:58 | The nameplate pill on Badges does nothing when tapped; only the Name button edits. |
 | VIA-catch-up-summary-c7b9b25c | catch-up-summary | low | new | lib/ui/unlock\_ui.dart\:116 | The welcome-back summary (PAP-41 AlertDialog) and the new celebration card look different\: tint, title weight, button width. |
 | VIA-completion-sheet-56b8f47f | completion-sheet | low | new | lib/ui/frame\_picker.dart\:211 | After tapping a locked frame, its tile shows no mark linking it to the hint below. |
 | VIA-completion-sheet-7a4daff4 | completion-sheet | low | open | lib/ui/completion\_sheet.dart\:46 | White Mochi has little contrast on the pale sheet (unchanged from main). |
@@ -375,6 +418,7 @@
 | VIA-completion-sheet-ca163f7b | completion-sheet | low | new | lib/logic/photo\_frames.dart\:28 | The hidden frame is labelled "Secret", which reads like a placeholder next to Wood or Lace. |
 | VIA-completion-sheet-d2363e50 | completion-sheet | low | open | lib/ui/frame\_picker.dart\:150 | The unlock hint appearing pushes Save to Photos and the main button down (animated by AnimatedSize). |
 | VIA-completion-sheet-e71bc830 | completion-sheet | med | fixed | lib/ui/completion\_sheet.dart\:56 | Picking a frame changes only the tile outline; the picture preview above (and the gallery viewer, lib/ui/gallery\_screen.dart\:172) still shows no frame, so she sees the frame only in Photos. |
+| VIA-course-65d0d4fb | course | med | new | lib/ui/theme/tokens.dart\:81 | Light-theme star \#E0A21B on surface \#FFFDF9 is about 2.25\:1, under the 3\:1 non-text minimum. The value is the PAP-19 prototype's --star token. |
 | VIA-course-70c78701 | course | med | fixed | lib/ui/course\_screen.dart\:321 | Unearned stars used the outline color and almost vanished on dark tiles. |
 | VIA-gallery-fdbb613c | gallery | low | fixed | lib/ui/gallery\_screen.dart\:150 | Footer said gray tiles are unfinished pictures, but they are grouped in one ? tile. |
 | VIA-home-50f280ae | home | low | fixed | lib/ui/home\_screen.dart\:300 | Level pills and mode bars on open course cards use Colors.white70 and white54, so they cannot follow a dark theme. Existing code, not added by PAP-41. |
@@ -384,7 +428,8 @@
 | VIA-paint-3ba78c04 | paint | low | new | lib/ui/board.dart | Rings (and Sort spots) now draw as one path, so where two overlap at far zoom-out the alpha no longer doubles up. |
 | VIA-paint-bad787f8 | paint | low | new | lib/ui/desk.dart | The desk background is now a baked bitmap (max side 2560 px); on phones above about DPR 2.9 its linen and grain lines resample and look slightly softer than the vector desk. |
 | VIA-picture-viewer-68ee0f44 | picture-viewer | low | new | lib/ui/gallery\_screen.dart\:182 | The gallery fills the frame opening with the canvas theme sheet colour, while saves use the default paper; on non-linen themes the preview and the photo differ (the unframed viewer already did). |
-| VIA-settings-af984119 | settings | low | new | lib/ui/settings\_screen.dart\:69 | Settings says Drills while the Vibration caption says beads (wording from main). |
+| VIA-settings-25814e62 | settings | low | new | lib/ui/settings\_screen.dart\:330 | Night sky swatch blends into the dark card; Linen has a faint edge on the light card. |
+| VIA-settings-af984119 | settings | low | fixed | lib/ui/settings\_screen.dart\:69 | Settings says Drills while the Vibration caption says beads (wording from main). |
 | VIA-sort-1e27ace6 | sort | low | open | lib/ui/star\_meter.dart\:33 | Sort's 3-star line reads '… left for 3 stars · no shakes', not the target's '… · a shake costs the 3rd star'. It was shortened so it fits on one line at 360 dp. |
 | VIA-sort-2f359c0e | sort | low | open | lib/ui/sort/sort\_layout.dart\:106 | At 360 dp the Hold-to-peek card covers about 2x4 beads at the top left of the board. This predates PAP-8\: the before build overlaps by about the same amount, and the meter adds about 13 dp. |
 | VIA-sort-919b6275 | sort | low | open | lib/ui/star\_meter.dart\:140 | The last-chance warning differs only by primary color; the star at risk looks the same as the others. |
