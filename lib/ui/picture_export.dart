@@ -12,6 +12,7 @@ import '../models/puzzle.dart';
 import '../state/achievements.dart';
 import '../state/progress_store.dart';
 import '../state/settings.dart' show SettingsScope;
+import 'badges.dart' show newBadgeLabel;
 import 'frame_picker.dart';
 import 'gem_style.dart';
 
@@ -242,7 +243,7 @@ class _SavePictureButtonState extends State<SavePictureButton> {
       _busy = false;
       if (error == null) _savedWith = frame;
     });
-    final message = error ?? (badges.isEmpty ? null : 'New badge: ${badges.map((b) => b.title).join(', ')}!');
+    final message = error ?? (badges.isEmpty ? null : badges.map((b) => '${newBadgeLabel(b)}!').join('\n'));
     if (message != null) {
       await showDialog<void>(
         context: context,

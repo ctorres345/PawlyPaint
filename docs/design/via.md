@@ -5,6 +5,19 @@
 {
   "findings": [
     {
+      "id": "VIA-badges-35bfaa7f",
+      "status": "new",
+      "first_seen": "2026-11-19T01:03:54",
+      "screen": "badges",
+      "rule": "rainbow-medal-flat",
+      "severity": "low",
+      "file": "lib/ui/theme/paw_widgets.dart",
+      "line": 375,
+      "issue": "A chosen rainbow title would show a flat beige medal on the nameplate instead of the rainbow ring.",
+      "last_seen": "2026-11-19T01:03:54",
+      "run": "20261119T060321Z"
+    },
+    {
       "id": "VIA-badges-82d5e463",
       "status": "fixed",
       "first_seen": "2026-11-18T19:04:51",
@@ -19,8 +32,47 @@
       "fixed_in": "20261119T034952Z"
     },
     {
-      "id": "VIA-badges-fc5dea80",
+      "id": "VIA-badges-a8faa03e",
       "status": "new",
+      "first_seen": "2026-11-19T01:03:54",
+      "screen": "badges",
+      "rule": "spec-nameplate-caption",
+      "severity": "low",
+      "file": "lib/ui/badges_screen.dart",
+      "line": 54,
+      "issue": "Prototype caption mentions multiplayer; the app says \"Your nameplate. It shows on Home.\" because multiplayer does not exist yet.",
+      "last_seen": "2026-11-19T01:03:54",
+      "run": "20261119T060321Z"
+    },
+    {
+      "id": "VIA-badges-db3fe00a",
+      "status": "new",
+      "first_seen": "2026-11-19T01:03:54",
+      "screen": "badges",
+      "rule": "spec-combo-count-format",
+      "severity": "low",
+      "file": "lib/ui/badges_screen.dart",
+      "line": 458,
+      "issue": "Prototype shows Sort combo as \"x72 / x60\" with her best above target; the app shows \"30 / 30\" capped, with no x prefix.",
+      "last_seen": "2026-11-19T01:03:54",
+      "run": "20261119T060321Z"
+    },
+    {
+      "id": "VIA-badges-f2ac400e",
+      "status": "new",
+      "first_seen": "2026-11-19T01:03:54",
+      "screen": "badges",
+      "rule": "gold-frame-contrast",
+      "severity": "low",
+      "file": "lib/ui/theme/tokens.dart",
+      "line": 94,
+      "issue": "Light-theme gold medal frame #C48F12 on surface is 2.84:1, under 3:1 for non-text. The tier label beside it (#7D5A00, 6.2:1) carries the meaning, and the frame is the prototype --gold token.",
+      "last_seen": "2026-11-19T01:03:54",
+      "run": "20261119T060321Z"
+    },
+    {
+      "id": "VIA-badges-fc5dea80",
+      "status": "fixed",
       "first_seen": "2026-11-18T22:50:09",
       "screen": "badges",
       "rule": "nameplate-not-tappable",
@@ -29,7 +81,8 @@
       "line": 58,
       "issue": "The nameplate pill on Badges does nothing when tapped; only the Name button edits.",
       "last_seen": "2026-11-18T22:50:09",
-      "run": "20261119T034952Z"
+      "run": "20261119T034952Z",
+      "fixed_in": "20261119T060321Z"
     },
     {
       "id": "VIA-catch-up-summary-c7b9b25c",
@@ -206,6 +259,19 @@
       "last_seen": "2026-11-18T17:54:40",
       "run": "20261118T223303Z",
       "fixed_in": "20261118T234807Z"
+    },
+    {
+      "id": "VIA-home-b40beffb",
+      "status": "new",
+      "first_seen": "2026-11-19T01:03:54",
+      "screen": "home",
+      "rule": "summary-note-fixed-margin",
+      "severity": "low",
+      "file": "lib/ui/badges_screen.dart",
+      "line": 130,
+      "issue": "The badge summary note uses a fixed 164 pt bottom margin to clear the unlock strip and dock; at very large text, or with no strip, the gap may be off.",
+      "last_seen": "2026-11-19T01:03:54",
+      "run": "20261119T060321Z"
     },
     {
       "id": "VIA-paint-1ff2fb53",
@@ -409,8 +475,12 @@
 
 | ID | Screen | Severity | Status | Location | Issue |
 |---|---|---|---|---|---|
+| VIA-badges-35bfaa7f | badges | low | new | lib/ui/theme/paw\_widgets.dart\:375 | A chosen rainbow title would show a flat beige medal on the nameplate instead of the rainbow ring. |
 | VIA-badges-82d5e463 | badges | low | fixed | lib/ui/badges\_screen.dart\:227 | Locked badges show no progress counter and tier names are plain text. |
-| VIA-badges-fc5dea80 | badges | low | new | lib/ui/badges\_screen.dart\:58 | The nameplate pill on Badges does nothing when tapped; only the Name button edits. |
+| VIA-badges-a8faa03e | badges | low | new | lib/ui/badges\_screen.dart\:54 | Prototype caption mentions multiplayer; the app says "Your nameplate. It shows on Home." because multiplayer does not exist yet. |
+| VIA-badges-db3fe00a | badges | low | new | lib/ui/badges\_screen.dart\:458 | Prototype shows Sort combo as "x72 / x60" with her best above target; the app shows "30 / 30" capped, with no x prefix. |
+| VIA-badges-f2ac400e | badges | low | new | lib/ui/theme/tokens.dart\:94 | Light-theme gold medal frame \#C48F12 on surface is 2.84\:1, under 3\:1 for non-text. The tier label beside it (\#7D5A00, 6.2\:1) carries the meaning, and the frame is the prototype --gold token. |
+| VIA-badges-fc5dea80 | badges | low | fixed | lib/ui/badges\_screen.dart\:58 | The nameplate pill on Badges does nothing when tapped; only the Name button edits. |
 | VIA-catch-up-summary-c7b9b25c | catch-up-summary | low | new | lib/ui/unlock\_ui.dart\:116 | The welcome-back summary (PAP-41 AlertDialog) and the new celebration card look different\: tint, title weight, button width. |
 | VIA-completion-sheet-56b8f47f | completion-sheet | low | new | lib/ui/frame\_picker.dart\:211 | After tapping a locked frame, its tile shows no mark linking it to the hint below. |
 | VIA-completion-sheet-7a4daff4 | completion-sheet | low | open | lib/ui/completion\_sheet.dart\:46 | White Mochi has little contrast on the pale sheet (unchanged from main). |
@@ -424,6 +494,7 @@
 | VIA-home-50f280ae | home | low | fixed | lib/ui/home\_screen.dart\:300 | Level pills and mode bars on open course cards use Colors.white70 and white54, so they cannot follow a dark theme. Existing code, not added by PAP-41. |
 | VIA-home-774c8889 | home | low | fixed | lib/ui/home\_screen.dart\:683 | Course shelf titles like Animal Friends were cut with an ellipsis at 78 wide. |
 | VIA-home-7d19a298 | home | low | fixed | lib/ui/home\_screen.dart\:702 | Gallery/How to play pills, the Unlocks strip and the Time Attack bar each use a different treatment; the strip has no progress bar. |
+| VIA-home-b40beffb | home | low | new | lib/ui/badges\_screen.dart\:130 | The badge summary note uses a fixed 164 pt bottom margin to clear the unlock strip and dock; at very large text, or with no strip, the gap may be off. |
 | VIA-paint-1ff2fb53 | paint | low | open | lib/ui/star\_meter.dart\:96 | Lost-star outline \#d5c2c6 on \#fff8f8 is about 1.5\:1. The text line and the screen-reader label carry the same information, and the style matches the finish sheet. |
 | VIA-paint-3ba78c04 | paint | low | new | lib/ui/board.dart | Rings (and Sort spots) now draw as one path, so where two overlap at far zoom-out the alpha no longer doubles up. |
 | VIA-paint-bad787f8 | paint | low | new | lib/ui/desk.dart | The desk background is now a baked bitmap (max side 2560 px); on phones above about DPR 2.9 its linen and grain lines resample and look slightly softer than the vector desk. |

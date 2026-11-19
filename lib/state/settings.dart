@@ -33,7 +33,8 @@ class AppSettings extends ChangeNotifier {
       required GemShape shape,
       this.frame = PhotoFrame.none,
       this.themeMode = ThemeMode.system,
-      this.playerName = defaultPlayerName})
+      this.playerName = defaultPlayerName,
+      this.playerTitle})
       : _shape = shape {
     canvasTheme = theme;
   }
@@ -45,6 +46,7 @@ class AppSettings extends ChangeNotifier {
   static const _frameKey = 'photo_frame';
   static const _themeModeKey = 'theme_mode';
   static const _nameKey = 'player_name';
+  static const _titleKey = 'player_title';
 
   /// The name on the nameplate until she picks one.
   static const defaultPlayerName = 'Painter';
@@ -70,6 +72,7 @@ class AppSettings extends ChangeNotifier {
       frame: pick(PhotoFrame.values, prefs?.getString(_frameKey), PhotoFrame.none),
       themeMode: pick(ThemeMode.values, prefs?.getString(_themeModeKey), ThemeMode.system),
       playerName: cleanName(prefs?.getString(_nameKey)),
+      playerTitle: prefs?.getString(_titleKey),
     );
   }
 
@@ -95,6 +98,9 @@ class AppSettings extends ChangeNotifier {
   /// Her name on the nameplate, at most [maxNameLength] characters.
   String playerName;
 
+  /// The Mochi title she picked in Badges, or null to wear her best one. Badges checks it is still earned.
+  String? playerTitle;
+
   /// [raw] trimmed and cut to [maxNameLength], or the default when empty.
   static String cleanName(String? raw) {
     final s = (raw ?? '').trim();
@@ -119,6 +125,12 @@ class AppSettings extends ChangeNotifier {
     final name = cleanName(v);
     return _set(() => playerName = name, (p) => p.setString(_nameKey, name));
   }
+
+  /// Saves the title she picked; null goes back to her best title.
+  Future<void> setPlayerTitle(String? v) => _set(
+        () => playerTitle = v,
+        (p) => v == null ? p.remove(_titleKey) : p.setString(_titleKey, v),
+      );
 
   Future<void> setFrame(PhotoFrame v) => _set(() => frame = v, (p) => p.setString(_frameKey, v.name));
 

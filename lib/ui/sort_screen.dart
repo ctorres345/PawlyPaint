@@ -18,6 +18,7 @@ import '../state/music.dart';
 import '../state/progress_store.dart';
 import '../state/settings.dart';
 import '../state/sort_controller.dart';
+import 'badges.dart' show newBadgeLabel;
 import 'board.dart' show BoardView, kCell;
 import 'coach.dart';
 import 'completion_sheet.dart';

@@ -47,7 +47,8 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           theme: pawTheme(theme, brightness),
           home: Scaffold(
-            body: Center(child: Nameplate(name: 'Christabella', title: 'Midnight Muse', onTap: () {})),
+            body: Center(
+                child: Nameplate(name: 'Christabella', title: 'Midnight Muse', tier: BadgeTier.gold, onTap: () {})),
           ),
         ));
         expect(tester.takeException(), isNull);
@@ -68,7 +69,8 @@ void main() {
           theme: pawTheme(PawTokens.latte, Brightness.light),
           home: MediaQuery(
             data: MediaQueryData(textScaler: TextScaler.linear(scale)),
-            child: Scaffold(body: Center(child: Nameplate(name: name, title: 'Midnight Muse', onTap: () {}))),
+            child: Scaffold(
+                body: Center(child: Nameplate(name: name, title: 'Midnight Muse', tier: BadgeTier.gold, onTap: () {}))),
           ),
         ));
         expect(tester.takeException(), isNull);

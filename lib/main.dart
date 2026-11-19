@@ -43,6 +43,7 @@ class PawlyPaintApp extends StatelessWidget {
               theme: pawTheme(PawTokens.latte, Brightness.light),
               darkTheme: pawTheme(PawTokens.espresso, Brightness.dark),
               themeMode: settings.themeMode,
+              navigatorObservers: [homeRouteObserver],
               home: HomeScreen(courses: courses),
             ),
           ),
