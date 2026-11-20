@@ -33,7 +33,7 @@ One row per image or SVG the ticket needs, with the `needs-assets` label. With n
 
 | name | svg/image | platforms | size | usage |
 | --- | --- | --- | --- | --- |
-| `<feature>_<what>_<variant>` (snake_case) | svg or image | android, flutter, web | e.g. 24x24 or 1024x1024 | where it appears |
+| `<feature>_<what>_<variant>` (snake_case) | svg or image | flutter (android, ios) | e.g. 24x24 or 1024x1024 | where it appears |
 
 ## Review
 - [ ] review-loop
