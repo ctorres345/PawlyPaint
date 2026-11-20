@@ -39,6 +39,10 @@ branch's Jira key in its subject. The Claude hook also warns (never blocks) on a
 `--repo-copy PATH` (the project's cloud fallback hook, NFX-107) runs this gate from the default branch's copy and blocks a PR
 create when the repo's gate or parser at PATH differs from this one. A branch cannot pass itself by editing its copy.
 
+Marker mode: `review-gate.py marker` (NFX-155) prints the sha256 of the marker file (`git rev-parse --git-path
+claude-review-ok`) or `absent`, and only reads it. Around an implementer run the main session compares it, since
+auto mode denies hashing the marker by hand. Exit 2 outside a git repo or when the marker cannot be read.
+
 Mark mode: `review-gate.py --mark --findings N` or `--mark --skip "reason"` records that a
 review ran for the current working tree. /review-loop runs it as its last step.
 `--tier 0-3 [--reasons "..."]` (from the review loop's tier.py) is stored too; `attest` then prints a separate
@@ -68,6 +72,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import stat
 import subprocess
 import sys
@@ -95,6 +100,7 @@ CHECK_TIMEOUT = 1800
 CHECK_LOG = "claude-review-check.log"
 STAMP_FILE = "claude-review-check-pass"  # in the git dir, written only by `run-check --stamp` (NFX-97)
 PROOF_STAMP_FILE = "claude-proof-pass"  # in the git dir, written only by prove.py (NFX-105); the gate never reads it
+TESTFAIL_STAMP_FILE = "claude-testfail-pass"  # in the git dir, written only by testfail.py (NFX-190); the gate never reads it
 STAMP_KEY = "claude-review-stamp-key"
 GIT_ENV_VARS = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR")
 
@@ -247,8 +253,9 @@ Blocked: branch "{branch}" is not named {prefix}/<JIRA-KEY> (for example {prefix
 """
 
 
-def git(args, cwd, env=None, strip=True):
+def git(args, cwd, env=None, strip=True, data=None):
     """git's stdout (stripped unless strip=False, for `-z` output whose first path may start with a space).
+    data: bytes for stdin; stdout then comes back as unstripped bytes, so no path is decoded.
     RuntimeError when git fails, GateTimeout when it does not answer in time."""
     timeout = 30
     if DEADLINE is not None:
@@ -257,16 +264,36 @@ def git(args, cwd, env=None, strip=True):
             raise GateTimeout(TIMED_OUT)
     try:
         r = subprocess.run(["git", *args], cwd=cwd, env=env, capture_output=True,
-                           text=True, timeout=timeout)
+                           text=data is None, input=data, timeout=timeout)
     except subprocess.TimeoutExpired:
         raise GateTimeout(TIMED_OUT) from None
     if r.returncode != 0:
-        raise RuntimeError(r.stderr.strip())
+        raise RuntimeError((r.stderr if data is None else r.stderr.decode("utf-8", "replace")).strip())
+    if data is not None:
+        return r.stdout
     return r.stdout.strip() if strip else r.stdout
 
 
 def git_path(name, cwd):
     return os.path.abspath(os.path.join(cwd, git(["rev-parse", "--git-path", name], cwd)))
+
+
+def marker_hash(cwd):
+    """`marker` (NFX-155): print the marker's sha256 or `absent`. Read-only: never writes, touches or removes it."""
+    try:
+        path = git_path("claude-review-ok", cwd)
+    except (RuntimeError, OSError):
+        print("marker: not inside a git repository.", file=sys.stderr)
+        return 2
+    try:
+        with open(path, "rb") as f:
+            print(hashlib.sha256(f.read()).hexdigest())
+    except FileNotFoundError:
+        print("absent")
+    except OSError as e:
+        print(f"marker: cannot read {path} ({type(e).__name__}).", file=sys.stderr)
+        return 2
+    return 0
 
 
 def current_branch(cwd):
@@ -282,23 +309,34 @@ def current_branch(cwd):
 
 
 def worktree_tree(cwd):
-    """Tree hash of the working tree, computed on a copy of the index (real one untouched)."""
-    index = git_path("index", cwd)
-    fd, tmp = tempfile.mkstemp(prefix="review-gate-index-")
-    os.close(fd)
+    """Tree hash of the working tree from a fresh temporary index (real one untouched). A copy of the real index
+    keeps its stat data, and a same-size edit right after a commit can look unchanged there (NFX-198). So the
+    temporary index gets the real index's entries (path, mode, blob, stage) without stat data, and add -A hashes
+    every file again. Tracked stays what the real index says: files that match .gitignore, `git add -f` and
+    `git rm --cached` count as staged, on an unborn branch too."""
+    folder = tempfile.mkdtemp(prefix="review-gate-index-")  # private (0700): nobody can plant an index in it
     try:
-        if os.path.exists(index):
-            with open(index, "rb") as src, open(tmp, "wb") as dst:
-                dst.write(src.read())
-        else:
-            os.remove(tmp)  # git creates it
-        env = {**os.environ, "GIT_INDEX_FILE": tmp}
-        git(["add", "-A"], cwd, env)
-        return git(["write-tree"], cwd, env)
+        env = {**os.environ, "GIT_INDEX_FILE": os.path.join(folder, "index")}
+        top = git(["rev-parse", "--show-toplevel"], cwd)  # ls-files in a subfolder lists only that folder
+        # each record: "<tag> <mode> <blob> <stage>\t<path>"; the tag is S for skip-worktree, lowercase for
+        # assume-unchanged. --index-info drops both bits, and without them add -A would take the local edits they
+        # keep out of every commit, so they are set again.
+        records = [r for r in git(["ls-files", "--stage", "-v", "-z"], top, data=b"").split(b"\0") if r]
+        git(["update-index", "-z", "--index-info"], top, env, data=b"".join(r[2:] + b"\0" for r in records))
+        hidden = {"--skip-worktree": [], "--assume-unchanged": []}
+        for r in records:
+            path = r.split(b"\t", 1)[1]
+            if r[:1].upper() == b"S":
+                hidden["--skip-worktree"].append(path)
+            if r[:1].islower():
+                hidden["--assume-unchanged"].append(path)
+        for flag, paths in hidden.items():
+            if paths:
+                git(["update-index", "-z", flag, "--stdin"], top, env, data=b"\0".join(paths) + b"\0")
+        git(["add", "-A"], top, env)
+        return git(["write-tree"], top, env)
     finally:
-        for path in (tmp, tmp + ".lock"):  # git leaves the lock when the budget kills it mid-add
-            if os.path.exists(path):
-                os.remove(path)
+        shutil.rmtree(folder, ignore_errors=True)  # with the lock git leaves when the budget kills it mid-add
 
 
 def head_tree(cwd):
@@ -1842,6 +1880,11 @@ def decide(tool, command, cwd, body, repo_copy=None):
 if __name__ == "__main__":
     if sys.argv[1:2] == ["check"]:
         sys.exit(check(sys.argv))
+    if sys.argv[1:2] == ["marker"]:
+        if sys.argv[2:]:
+            print("Usage: review-gate.py marker (no other arguments).", file=sys.stderr)
+            sys.exit(2)
+        sys.exit(marker_hash(os.getcwd()))
     if sys.argv[1:2] == ["attest"]:
         sys.exit(attest(os.getcwd()))
     if sys.argv[1:2] == ["run-check"]:
