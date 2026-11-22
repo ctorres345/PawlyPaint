@@ -17,7 +17,7 @@ List<String> _keys(int n) => [for (var i = 1; i <= n; i++) dayKey(DateTime(2025,
 
 Future<ProgressStore> _load(Map<String, dynamic> save) async {
   SharedPreferences.setMockInitialValues({
-    'progress_v1': jsonEncode({'version': 2, ...save})
+    'progress_v1': jsonEncode({'version': 3, ...save})
   });
   return ProgressStore.load();
 }
@@ -120,7 +120,7 @@ void main() {
 
   test('a read-only save pays nothing, since it could never record it', () async {
     SharedPreferences.setMockInitialValues({
-      'progress_v1': jsonEncode({'version': 3, 'daysPlayed': _keys(14)}),
+      'progress_v1': jsonEncode({'version': 4, 'daysPlayed': _keys(14)}),
     });
     final store = await ProgressStore.load();
     expect(store.isReadOnly, isTrue);

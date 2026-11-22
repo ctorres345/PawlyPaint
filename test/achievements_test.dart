@@ -383,7 +383,7 @@ void main() {
       }
       final prefs = await SharedPreferences.getInstance();
       expect(jsonDecodeSave(prefs)['daysPlayed'], ['2026-11-03', '2026-11-09']);
-      expect(jsonDecodeSave(prefs)['version'], 2);
+      expect(jsonDecodeSave(prefs)['version'], 3);
       final again = await ProgressStore.load();
       expect(again.daysPlayed, 2);
     });
@@ -395,21 +395,21 @@ void main() {
     });
 
     test('a save with no daily history starts at zero, and a wrong-typed key is reseeded', () async {
-      SharedPreferences.setMockInitialValues({'progress_v1': '{"version":2,"daysPlayed":"oops"}'});
+      SharedPreferences.setMockInitialValues({'progress_v1': '{"version":3,"daysPlayed":"oops"}'});
       final store = await ProgressStore.load();
       expect(store.daysPlayed, 0);
     });
 
     test('a read-only save seeds in memory and is not written', () async {
       SharedPreferences.setMockInitialValues({
-        'progress_v1': '{"version":3,"daily":{"date":"2026-11-09","id":null,"done":"2026-11-09","streak":2,"best":2}}',
+        'progress_v1': '{"version":4,"daily":{"date":"2026-11-09","id":null,"done":"2026-11-09","streak":2,"best":2}}',
       });
       final store = await ProgressStore.load();
       expect(store.isReadOnly, isTrue);
       expect(store.daysPlayed, 2);
       await store.noteCombo(5);
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString('progress_v1'), contains('"version":3'));
+      expect(prefs.getString('progress_v1'), contains('"version":4'));
     });
   });
 }
@@ -420,7 +420,7 @@ Map<String, dynamic> jsonDecodeSave(SharedPreferences prefs) =>
 Future<ProgressStore> _storeWithStreak(int streak, {int? best}) async {
   SharedPreferences.setMockInitialValues({
     'progress_v1':
-        '{"version":2,"daily":{"date":"2026-11-09","id":null,"done":"2026-11-09","streak":$streak,"best":${best ?? streak}}}',
+        '{"version":3,"daily":{"date":"2026-11-09","id":null,"done":"2026-11-09","streak":$streak,"best":${best ?? streak}}}',
   });
   return ProgressStore.load();
 }

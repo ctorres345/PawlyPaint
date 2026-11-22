@@ -12,7 +12,7 @@ import 'package:pawlypaint/ui/home_screen.dart';
 import 'package:pawlypaint/ui/unlock_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Map<String, dynamic> _save(List<Course> courses, {int version = 2, int paint = 0, int sort = 0, int stars = 3}) {
+Map<String, dynamic> _save(List<Course> courses, {int version = 3, int paint = 0, int sort = 0, int stars = 3}) {
   final ids = [for (final c in courses) ...c.puzzles.map((p) => p.id)];
   return {
     'version': version,
@@ -168,15 +168,14 @@ void main() {
         expect(find.textContaining('more stars to open'), findsNothing);
       });
 
-      testWidgets('a version 1 save with progress opens everything and shows one summary', (tester) async {
-        final store = await _load(courses, _save(courses, version: 1, paint: 20, sort: 3));
-        final s = store.unlockState(courses);
-        for (final id in UnlockTables.legacyIds) {
-          expect(s.isUnlocked(id), isTrue, reason: '$id stays open');
+      testWidgets('a version 1 or 2 save starts over with the gates of a fresh install (PAP-78)', (tester) async {
+        for (final version in [1, 2]) {
+          final store = await _load(courses, _save(courses, version: version, paint: 20, sort: 3));
+          final s = store.unlockState(courses);
+          expect(s.isCourseOpen('catcafe'), isFalse, reason: 'version $version');
+          expect(s.isModeOpen(UnlockTables.modeSort), isFalse, reason: 'version $version');
+          expect(s.summary, isEmpty, reason: 'nothing to announce, version $version');
         }
-        await pumpHome(tester, store, courses);
-        expect(find.byType(AlertDialog), findsOneWidget);
-        expect(find.byType(LockedSurface), findsNothing);
       });
 
       testWidgets('courses that are not in the game yet are never announced', (tester) async {
