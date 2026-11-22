@@ -33,7 +33,7 @@ void main() {
       {bool relaxed = false, ThemeData? theme}) async {
     SharedPreferences.setMockInitialValues({
       'relaxed_mode': relaxed,
-      'progress_v1': jsonEncode({'version': 2, 'seenTutorial': true, 'seenSortTutorial2': true}),
+      'progress_v1': jsonEncode({'version': 3, 'seenTutorial': true, 'seenSortTutorial2': true}),
     });
     final (settings, store) = (await tester.runAsync(() async => (
           await AppSettings.load(),

@@ -801,14 +801,24 @@ void main() {
 
   group('Sort tap aiming', () {
     // Row 0: right, wrong(1), hole wanting 0, right.
-    SortGame board() => SortGame(width: 4, target: Uint8List.fromList([0, 0, 0, 1]), current: Int16List.fromList([0, 1, -1, 1]), tray: [], capacity: 4);
+    SortGame board() => SortGame(
+        width: 4,
+        target: Uint8List.fromList([0, 0, 0, 1]),
+        current: Int16List.fromList([0, 1, -1, 1]),
+        tray: [],
+        capacity: 4);
 
     test('a near miss on a right bead picks the misplaced one next to it', () {
       expect(board().aim([0, 1, 2]), 1);
     });
 
     test('with beads in hand, a spot they fit beats grabbing another bead', () {
-      final g = SortGame(width: 4, target: Uint8List.fromList([0, 0, 0, 1]), current: Int16List.fromList([0, 1, -1, 0]), tray: [], capacity: 4);
+      final g = SortGame(
+          width: 4,
+          target: Uint8List.fromList([0, 0, 0, 1]),
+          current: Int16List.fromList([0, 1, -1, 0]),
+          tray: [],
+          capacity: 4);
       g.tapCell(3);
       expect(g.selection!.color, 0);
       expect(g.aim([1, 2]), 2);

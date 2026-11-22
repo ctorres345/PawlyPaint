@@ -186,12 +186,14 @@ class ProgressStore extends ChangeNotifier {
   /// Raw copy of a save that could not be read at all.
   static const _unreadableKey = 'progress_v1_unreadable';
 
-  /// Raw copy of a version-1 save, kept once before the first version-2 write.
-  static const _v1BackupKey = 'progress_v1_backup_v1';
+  /// Raw copy of the last save before the Fresh paint reset (PAP-78), written once and never
+  /// overwritten. Only a developer restores it (docs/RUNBOOK.md, Save format version).
+  static const _resetBackupKey = 'progress_v1_before_reset';
 
   /// Save format version. Any change to the shape of a record, saved game or
   /// other entry must bump it: unknown keys survive only at the top level.
-  static const _version = 2;
+  /// Version 3 is the Fresh paint reset: an older readable save starts over once (PAP-78).
+  static const _version = 3;
 
   /// Top-level keys this build reads. Any other key is kept as it is and written back.
   static const _knownKeys = {
@@ -213,6 +215,7 @@ class ProgressStore extends ChangeNotifier {
     'keptOpen',
     'introduced',
     'daysPlayed',
+    'freshPaintCard',
   };
 
   /// Parses each entry on its own and returns how many were skipped.
@@ -274,6 +277,18 @@ class ProgressStore extends ChangeNotifier {
     for (var i = 0; i < math.min(_streak, 3650); i++) {
       _daysPlayed.add(dayKey(DateTime(y, m, d - i)));
     }
+  }
+
+  bool _freshPaint = false;
+
+  /// True after the Fresh paint reset until she closes its card on Home (PAP-78).
+  bool get freshPaintPending => _freshPaint;
+
+  Future<void> dismissFreshPaint() {
+    if (!_freshPaint) return Future.value();
+    _freshPaint = false;
+    notifyListeners();
+    return _persist();
   }
 
   Set<String> get secrets => Set.unmodifiable(_secrets);
@@ -404,7 +419,9 @@ class ProgressStore extends ChangeNotifier {
     Set<String>? introduced;
     Set<String>? daysPlayed;
     var streakBonusPaid = 0;
+    var freshPaint = false;
     final extra = <String, dynamic>{};
+    var reset = false;
     final raw = prefs.getString(_key);
     if (raw != null) {
       Map<String, dynamic> j;
@@ -431,12 +448,31 @@ class ProgressStore extends ChangeNotifier {
         // Nothing in the UI says so yet (PAP-41), so leave a trace.
         debugPrint('Progress is from a newer build (version $version): shown, but not saved.');
       }
+      // PAP-78: an older save starts over once, so every star is earned on the new art.
+      final resetDue = readable && !readOnly && (version == null || (version is int && version < _version));
+      if (resetDue) {
+        try {
+          if (!prefs.containsKey(_resetBackupKey) && !await prefs.setString(_resetBackupKey, raw)) {
+            // Android reports a failed write (a full disk, say) as false, not as an error.
+            throw StateError('the write returned false');
+          }
+          reset = true;
+          j = {
+            'seenTutorial': j['seenTutorial'] == true,
+            'seenSortTutorial2': j['seenSortTutorial2'] == true,
+            'freshPaintCard': true,
+          };
+        } catch (e) {
+          debugPrint('Saving the progress before the reset failed: $e');
+          readOnly = true;
+        }
+      }
       // Entries are parsed one by one, so one bad entry never loses the rest.
       final skipped = _parseEach(j['records'], (k, v) => records[k] = PuzzleRecord.fromJson(v)) +
           _parseEach(j['saved'], (k, v) => saved[k] = SavedGame.fromJson(v)) +
           _parseEach(j['sortSaved'], (k, v) => sortSaved[k] = v) +
           _parseEach(j['timeAttack'], (k, v) => timeAttack[k] = TimeAttackRecord.fromJson(v));
-      if (skipped > 0 && prefs.getString(_backupKey) == null) {
+      if (skipped > 0 && !resetDue && prefs.getString(_backupKey) == null) {
         // The next save would drop the broken entries for good, so keep a copy first.
         try {
           await prefs.setString(_backupKey, raw);
@@ -444,21 +480,14 @@ class ProgressStore extends ChangeNotifier {
           debugPrint('Saving the progress backup failed: $e');
         }
       }
-      if (readable && !readOnly && (version == null || (version is int && version <= 1))) {
-        // Version 1 had every gate open, so it keeps them open. Keep a raw copy
-        // first; without it the save stays untouched this session.
-        keptOpen = UnlockTables.legacyIds;
-        try {
-          // Always the latest version-1 save: after a downgrade it is the one worth keeping.
-          // Android reports a failed write (a full disk, say) as false, not as an error.
-          if (!await prefs.setString(_v1BackupKey, raw)) throw StateError('the write returned false');
-        } catch (e) {
-          debugPrint('Saving the version 1 backup failed: $e');
-          readOnly = true;
+      if (readable && !reset) {
+        if (version == null || (version is int && version <= 1)) {
+          assert(readOnly, 'only a session whose reset could not start keeps the version 1 gates');
+          keptOpen = UnlockTables.legacyIds;
+        } else {
+          // Also for a save we won't write over: its gates still count.
+          keptOpen = _stringSet(j['keptOpen']);
         }
-      } else if (readable) {
-        // Also for a save we won't write over: its gates still count.
-        keptOpen = _stringSet(j['keptOpen']);
       }
       secrets = _stringSet(j['secrets']);
       celebrated = _stringSet(j['celebrated']);
@@ -468,6 +497,7 @@ class ProgressStore extends ChangeNotifier {
       j.forEach((k, v) {
         if (!_knownKeys.contains(k)) extra[k] = v;
       });
+      freshPaint = j['freshPaintCard'] == true;
       seenTutorial = j['seenTutorial'] == true;
       seenSortTutorial = j['seenSortTutorial2'] == true;
       daily = j['daily'] is Map<String, dynamic> ? j['daily'] as Map<String, dynamic> : null;
@@ -504,6 +534,7 @@ class ProgressStore extends ChangeNotifier {
       .._celebrated.addAll(celebrated)
       .._keptOpen.addAll(keptOpen)
       .._streakBonusPaid = streakBonusPaid
+      .._freshPaint = freshPaint
       .._extra.addAll(extra);
     // Rewards a save already qualifies for stay earned if the build grows before the next picture.
     store._keepEarnedRewards();
@@ -517,6 +548,8 @@ class ProgressStore extends ChangeNotifier {
     } else {
       store._seedIntroduced();
     }
+    // The reset is written now, so the next launch never resets again (PAP-78).
+    if (reset) await store._persist();
     return store;
   }
 
@@ -815,6 +848,7 @@ class ProgressStore extends ChangeNotifier {
           'keptOpen': _keptOpen.toList(),
           'introduced': _introduced.toList(),
           'daysPlayed': _daysPlayed.toList()..sort(),
+          if (_freshPaint) 'freshPaintCard': true,
         }),
       );
       // Android reports a failed write (a full disk, say) as false, not as an error.

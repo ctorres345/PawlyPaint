@@ -250,7 +250,7 @@ void main() {
       final ids = [for (final c in courses) ...c.puzzles.map((p) => p.id)];
       SharedPreferences.setMockInitialValues({
         'progress_v1': jsonEncode({
-          'version': 2,
+          'version': 3,
           'seenTutorial': true,
           'seenSortTutorial2': true,
           'records': {

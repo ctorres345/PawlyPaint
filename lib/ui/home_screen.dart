@@ -153,6 +153,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     children: [
                       if (store.isReadOnly) ...[const _ReadOnlyBanner(), const SizedBox(height: 16)],
                       const SizedBox(height: 4),
+                      if (store.freshPaintPending) ...[
+                        _FreshPaintCard(onClose: store.dismissFreshPaint),
+                        _gapAboveTaggedCard,
+                      ],
                       SizedBox(
                         height: 176,
                         child: Row(
@@ -359,6 +363,46 @@ class _ReadOnlyBanner extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+const _gapAboveTaggedCard = SizedBox(height: 26);
+
+/// Says why her progress is empty after the Fresh paint reset, until she closes it (PAP-78).
+class _FreshPaintCard extends StatelessWidget {
+  const _FreshPaintCard({required this.onClose});
+
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.paw;
+    return HeroCard(
+      color: t.soft,
+      tag: TagPill(icon: Icons.auto_awesome_rounded, label: 'Fresh paint!', color: t.accent, foreground: t.onAccent),
+      padding: const EdgeInsets.fromLTRB(16, 20, 12, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              container: true,
+              liveRegion: true,
+              label: 'Fresh paint! New pictures, fresh start',
+              excludeSemantics: true,
+              child: Text(
+                'New pictures, fresh start',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: t.ink),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Semantics(
+            container: true,
+            child: SquareButton(icon: Icons.close_rounded, tooltip: 'Dismiss', onPressed: onClose),
+          ),
+        ],
       ),
     );
   }
