@@ -3,9 +3,10 @@
 
 Python only, standard library only; runs the same on macOS and Windows.
 
-    python3 -B tier.py [--base HASH] [--base-ref BRANCH] [--labels fable-review,size-L] [--cwd DIR]
+    python3 -B tier.py [--base HASH] [--base-ref BRANCH] [--labels fable-review,size-L] [--synced] [--cwd DIR]
 
-Prints one JSON object: {"tier", "reasons", "ui", "fallback", "security", "gates", "stats"}. "gates" lists human
+Prints one JSON object: {"tier", "reasons", "ui", "fallback", "security", "gates", "synced", "stats"}. "synced" (NFX-216,
+only with --synced) lists changed files byte-equal to their NousFX sync source: not counted, not keyword-scanned. "gates" lists human
 gates (NFX-200: a changed byte cap, see CAP_NAMES), each also in "reasons" as "Gate: ...". "security" lists the security skills the
 diff calls for (NFX-124): agentic-actions-auditor for a path under .github/workflows/, sharp-edges for a security
 keyword in a code file's path or changed lines. It is empty when none applies. Exits 2 (nothing on stdout) when the branch has no
@@ -216,13 +217,16 @@ def bump_size_l(tier, reasons, labels):
 
 
 def classify(files, labels=(), project_paths=()):
-    """files: [{"path", "added": [line, ...], "removed": int, "hunks": int}]. Returns {tier, reasons, ui, stats}."""
+    """files: [{"path", "added": [line, ...], "removed": int, "hunks": int, "synced"?: True}]. Returns {tier, reasons,
+    ui, stats, ...}. A synced file still meets the risk paths and cap gates, nothing else."""
     labels = norm_labels(labels)
-    counted = [x for x in files if not is_ignored(x["path"])]
+    synced = [x["path"] for x in files if x.get("synced")]
+    unsynced = [x for x in files if not x.get("synced")]
+    counted = [x for x in unsynced if not is_ignored(x["path"])]
     code = [x for x in counted if not is_doc(x["path"])]
     lines = sum(len(x["added"]) + x["removed"] for x in code)
     hunks = sum(x["hunks"] for x in code)
-    stats = {"lines": lines, "files": len(code), "hunks": hunks}
+    stats = {"lines": lines, "files": len(code), "hunks": hunks, "synced": len(synced)}
 
     why3 = []  # every reason for Tier 3
     for x in files:
@@ -259,6 +263,8 @@ def classify(files, labels=(), project_paths=()):
     else:
         tier, reasons = 2, ["Tier 2: %d lines, %d file(s), %d hunk(s)" % (lines, len(code), hunks)]
 
+    if synced:
+        reasons.append("synced: %d files (byte-equal to their NousFX source, not counted)" % len(synced))
     tier = bump_size_l(tier, reasons, labels)
     ui_path = next((x["path"] for x in code if is_ui(x["path"], x.get("content", []) + x["added"] + x.get("removed_lines", []))), None)
     if ui_path and tier < 1:
@@ -267,10 +273,9 @@ def classify(files, labels=(), project_paths=()):
     gates = cap_gates(files)  # a gate never changes the tier; it is printed with the reasons so the loop stops to ask
     reasons += ["Gate: " + g for g in gates]
     return {"tier": tier, "reasons": reasons, "ui": ui_path is not None, "fallback": False,
-            "security": security_skills(files), "gates": gates, "stats": stats}
+            "security": security_skills(unsynced), "gates": gates, "synced": synced, "stats": stats}
 
 
-# ---- git layer -------------------------------------------------------------------------------------------------
 # default_ref is shared with the gate: claude/hooks/git_refs.py (NFX-108), loaded by path below. exists_at and the
 # `git show <ref>:<file>` read are still copies of claude/hooks/review-gate.py (a skill cannot import the gate).
 
@@ -469,6 +474,59 @@ def collect(top, base):
     return files + untracked_files(top)
 
 
+NOUSFX_MANIFEST = ("scripts", "nousfx_project.py")
+
+
+@functools.lru_cache(maxsize=1)
+def nousfx_copies():
+    """(NousFX root, {project path: NousFX path}) from the sync manifest (nousfx_project.COPIES) of the NousFX
+    checkout this file's real path sits in, or (None, {}) when there is none (a flat or project copy). Its folder goes
+    on sys.path while it loads, for its sibling import of nousfx_agents."""
+    root = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", ".."))
+    scripts = os.path.join(root, NOUSFX_MANIFEST[0])
+    path = os.path.join(scripts, NOUSFX_MANIFEST[1])
+    if not os.path.isfile(path):
+        return None, {}
+    sys.dont_write_bytecode = True
+    sys.path.insert(0, scripts)
+    try:
+        spec = importlib.util.spec_from_file_location("nousfx_project", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return root, {norm(k): norm(v) for k, v in module.COPIES.items()}
+    except Exception:
+        return None, {}
+    finally:
+        sys.path.remove(scripts)
+
+
+def mark_synced(top, files):
+    """NFX-216: set "synced" on each file whose working-tree bytes equal its NousFX sync source. Off when the repo
+    under review and the NousFX checkout hold one another (a NousFX worktree, or a manifest that is branch code). A
+    link, a deleted file or a path the manifest does not name is never synced."""
+    root, copies = nousfx_copies()
+    real_top = os.path.realpath(top)
+    try:
+        nested = os.path.commonpath([root, real_top]) in (root, real_top) if root else True
+    except ValueError:  # Windows: different drives, so neither holds the other
+        nested = False
+    if nested:
+        return
+    for x in files:
+        rel = norm(x["path"])
+        source = copies.get(rel)
+        full = os.path.join(top, *rel.split("/"))
+        no_link_on_the_way = os.path.realpath(full) == os.path.join(real_top, *rel.split("/"))
+        if not source or not no_link_on_the_way:
+            continue
+        try:
+            if os.path.isfile(full) and os.path.getsize(full) <= MAX_UNTRACKED_BYTES:
+                with open(full, "rb") as mine, open(os.path.join(root, *source.split("/")), "rb") as theirs:
+                    x["synced"] = mine.read() == theirs.read()
+        except OSError:
+            pass
+
+
 def fallback(reason, labels, base=None):
     """Tier 2 with the reason when the diff could not be read. A tier never goes down: labels can still raise it.
     Same keys as classify(), so a reader of the JSON sees one shape."""
@@ -480,12 +538,13 @@ def fallback(reason, labels, base=None):
     else:
         tier = bump_size_l(2, reasons, labels)
     # "fallback": the diff was not read, so "ui": False is unknown, not "no UI" (NFX-20: the Via gate fails closed).
-    return {"tier": tier, "reasons": reasons, "ui": False, "fallback": True, "security": [], "gates": [],
-            "stats": {"lines": 0, "files": 0, "hunks": 0, "base": base}}
+    return {"tier": tier, "reasons": reasons, "ui": False, "fallback": True, "security": [], "gates": [], "synced": [],
+            "stats": {"lines": 0, "files": 0, "hunks": 0, "synced": 0, "base": base}}
 
 
-def run(cwd, base, labels, base_ref=None):
-    """The result dict for the repo at cwd. Raises NoMergeBase when there is no merge base."""
+def run(cwd, base, labels, base_ref=None, synced=False):
+    """The result dict for the repo at cwd. Raises NoMergeBase when there is no merge base. synced: leave out files
+    byte-equal to their NousFX source (NFX-216)."""
     try:
         top = repo_top(cwd)
     except Exception as e:
@@ -498,6 +557,8 @@ def run(cwd, base, labels, base_ref=None):
         return fallback("could not find the merge base (%s)" % e, labels)
     try:
         files = collect(top, base)
+        if synced:
+            mark_synced(top, files)
     except Exception as e:
         return fallback("could not read the diff (%s)" % e, labels, base)
     project_error = None
@@ -522,11 +583,13 @@ def main(argv=None):
     ap.add_argument("--base-ref", help="branch name (CI: the PR base): risk_paths and the merge base come from "
                     "origin/<name>, not origin/HEAD")
     ap.add_argument("--labels", default="", help="comma-separated Jira labels, for example fable-review,size-L")
+    ap.add_argument("--synced", action="store_true", help="leave out files byte-equal to their NousFX sync source "
+                    "(review-loop sizing only; the gate and CI count them)")
     ap.add_argument("--cwd", default=".", help="folder inside the repo (default: current folder)")
     args = ap.parse_args(argv)
     labels = [x.strip() for x in args.labels.split(",") if x.strip()]
     try:
-        result = run(os.path.abspath(args.cwd), args.base, labels, args.base_ref)
+        result = run(os.path.abspath(args.cwd), args.base, labels, args.base_ref, args.synced)
     except NoMergeBase:
         print(NO_BASE_HINT, file=sys.stderr)
         return 2
