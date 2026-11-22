@@ -4,7 +4,7 @@
 Usage:
   session_report.py decide KEY --decision T --why T --rejected T --evidence POINTER --result T
                     [--supersedes ID] [--lesson T] [--held REASON] [--unverified T] [--term "word: meaning"]
-                    [--name N] [--date YYYY-MM-DD]
+                    [--adr TITLE] [--name N] [--date YYYY-MM-DD]
   session_report.py render [--name N] [--date YYYY-MM-DD] [--prs FILE] [--proofs FILE]
 
 `decide` appends one line to <root>/<project>/reports/<date>-<name>/decisions.jsonl. `render` writes report.md
@@ -17,7 +17,10 @@ The log is append-only (idea from pstack's show-me-your-work skill, MIT, github.
 --supersedes ID, which `render` shows beside the old one. A correction keeps the old entry's --held reason
 unless it gives its own: only Cesar releases a held door. --evidence is a pointer, never prose: a commit SHA,
 #PR, file or file:line, or an https URL. --result says where it stands (tests green, reverted, open,
-INCONCLUSIVE). `render` warns on stderr when a SHA or path does not resolve; PRs and URLs are not checked.
+INCONCLUSIVE). --adr TITLE flags a decision that meets the ADR bar (the delete-comments skill states it); the
+review loop's ADR step turns it into docs/adr/NNNN-<slug>.md. A held entry, or a correction of one, gets no --adr.
+A refused `decide` names every bad field and the key at once, with one example line.
+`render` warns on stderr when a SHA or path does not resolve; PRs and URLs are not checked.
 
 --prs FILE is a JSON list of {number, url, title, state}; without it `render` asks `gh pr list`.
 --proofs FILE is pasted into the report as is (for example the proof table).
@@ -45,11 +48,13 @@ SECRET_RE = re.compile(
     r"|eyJ[0-9A-Za-z_-]{10,}\.eyJ[0-9A-Za-z_-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY)"
 )
 
-FIELDS = ("decision", "why", "rejected", "evidence", "result", "lesson", "held", "unverified", "term")
+FIELDS = ("decision", "why", "rejected", "evidence", "result", "lesson", "held", "unverified", "term", "adr")
 REQUIRED = ("decision", "why", "rejected", "evidence", "result")
 SHA_RE = re.compile(r"^[0-9a-f]{7,40}$")
 PR_RE = re.compile(r"^#[1-9][0-9]*$")
 URL_RE = re.compile(r"^https?://\S+$")
+EXAMPLE = ('session_report.py decide NFX-191 --decision "Use JSONL" --why "Appending is crash safe" '
+           '--rejected "One JSON file" --evidence scripts/report.py:40 --result "tests green"')
 
 
 def die(message, code=1):
@@ -118,19 +123,24 @@ def report_dir(args, repo, key=None, guess=None):
 
 
 def cmd_decide(args):
-    if not KEY_RE.match(args.key):
-        die("%r is not a ticket key like NFX-191." % args.key, 2)
     entry = {"key": args.key, "time": datetime.datetime.now().astimezone().isoformat(timespec="seconds")}
     for field in FIELDS:
         entry[field] = (getattr(args, field) or "").strip()
-    for field in REQUIRED:
-        if not entry[field]:
-            die("--%s is empty. A decision needs what, why, the alternative you rejected, evidence and a result."
-                % field, 2)
-    if len(entry["evidence"]) > 300 or re.search(r"[\s`]", entry["evidence"]):
-        die("--evidence is a pointer, not prose: a commit SHA, #PR, file:line or URL, with no spaces or backticks.", 2)
+    problems = [] if KEY_RE.match(args.key) else [
+        "%s is not a ticket key like NFX-191." % ("the key" if has_secret(args.key) else repr(args.key))]
+    problems += ["--%s is empty." % field for field in REQUIRED if not entry[field]]
+    if args.adr is not None and not entry["adr"]:
+        problems.append("--adr is empty: give the ADR's title, or leave the flag out.")
+    if entry["held"] and entry["adr"]:
+        problems.append("--held with --adr: a held door is not decided yet, so it gets no ADR.")
+    if entry["evidence"] and (len(entry["evidence"]) > 300 or re.search(r"[\s`]", entry["evidence"])):
+        problems.append("--evidence is a pointer, not prose: a commit SHA, #PR, file:line or URL, "
+                        "with no spaces or backticks, at most 300 characters.")
     if any(has_secret(v) for v in entry.values()):
-        die("a value looks like a secret. Nothing was written.", 2)
+        problems.append("a value looks like a secret. Nothing was written.")
+    if problems:
+        die("\n".join(problems + ["A decision needs what, why, the alternative you rejected, evidence and a result.",
+                                  "Example: " + EXAMPLE]), 2)
     directory = report_dir(args, repo_paths(), args.key)
     existing, lines, _bad = read_log(directory)
     ids = {e["id"] for e in existing}
@@ -149,6 +159,9 @@ def cmd_decide(args):
             if has_secret(entry["held"]):
                 die("the held reason carried from entry %d looks like a secret. Nothing was written."
                     % args.supersedes, 2)
+    if entry["held"] and entry["adr"]:
+        die("entry %d is held, so its correction keeps the held reason: a held door gets no ADR. "
+            "Nothing was written." % args.supersedes, 2)
     line = json.dumps(entry, ensure_ascii=False)
     os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, "decisions.jsonl")
@@ -186,6 +199,12 @@ def read_log(directory):
             else:
                 bad += 1
     return entries, lines, bad
+
+
+def current_entries(entries):
+    """The entries no later entry supersedes: the newest in each --supersedes chain."""
+    replaced = {e["supersedes"] for e in entries if e.get("supersedes")}
+    return [e for e in entries if e["id"] not in replaced]
 
 
 def unresolved(evidence, top):
@@ -278,7 +297,7 @@ def cmd_render(args):
             out.append("| %s | %s | %s | %s | %s | `%s`%s | %s | %s |" % (
                 ident, e["key"], cell(e["decision"]), cell(e["why"]), cell(e["rejected"]), cell(e["evidence"]),
                 " (unresolved)" if bad else "", result, cell(e.get("lesson"))))
-    current = [e for e in entries if e["id"] not in replaced]  # a replaced entry stays only in the table
+    current = current_entries(entries)  # a replaced entry stays only in the table
     out += ["", "## Held for Cesar (one-way doors)"]
     held = [e for e in current if e.get("held")]
     out += ["- %s: %s. Held because: %s" % (e["key"], cell(e["decision"]), cell(e["held"])) for e in held] or ["None."]
@@ -308,7 +327,12 @@ def cmd_render(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="command", required=True)
-    d = sub.add_parser("decide")
+    d = sub.add_parser("decide", formatter_class=argparse.RawDescriptionHelpFormatter, description=(
+        "Append one decision to the log.\n\n"
+        "Required: --decision, --why, --rejected, --evidence, --result (a blank value counts as missing).\n"
+        "--evidence is a pointer, never prose: a commit SHA, #PR, file or file:line, or a URL;\n"
+        "no spaces or backticks, at most 300 characters. A refusal names every bad field at once.\n\n"
+        "Example:\n  " + EXAMPLE))
     d.add_argument("key")
     d.add_argument("--supersedes", type=int)
     for field in FIELDS:
