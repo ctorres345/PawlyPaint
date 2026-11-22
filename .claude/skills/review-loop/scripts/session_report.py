@@ -39,8 +39,8 @@ KEY_RE = re.compile(r"^[A-Z][A-Z0-9]{0,9}-[1-9][0-9]{0,6}$")
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
-# Same pattern the gemini-review scripts, via_run.py, via_setup.py and claude/hooks/review-gate.py use to stop
-# on a secret. Each script ships alone, so the copies stay: when you add a key pattern, add it to all of them.
+# Each script ships alone, so every copy of this pattern stays: add a key pattern to all of them
+# (`git grep -lF 'AKIA[0-9A-Z]{16}|AIza' -- '*.py'` lists them).
 SECRET_RE = re.compile(
     r"(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|AQ\.[0-9A-Za-z_-]{20,}|gh[pousr]_[0-9A-Za-z]{36}"
     r"|github_pat_[0-9A-Za-z_]{20,}|glpat-[0-9A-Za-z_-]{20,}|(^|[^0-9A-Za-z_-])sk-[0-9A-Za-z_-]{20,}"
