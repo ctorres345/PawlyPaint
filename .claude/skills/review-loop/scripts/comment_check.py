@@ -21,20 +21,26 @@ shell (a whole-line comment in a shell file) or line (any other whole-line or bl
 keep:<rule> or flag:<kind>. The last line counts each form, the kept items, and the lines that deleting the
 non-kept docstring, line and shell items would shed. Files git ignores and generated files are skipped.
 
-verify compares the working tree (untracked files included) with BASE and prints `file: difference` per problem:
-a Python file whose AST, docstrings stripped, differs; in a file that reads __doc__, a changed module docstring or
-a changed docstring of a def or class it reads as `name.__doc__` (any of them can be --help text; verify reads
-scripts and never runs them); a symlink that changed or replaced a file; a changed file mode, in any language; a
-shell file whose text outside comments differs (a heredoc is text), or that newly fails `bash -n` (`zsh -n` for a
-zsh file); a changed shebang or encoding line; an added or deleted Python or shell file; an ADR-NNNN
-pointer in a changed file's comments with no docs/adr/NNNN-*.md (in NousFX, under claude/ and plugins/ it must read
-`NousFX ADR-NNNN`; outside NousFX such a pointer is not looked up). Other languages, and a Python file that did
-not parse at BASE, are left to the test suite, and the OK line counts them. Exit 0 when only
-comments changed, 2 on any difference or when git fails.
+verify compares the working tree (untracked files included) with BASE and prints `file: difference` per problem: a
+Python file whose AST, docstrings stripped, differs; in a file that reads __doc__, a changed module docstring or a
+changed docstring of a def or class it reads as `name.__doc__` (any of them can be --help text; verify reads scripts
+and never runs them); a symlink that changed or replaced a file; a changed file mode, in any language; a shell file
+whose text outside comments differs (a heredoc is text), or that newly fails `bash -n` (`zsh -n` for a zsh file); a
+changed shebang or encoding line; a Kotlin, Dart, TypeScript or JavaScript file whose tokens outside comments
+differ, as `file:line code changed` (a line break and the space between two operators count; a JSX (.tsx, .jsx, .js)
+`{/* note */}` child is a comment as a whole, so empty braces left behind are code, unless it parts two lines of JSX
+text; JSX text between tags, quotes and `//` included, is text, never a comment or string; a bare trailing `//` in
+Dart is a `dart format` marker and always code), or whose compiler directives changed (a `/// <reference>` line,
+`@dart=`, a JSX pragma, `@ts-nocheck` and the like; the reason after a suppression may change); an added or deleted
+file in any of these languages; an ADR-NNNN (or ADR NNNN) pointer in a changed file's comments with no
+docs/adr/NNNN-*.md (in NousFX, under claude/ and plugins/ it must read `NousFX ADR-NNNN`; outside NousFX such a
+pointer is not looked up). Other languages, and a Python file that did not parse at BASE, are left to the test
+suite, and the OK line counts them. Exit 0 when only comments changed, 2 on any difference or when git fails.
 KEEP, comments_in() and classify() are the one keep list for all three modes.
 """
 import argparse
 import ast
+import difflib
 import glob
 import io
 import os
@@ -51,8 +57,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tier  # noqa: E402 (a sibling script: its git() and untracked_files() are the safe, capped ones)
 
 EXTENSIONS = {".py": "python", ".sh": "shell", ".bash": "shell", ".zsh": "shell",
-              ".kt": "c", ".kts": "c", ".dart": "c", ".ts": "c", ".tsx": "c", ".mts": "c", ".cts": "c",
-              ".js": "c", ".jsx": "c", ".mjs": "c", ".cjs": "c"}
+              ".kt": "kotlin", ".kts": "kotlin", ".dart": "dart", ".ts": "js", ".tsx": "js", ".mts": "js", ".cts": "js",
+              ".js": "js", ".jsx": "js", ".mjs": "js", ".cjs": "js"}
+C_LIKE = ("kotlin", "dart", "js")
 
 
 EVERY_LINE = None
@@ -295,18 +302,168 @@ def mark_path_imports(tree, comments):
             c.path_import = True
 
 
-def scan(text, lang):
-    """Comments in shell or C-like text (Kotlin, Dart, TypeScript, JavaScript), skipping strings."""
+GAPS = ("", " ", "\n")
+REGEX_AFTER = set("(,=:[!&|?{;") | {"return", "typeof", "case", "of", "in", "await", "yield", "throw", "void",
+                                       "delete", "new", "else", "do", "instanceof"}
+QUOTES = ('"""', "'''", '"', "'", "`")
+
+
+def string_end(text, i, quote, lang):
+    """The index just past the string literal that opens with `quote` at i. A `${...}` in a Dart string, a JS
+    template or a Kotlin double-quoted string is code, so a quote inside it opens a nested string. A backslash
+    escapes nothing in a Dart r'...' or a Kotlin triple-quoted string. A one-quote string other than a template
+    ends at the line end in C-like files."""
+    n, c_like = len(text), lang in C_LIKE
+    raw = lang == "kotlin" and quote == '"""' or lang == "dart" and text[i - 1:i] == "r" \
+        and not (i > 1 and (text[i - 2].isalnum() or text[i - 2] in "_$"))
+    interpolates = not raw and (lang == "dart" or lang == "kotlin" and quote != "'" or lang == "js" and quote == "`")
+    j = i + len(quote)
+    while j < n and not text.startswith(quote, j):
+        if text[j] == "\\" and not raw and not (lang == "shell" and quote == "'"):
+            j += 1
+        elif text[j] == "\n" and len(quote) == 1 and quote != "`" and c_like:
+            return j
+        elif interpolates and text.startswith("${", j):
+            j, depth = j + 2, 1
+            while j < n and depth:
+                nested = next((q for q in QUOTES if text.startswith(q, j)), None)
+                if nested:
+                    j = string_end(text, j, nested, lang)
+                    continue
+                depth += {"{": 1, "}": -1}.get(text[j], 0)
+                j += 1
+            continue
+        j += 1
+    return min(n, j + len(quote))
+
+
+def regex_end(text, i):
+    """The index just past a JS regex literal at i (flags included), or None when the line ends first."""
+    j, in_class = i + 1, False
+    while j < len(text) and text[j] != "\n":
+        if text[j] == "\\":
+            j += 2
+            continue
+        if text[j] == "/" and not in_class:
+            j += 1
+            while j < len(text) and text[j].isalpha():
+                j += 1
+            return j
+        in_class = text[j] != "]" and (in_class or text[j] == "[")
+        j += 1
+    return None
+
+
+def block_end(text, i, nested):
+    """The index just past the block comment that opens at i. Kotlin and Dart nest block comments; JS does not."""
+    depth, j = 0, i
+    while j < len(text):
+        if nested and text.startswith("/*", j) or j == i:
+            depth, j = depth + 1, j + 2
+        elif text.startswith("*/", j):
+            depth, j = depth - 1, j + 2
+            if not depth:
+                return j
+        else:
+            j += 1
+    return len(text)
+
+
+def scan(text, lang, tokens=None, jsx=False):
+    """Comments in shell or C-like text (Kotlin, Dart, TypeScript, JavaScript), skipping strings and JS regex
+    literals. A `tokens` list gets [line, token, gap] for the code: a word, a string or regex literal (at its closing
+    line), or one other character, and the widest gap before it ("", " " or "\n"; a comment counts as a space, or as
+    a line break when it spans lines). A comment is [line, None, "", its text]. Not comments: a bare trailing `//` in
+    Dart (a `dart format` line-break marker) and, with `jsx`, JSX text between tags, where quotes and `//` are rendered
+    text. A `{` that opens a JSX child is [line, "{", gap, "child"]."""
     comments, code, heredocs = [], {}, []
     i, n, line = 0, len(text), 1
+    c_like = lang in C_LIKE
+    tokens = [] if tokens is None else tokens
+    in_word, gap = False, ""
+    frames = [["code", 0]]
+
+    def widen(to):
+        nonlocal gap, in_word
+        in_word = False
+        gap = max(gap, to, key=GAPS.index)
+
+    def add_token(token):
+        nonlocal in_word, gap
+        in_word = False
+        tokens.append([line, token, gap])
+        gap = ""
+
+    def add_comment(body):
+        tokens.append([line, None, "", body])
+        widen("\n" if "\n" in body else " ")
 
     def note_code(ch):
-        if not ch.isspace():
-            code.setdefault(line, []).append(ch)
+        nonlocal in_word
+        if ch.isspace():
+            widen(" ")
+            return
+        code.setdefault(line, []).append(ch)
+        if ch.isalnum() or ch in "_$":
+            if in_word:
+                tokens[-1][1] += ch
+            else:
+                add_token(ch)
+                in_word = True
+        else:
+            add_token(ch)
+            if jsx:
+                follow_jsx(ch)
+
+    def peek(j):
+        while j < n and text[j].isspace():
+            j += 1
+        return text[j:j + 1]
+
+    def follow_jsx(t):
+        """Moves through JSX: a `<` opens a tag in children, or in code after an operator, `(`, `,`, `=>` or
+        `return`, never after a name (`f<T>(`, `a < b`); a `,`, `(`, `)` or `;` in a tag, or `(` right after its `>`,
+        means it was a type argument."""
+        kind = frames[-1][0]
+        before = [x[1] for x in tokens[-4:-1] if x[1] is not None]
+        if kind == "children":
+            if t == "<":
+                frames.append(["close" if peek(i + 1) == "/" else "tag", 0])
+            elif t == "{":
+                tokens[-1].append("child")
+                frames.append(["code", 1])
+        elif kind in ("tag", "close"):
+            if kind == "tag" and t in NOT_IN_TAG:
+                frames.pop()
+            elif t == "{":
+                frames.append(["code", 1])
+            elif t == ">":
+                frames.pop()
+                if kind == "close" and frames[-1][0] == "children":
+                    frames.pop()
+                elif kind == "tag" and before[-1:] != ["/"] and peek(i + 1) != "(":
+                    frames.append(["children", 0])
+        elif t == "<" and (not before or before[-1] in JSX_AFTER or before[-2:] == ["=", ">"]) \
+                and (peek(i + 1) == ">" or WORD.fullmatch(peek(i + 1))):
+            frames.append(["tag", 0])
+        elif frames[-1][1] and t in "{}":
+            frames[-1][1] += 1 if t == "{" else -1
+            if not frames[-1][1]:
+                frames.pop()
+
+    def regex_may_start():
+        """A `/` opens a regex after an operator or keyword, not after an operand: `x! / 2` divides."""
+        last = [t[1] for t in tokens[-8:] if t[1] is not None][-2:]
+        if not last:
+            return True
+        if last[-1] == "!" and len(last) > 1 and (WORD.fullmatch(last[0]) or last[0] in ")]!"):
+            return False
+        return last[-1] in REGEX_AFTER or last == ["=", ">"]
 
     while i < n:
         ch = text[i]
         if ch == "\n":
+            widen("\n")
             line += 1
             i += 1
             for word, strip_tabs in heredocs:
@@ -332,37 +489,50 @@ def scan(text, lang):
             j = text.find("\n", i)
             j = n if j < 0 else j
             comments.append(Comment(line, line, text[i:j], "line"))
+            add_comment(text[i:j])
             i = j
             continue
-        if lang == "c" and text.startswith("//", i) and text[i - 1:i] != "\\":
+        if jsx and frames[-1][0] == "children" and not ch.isspace() and ch not in "<{":
+            note_code(ch)
+            i += 1
+            continue
+        if c_like and text.startswith("//", i) and text[i - 1:i] != "\\":
             j = text.find("\n", i)
             j = n if j < 0 else j
             body = text[i:j]
+            if lang == "dart" and body.rstrip() == "//" and line in code:
+                add_token("//")
+                i = j
+                continue
             style = "doc" if body.startswith("///") and not body.startswith("////") else "line"
             comments.append(Comment(line, line, body, style))
+            add_comment(body)
             i = j
             continue
-        if lang == "c" and text.startswith("/*", i) and text[i - 1:i] != "\\":
-            j = text.find("*/", i + 2)
-            j = n if j < 0 else j + 2
+        if c_like and text.startswith("/*", i) and text[i - 1:i] != "\\":
+            j = block_end(text, i, nested=lang != "js")
             body = text[i:j]
             style = "doc" if body.startswith("/**") and body != "/**/" else "block"
             comments.append(Comment(line, line + body.count("\n"), body, style))
+            add_comment(body)
             line += body.count("\n")
             i = j
             continue
-        quote = next((q for q in ('"""', "'''", '"', "'", "`") if text.startswith(q, i)), None)
-        if quote and (lang == "c" or len(quote) == 1 and quote != "`"):
-            j = i + len(quote)
-            while j < n and not text.startswith(quote, j):
-                if text[j] == "\\" and not (lang == "shell" and quote == "'"):
-                    j += 1
-                elif text[j] == "\n" and len(quote) == 1 and quote != "`" and lang == "c":
-                    break
-                j += 1
-            j = min(n, j + len(quote))
-            note_code('"')
+        if lang == "js" and ch == "/" and regex_may_start():
+            j = regex_end(text, i)
+            if j is not None:
+                code.setdefault(line, []).append("/")
+                add_token(text[i:j])
+                i = j
+                continue
+        quote = next((q for q in QUOTES if text.startswith(q, i)), None)
+        quote = quote[0] if quote and lang == "js" else quote
+        if quote and (c_like or len(quote) == 1 and quote != "`"):
+            j = string_end(text, i, quote, lang)
+            code.setdefault(line, []).append('"')
             line += text.count("\n", i, j)
+            add_token(text[i:j])
+            code.setdefault(line, []).append('"')
             i = j
             continue
         if ch == "\\" and lang == "shell":
@@ -429,7 +599,7 @@ def comments_in(path, text):
     if lang == "python":
         return python_comments(text, path)
     if lang:
-        return scan(text, lang)
+        return scan(text, lang, jsx=is_jsx(path))
     return []
 
 
@@ -599,7 +769,7 @@ def summary(found):
     return f"comment_check: {len(found)} flag{'s' if len(found) != 1 else ''} ({kinds})"
 
 
-ADR_POINTER = re.compile(r"(NousFX )?\bADR-(\d{4})\b")
+ADR_POINTER = re.compile(r"(NousFX )?\bADR[- ](\d{4})\b")
 NOUSFX_ROOTS = ("claude/", "plugins/")
 DELETED_LINES_WARN = 800
 CANNOT_RUN = "cannot run"
@@ -707,6 +877,107 @@ def shell_differences(path, old, new):
     return out
 
 
+JSX = (".tsx", ".jsx", ".js", ".mjs", ".cjs")
+
+
+def is_jsx(path):
+    return os.path.splitext(path)[1].lower() in JSX
+
+WORD = re.compile(r"[\w$]+")
+JSX_AFTER = set("(,=:?[{;&|!") | {"return", "yield", "await", "default", "else", "do"}
+NOT_IN_TAG = set(",();")
+FUSES = set("+-*/%<>=!&|^?:.")
+
+
+C_DIRECTIVE = re.compile(r"^///\s*<(?:reference|amd-)|@dart\s*=\s*[\d.]*"
+                         r"|@jsx(?:ImportSource|Runtime|Frag)?\b(?:[ \t]+[^\s*]+)?"
+                         r"|@ts-(?:nocheck|check|ignore|expect-error)\b|@flow\b")
+MAX_DIFF_TOKENS = 10000
+
+
+def jsx_comments(tokens):
+    """The brace pairs of each `{/* note */}` JSX child that holds only comments: deleting the whole expression is a
+    comment change, leaving `{}` behind is not."""
+    out = []
+    for k, t in enumerate(tokens):
+        if t[1] == "{" and t[3:] == ["child"]:
+            j = k + 1
+            while j < len(tokens) and tokens[j][1] is None:
+                j += 1
+            if j > k + 1 and j < len(tokens) and tokens[j][1] == "}":
+                out.append((k, j))
+    return out
+
+
+def parts_text_lines(tokens, left, right):
+    """True when the `{/* note */}` at tokens[left..right] has JSX text on both sides and a line break beside it:
+    deleting it would join two text lines into one with a space."""
+    before = next((t for t in reversed(tokens[:left]) if t[1] is not None), None)
+    after = next((t for t in tokens[right + 1:] if t[1] is not None), None)
+    if not before or not after or before[1] in (">", "}") or after[1] in ("<", "{"):
+        return False
+    return "\n" in tokens[left][2] + after[2]
+
+
+def c_code(path, text):
+    """[(line, token, separator)] of a Kotlin, Dart, TypeScript or JavaScript file outside its comments. The
+    separator is "\n" after a line break (ASI and Kotlin end statements there), " " between two operator characters
+    (`+ +` is not `++`), else "". A dropped JSX comment expression passes the gap before it on to the next token.
+    JSX text is code (scan reads it as text)."""
+    tokens = []
+    jsx = is_jsx(path)
+    scan(text, language(path, text), tokens, jsx)
+    drop = {k for pair in jsx_comments(tokens) if not parts_text_lines(tokens, *pair) for k in pair}
+    out, gap, prev = [], "", None
+    for k, (line, t, g, *_) in enumerate(tokens):
+        if k in drop and t == "}":
+            continue
+        gap = max(gap, g, key=GAPS.index)
+        if t is None or k in drop:
+            continue
+        punct = t in FUSES
+        sep = "" if prev is None else "\n" if gap == "\n" else " " if gap and punct and prev else ""
+        out.append((line, t, sep))
+        gap, prev = "", punct
+    return out
+
+
+def c_directives(path, text):
+    """The compiler directives in the comments of a Kotlin, Dart, TypeScript or JavaScript file: a whole triple-slash
+    reference line, or the directive alone (`@ts-expect-error`, `@dart=2.9`, a JSX pragma, `@flow`), so the reason
+    after a suppression may change."""
+    out = []
+    for c in scan(text, language(path, text), jsx=is_jsx(path)):
+        for row in c.text.splitlines():
+            m = C_DIRECTIVE.search(row.strip())
+            if m:
+                out.append(row.strip() if row.strip().startswith("///") else " ".join(m.group(0).split()))
+    return out
+
+
+def c_differences(path, old, new):
+    """[(line, difference)] for each run of tokens outside comments that differs from BASE, at its line in the
+    working tree. The common ends are trimmed first; a middle over MAX_DIFF_TOKENS reports its first line only."""
+    before, after = c_code(path, old), c_code(path, new)
+    a, b = [t[1:] for t in before], [t[1:] for t in after]
+    if a == b:
+        return []
+    head = next((k for k, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
+    tail = 0
+    while tail < min(len(a), len(b)) - head and a[-1 - tail] == b[-1 - tail]:
+        tail += 1
+    a, b = a[head:len(a) - tail], b[head:len(b) - tail]
+    row = lambda j: after[j][0] if 0 <= j < len(after) else after[-1][0] if after else 1
+    if max(len(a), len(b)) > MAX_DIFF_TOKENS:
+        return [(row(head), "code changed")]
+    out = []
+    for op, _, _, j1, _ in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        if op != "equal":
+            j = head + j1
+            out.append((row(j - 1 if (op == "delete" and j > 0) or j >= len(after) else j), "code changed"))
+    return out
+
+
 def is_nousfx(root):
     return os.path.isfile(os.path.join(root, "scripts", "nousfx_sync.py"))
 
@@ -720,47 +991,51 @@ def adr_differences(root, path, text):
                 continue
             if not glob.glob(os.path.join(glob.escape(root), "docs", "adr", f"{number}-*.md")):
                 out.append(f"ADR-{number} has no docs/adr/{number}-*.md")
-            elif path.startswith(NOUSFX_ROOTS) and not m.group(1) and is_nousfx(root):
+            elif path.startswith(NOUSFX_ROOTS) and (not m.group(1) or "ADR " in m.group(0)) \
+                    and is_nousfx(root):
                 out.append(f"ADR-{number} must read NousFX ADR-{number} under claude/ and plugins/")
     return out
 
 
 def differences(root, base):
-    """([(path, difference)] for every change since base that is more than comments, the number of changed files
-    verify left to the suite: other languages and file types). An extensionless file takes its language from BASE,
-    since the edit may have deleted its shebang."""
+    """([(path, line or None, difference)] for every change since base that is more than comments, the number of
+    changed files verify left to the suite: other languages and file types). An extensionless file takes its
+    language from BASE, since the edit may have deleted its shebang."""
     out, unchecked = [], 0
     for status, path, mode_changed in sorted(changed_files(root, base), key=lambda p: p[1]):
         if status == "M" and mode_changed:
-            out.append((path, "mode changed (the executable bit)"))
+            out.append((path, None, "mode changed (the executable bit)"))
         ext = os.path.splitext(path)[1].lower()
         if ext and ext not in EXTENSIONS:
             unchecked += 1
             continue
         if status == "D":
-            if language(path, git(root, "show", f"{base}:{path}")) in ("python", "shell"):
-                out.append((path, "deleted"))
+            if language(path, git(root, "show", f"{base}:{path}")):
+                out.append((path, None, "deleted"))
             continue
         full = os.path.join(root, path)
         if status == "T" or os.path.islink(full):
-            out.append((path, "a symlink changed or replaced a file"))
+            out.append((path, None, "a symlink changed or replaced a file"))
             continue
         try:
             new = read_text(full)
         except OSError as e:
-            out.append((path, f"unreadable ({e.strerror})"))
+            out.append((path, None, f"unreadable ({e.strerror})"))
             continue
         old = git(root, "show", f"{base}:{path}") if status != "A" else None
         lang = (old is not None and not ext and language(path, old)) or \
             (language(path, new) if new is not None else None)
-        if lang not in ("python", "shell"):
-            unchecked += 1
         if lang is None:
+            unchecked += 1
             continue
         found = []
-        if status == "A" and lang in ("python", "shell"):
+        if status == "A":
             found.append("added")
-        elif lang in ("python", "shell"):
+        elif lang in C_LIKE:
+            out += [(path, row, d) for row, d in c_differences(path, old, new)]
+            if c_directives(path, old) != c_directives(path, new):
+                found.append("a compiler directive changed")
+        else:
             if directives(old) != directives(new):
                 found.append("a shebang or encoding line changed")
             checks = python_differences(old, new) if lang == "python" else shell_differences(path, old, new)
@@ -768,7 +1043,7 @@ def differences(root, base):
                 unchecked += 1
             found += checks or []
         found += adr_differences(root, path, new)
-        out += [(path, d) for d in found]
+        out += [(path, None, d) for d in found]
     return out, unchecked
 
 
@@ -794,15 +1069,16 @@ def verify_main(argv):
     except RuntimeError as e:
         print(f"comment_check: git failed: {e}", file=sys.stderr)
         return 2
-    for path, difference in found:
-        print(f"{path}: {difference}")
+    for path, row, difference in found:
+        print(f"{path}:{row} {difference}" if row else f"{path}: {difference}")
     if deleted > DELETED_LINES_WARN:
         print(f"comment_check verify: warning: {deleted} lines deleted, "
               f"over the ~{DELETED_LINES_WARN} a PR should take")
     if found:
         print(f"comment_check verify: {len(found)} difference{'s' if len(found) != 1 else ''}")
         return 2
-    print(f"comment_check verify: OK, Python and shell files changed only comments ({deleted} lines deleted); "
+    print(f"comment_check verify: OK, Python, shell, Kotlin, Dart, TypeScript and JavaScript files changed only "
+          f"comments ({deleted} lines deleted); "
           f"{unchecked} other changed file{'s' if unchecked != 1 else ''} left to the suite")
     return 0
 

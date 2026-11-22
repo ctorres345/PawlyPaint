@@ -64,6 +64,9 @@ Read `references/security.md` on the first round when `tier.py`'s `security` lis
 ## Test-fail check
 Read `references/testfail.md` after Step 0 and in Record the review.
 
+## Failure-mode coverage
+Read `references/failure-modes.md` when planning a ticket's tests, after Step 0 and in Record the review: each ticket failure mode needs a test or a stated waiver.
+
 ## Comment check
 Read `references/comments.md` after Step 0: warn-only, and the reviewer judges each flag against the keep list.
 
