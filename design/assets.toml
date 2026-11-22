@@ -2,8 +2,9 @@
 palette = ["#E5739F", "#FCE4EC", "#FFFBF7", "#8D5A3B", "#3B2A2F"]
 
 [paths]
-# Flutter app: frames are bundled with the other redesign art.
+# Flutter app: frames are bundled with the other redesign art. web: PAP-71 staging, git-ignored.
 flutter = "assets/art/frames"
+web = "build/via-puzzle-art"
 
 # PAP-43 photo frames. Nine-slice PNGs with a transparent center, drawn around
 # the saved picture (~1600 px). 1x is 341 so the 3.0x variant is 1023 px, under
@@ -53,3 +54,166 @@ transparent = "#00FF00"
 platforms = ["flutter"]
 size = "341x341"
 usage = "PAP-43 hidden gallery frame, shown after the PAP-45 secret; picker swatch"
+
+# PAP-71 repaint spike: Cozy Classics picture art. Sources only; tool/ converts them into
+# puzzle grids. "web" is a git-ignored staging sink so approve never writes into assets/art.
+
+[[asset]]
+name = "puzzle_classics_heart"
+kind = "image"
+source = "design/assets/puzzle_classics_heart.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Easy (16x16 pixel art): Sweetheart, a glossy red heart with a pink shine spot"
+
+[[asset]]
+name = "puzzle_classics_paw"
+kind = "image"
+source = "design/assets/puzzle_classics_paw.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Easy (16x16 pixel art): Little Paw, a single brown cat paw print with pink toe beans"
+
+[[asset]]
+name = "puzzle_classics_sun"
+kind = "image"
+source = "design/assets/puzzle_classics_sun.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Easy (16x16 pixel art): Sunny Day, a smiling yellow sun with orange rays on a light blue sky"
+
+[[asset]]
+name = "puzzle_classics_mushroom"
+kind = "image"
+source = "design/assets/puzzle_classics_mushroom.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Easy (16x16 pixel art): Forest Friend, a cute red mushroom with white spots on a tuft of green grass"
+
+[[asset]]
+name = "puzzle_classics_cherries"
+kind = "image"
+source = "design/assets/puzzle_classics_cherries.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Easy (16x16 pixel art): Cherry Pair, two red cherries joined by green stems with one leaf"
+
+[[asset]]
+name = "puzzle_classics_cat"
+kind = "image"
+source = "design/assets/puzzle_classics_cat.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Medium (24x24 pixel art): Curious Cat, a sitting orange tabby kitten looking curious"
+
+[[asset]]
+name = "puzzle_classics_daisy"
+kind = "image"
+source = "design/assets/puzzle_classics_daisy.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Medium (24x24 pixel art): Daisy, one white daisy with a yellow center and two green leaves"
+
+[[asset]]
+name = "puzzle_classics_strawberry"
+kind = "image"
+source = "design/assets/puzzle_classics_strawberry.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Medium (24x24 pixel art): Berry Picnic, a big red strawberry with seeds and a leafy top on a gingham picnic cloth"
+
+[[asset]]
+name = "puzzle_classics_rainbow"
+kind = "image"
+source = "design/assets/puzzle_classics_rainbow.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Medium (24x24 pixel art): After the Rain, a rainbow arching between two fluffy white clouds"
+
+[[asset]]
+name = "puzzle_classics_cupcake"
+kind = "image"
+source = "design/assets/puzzle_classics_cupcake.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Medium (24x24 pixel art): Party Cupcake, a pink frosted cupcake with sprinkles and a cherry in a striped wrapper"
+
+[[asset]]
+name = "puzzle_classics_sunset"
+kind = "image"
+source = "design/assets/puzzle_classics_sunset.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Hard (32x32 pixel art): Golden Hour, a sunset over gentle hills with a warm orange-pink sky and a small house"
+
+[[asset]]
+name = "puzzle_classics_butterfly"
+kind = "image"
+source = "design/assets/puzzle_classics_butterfly.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Hard (32x32 pixel art): Garden Flutter, a colorful butterfly over flowers in a garden"
+
+[[asset]]
+name = "puzzle_classics_puppy"
+kind = "image"
+source = "design/assets/puzzle_classics_puppy.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Hard (32x32 pixel art): Best Buddy, a happy puppy with floppy ears and a red collar sitting on grass"
+
+[[asset]]
+name = "puzzle_classics_tulips"
+kind = "image"
+source = "design/assets/puzzle_classics_tulips.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Hard (32x32 pixel art): Tulip Bouquet, a bouquet of pink, red and yellow tulips tied with a ribbon"
+
+[[asset]]
+name = "puzzle_classics_moonlight"
+kind = "image"
+source = "design/assets/puzzle_classics_moonlight.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Hard (32x32 pixel art): Moonlit Watch, a cat sitting on a rooftop watching a big crescent moon and stars at night"
+
+[[asset]]
+name = "puzzle_classics_heart_balloons"
+kind = "image"
+source = "design/assets/puzzle_classics_heart_balloons.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Extreme (40x40 pixel art): Heart Balloons, a bunch of heart-shaped balloons floating over a little town in a blue sky"
+
+[[asset]]
+name = "puzzle_classics_picnic"
+kind = "image"
+source = "design/assets/puzzle_classics_picnic.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Extreme (40x40 pixel art): Picnic Day, a picnic scene: basket, blanket, sandwiches and fruit under a tree on a sunny meadow"
+
+[[asset]]
+name = "puzzle_classics_yarn_kitten"
+kind = "image"
+source = "design/assets/puzzle_classics_yarn_kitten.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Extreme (40x40 pixel art): Yarn Kitten, a playful kitten tangled in balls of colorful yarn on a cozy rug"
+
+[[asset]]
+name = "puzzle_classics_carousel"
+kind = "image"
+source = "design/assets/puzzle_classics_carousel.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Extreme (40x40 pixel art): Carousel, a fairground carousel with painted horses and a striped canopy"
+
+[[asset]]
+name = "puzzle_classics_fireside"
+kind = "image"
+source = "design/assets/puzzle_classics_fireside.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-71 Cozy Classics Extreme (40x40 pixel art): Fireside Nap, a cat napping on a cushion beside a cozy fireplace with a mug and a plant"
