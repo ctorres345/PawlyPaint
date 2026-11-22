@@ -127,7 +127,7 @@ python3 tool/make_icon.py assets/icon ios/Runner/Assets.xcassets/LaunchImage.ima
 
 ### Layout
 
-- `lib/data`: courses and the pictures, drawn from shapes (`art_canvas.dart`, `artworks.dart`, `art/*.dart`), plus the tutorial heart.
+- `lib/data`: courses and the pictures: bundled indexed PNGs (`pictures.dart`, `assets/pictures/<course>/`, written by `tool/art_to_puzzle.py --build`) or, for courses not yet swapped, shape art (`art_canvas.dart`, `art/*.dart`), plus the tutorial heart.
 - `lib/logic`: pure rules (scoring and streaks, Sort mode, Time Attack, boosters, patches for find-next, drag lines).
 - `lib/state`: game and sort controllers, saved progress, music and sounds, settings, achievements.
 - `lib/ui`: screens, the canvas painters, tray, booster bar, mini-map, replay, picture export, gallery, settings and tutorials.

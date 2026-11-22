@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io' show File;
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'dart:ui' show Color, Offset, Size;
 
 import 'package:audio_session/audio_session.dart' as session;
@@ -22,6 +24,77 @@ import 'package:pawlypaint/state/progress_store.dart';
 import 'package:pawlypaint/state/sort_controller.dart';
 import 'package:pawlypaint/ui/board.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+const _classicsSignaturesOn946505c = {
+  'classics-heart': 3728780007,
+  'classics-paw': 2615204936,
+  'classics-sun': 97223741,
+  'classics-mushroom': 4015118218,
+  'classics-cherries': 3159631955,
+  'classics-cat': 975281129,
+  'classics-daisy': 3347809080,
+  'classics-strawberry': 1472868940,
+  'classics-rainbow': 2064459959,
+  'classics-cupcake': 861972975,
+  'classics-sunset': 210476463,
+  'classics-butterfly': 718674998,
+  'classics-puppy': 1929670956,
+  'classics-tulips': 1440014892,
+  'classics-moonlight': 2939645855,
+  'classics-heart-balloons': 2651232795,
+  'classics-picnic': 4221516424,
+  'classics-yarn-kitten': 2743553568,
+  'classics-carousel': 1514792023,
+  'classics-fireside': 765162672,
+};
+
+const _shippedClassicsTitles = {
+  Difficulty.easy: {
+    'classics-heart': 'Sweetheart',
+    'classics-paw': 'Little Paw',
+    'classics-sun': 'Sunny Day',
+    'classics-mushroom': 'Forest Friend',
+    'classics-cherries': 'Cherry Pair',
+  },
+  Difficulty.medium: {
+    'classics-cat': 'Curious Cat',
+    'classics-daisy': 'Daisy',
+    'classics-strawberry': 'Berry Picnic',
+    'classics-rainbow': 'After the Rain',
+    'classics-cupcake': 'Party Cupcake',
+  },
+  Difficulty.hard: {
+    'classics-sunset': 'Golden Hour',
+    'classics-butterfly': 'Garden Flutter',
+    'classics-puppy': 'Best Buddy',
+    'classics-tulips': 'Tulip Bouquet',
+    'classics-moonlight': 'Moonlit Watch',
+  },
+  Difficulty.extreme: {
+    'classics-heart-balloons': 'Heart Balloons',
+    'classics-picnic': 'Picnic Day',
+    'classics-yarn-kitten': 'Yarn Kitten',
+    'classics-carousel': 'Carousel',
+    'classics-fireside': 'Fireside Nap',
+  },
+};
+
+const _classicsGrid = {Difficulty.easy: 16, Difficulty.medium: 24, Difficulty.hard: 32, Difficulty.extreme: 40};
+const _classicsColorLimit = {Difficulty.easy: 6, Difficulty.medium: 8, Difficulty.hard: 12, Difficulty.extreme: 16};
+
+/// The PNG's pixels as 0xAARRGGBB, read by the engine's own decoder.
+Future<List<int>> _pixels(String path) async {
+  final codec = await ui.instantiateImageCodec(File(path).readAsBytesSync());
+  final image = (await codec.getNextFrame()).image;
+  final data = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+  return [
+    for (var i = 0; i < image.width * image.height; i++)
+      data.getUint8(i * 4 + 3) << 24 |
+          data.getUint8(i * 4) << 16 |
+          data.getUint8(i * 4 + 1) << 8 |
+          data.getUint8(i * 4 + 2),
+  ];
+}
 
 Puzzle _tiny() => Puzzle(
       id: 't',
@@ -169,6 +242,18 @@ void main() {
       expect(store.savedFor(other), isNull);
       expect(store.savedFor(_tiny()), isNotNull);
       expect(GameController(other, resume: g.snapshot()).placedCount, 0);
+    });
+
+    test('a save made on the shape-art Classics picture is not resumed on its PNG', () {
+      final classics = buildCourses().firstWhere((c) => c.id == 'classics');
+      expect({for (final p in classics.puzzles) p.id}, _classicsSignaturesOn946505c.keys.toSet());
+      for (final p in classics.puzzles) {
+        final old = _classicsSignaturesOn946505c[p.id]!;
+        final json = GameController(p).snapshot().toJson()..['signature'] = old;
+        final store = ProgressStore.memory()..saveGame(p.id, SavedGame.fromJson(json));
+        expect(store.savedFor(p), isNull, reason: p.id);
+        expect(p.signature, isNot(old), reason: '${p.id}: Sort saves compare this signature too');
+      }
     });
 
     test('saved games and records survive a JSON round trip', () {
@@ -599,6 +684,22 @@ void main() {
         expect(a.description, isNotEmpty, reason: a.id);
       }
     });
+  });
+
+  test('Cozy Classics pictures come from their PNGs, with the same ids and titles', () async {
+    final classics = buildCourses().firstWhere((c) => c.id == 'classics');
+    expect(classics.levels.map((l) => l.difficulty), _shippedClassicsTitles.keys);
+    for (final level in classics.levels) {
+      final d = level.difficulty;
+      expect({for (final p in level.puzzles) p.id: p.title}, _shippedClassicsTitles[d], reason: '$d');
+      for (final p in level.puzzles) {
+        expect((p.width, p.height), (_classicsGrid[d], _classicsGrid[d]), reason: p.id);
+        expect(p.colorCount, inInclusiveRange(3, _classicsColorLimit[d]!), reason: p.id);
+        final slug = p.id.substring('classics-'.length);
+        final pixels = await _pixels('assets/pictures/classics/$slug.png');
+        expect([for (final c in p.cells) p.palette[c].toARGB32()], pixels, reason: '${p.id} cells match its PNG');
+      }
+    }
   });
 
   test('every picture has clearly distinct colors, Hard included', () {

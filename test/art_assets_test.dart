@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pawlypaint/data/courses.dart';
+import 'package:pawlypaint/data/pictures.dart';
 
 /// Folders under assets/art/ that the app bundles. app_icon/ is read only by
 /// the launcher icon tool, so it is checked on disk but not bundled.
@@ -93,6 +95,41 @@ void main() {
       }
     });
   }
+
+  group('assets/pictures', () {
+    final courseFolders = Directory(picturesDir).listSync().whereType<Directory>().toList();
+    final pngFilesByPictureId = <String, List<String>>{};
+    for (final dir in courseFolders) {
+      final course = dir.uri.pathSegments.where((s) => s.isNotEmpty).last;
+      for (final name in _names(dir.path)) {
+        pngFilesByPictureId.putIfAbsent('$course-${name.split('.').first}', () => []).add('$course/$name');
+      }
+    }
+
+    test('only course folders of PNGs, each declared in pubspec', () {
+      final pubspec = File('pubspec.yaml').readAsStringSync();
+      expect(Directory(picturesDir).listSync().whereType<File>(), isEmpty, reason: 'files outside a course folder');
+      for (final dir in courseFolders) {
+        final course = dir.uri.pathSegments.where((s) => s.isNotEmpty).last;
+        expect(pubspec, contains('- $picturesDir$course/'), reason: '$course is not bundled');
+        expect(dir.listSync().whereType<Directory>(), isEmpty, reason: '$course has subfolders that would not ship');
+      }
+      for (final files in pngFilesByPictureId.values) {
+        for (final f in files) {
+          expect(f, endsWith('.png'), reason: '$f is not a lowercase .png');
+        }
+      }
+    });
+
+    test('every picture with a PNG has exactly one, and no PNG is orphaned', () {
+      final ids = {for (final c in buildCourses()) ...c.puzzles.map((p) => p.id)};
+      expect(pngFilesByPictureId, isNotEmpty);
+      for (final MapEntry(key: id, value: files) in pngFilesByPictureId.entries) {
+        expect(files, hasLength(1), reason: '$id has several files');
+        expect(ids, contains(id), reason: '${files.first} matches no course picture');
+      }
+    });
+  });
 
   test('pubspec declares the frames folder', () {
     expect(File('pubspec.yaml').readAsStringSync(), contains('- assets/art/frames/'));
