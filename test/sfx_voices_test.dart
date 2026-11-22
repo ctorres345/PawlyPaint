@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
-// The platform interface is a transitive dependency; the fake below needs it.
+// The platform interface is a transitive dependency; the fake below needs it. PAP-72 declares it.
 // ignore: depend_on_referenced_packages
 import 'package:audioplayers_platform_interface/audioplayers_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';

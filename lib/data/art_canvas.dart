@@ -148,8 +148,6 @@ class ArtCanvas {
     );
   }
 
-  // ---- Shape tests --------------------------------------------------------
-
   static double _dist(double x, double y, double cx, double cy) {
     final dx = x - cx, dy = y - cy;
     return math.sqrt(dx * dx + dy * dy);

@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import '../../models/puzzle.dart';
 import '../art_canvas.dart';
 
-// ---- Easy -----------------------------------------------------------------
-
 Puzzle tulip(String id, int n) {
   const bg = 0, ground = 1, stem = 2, leaf = 3, petalDark = 4, petal = 5, petalLight = 6;
   final c = ArtCanvas(n, n, background: bg);
@@ -81,8 +79,6 @@ Puzzle acorn(String id, int n) {
     0xFFFFF8E1, 0xFFFFECB3, 0xFFC68642, 0xFF8D5524, 0xFFE0AC69, 0xFF8D6E63, 0xFF6D4C41, 0xFF4E342E, //
   ]);
 }
-
-// ---- Medium ---------------------------------------------------------------
 
 Puzzle sunflower(String id, int n) {
   const sky = 0, cloud = 1, stem = 2, leaf = 3, petal = 4, petalDark = 5, seed = 6, seedLight = 7;
@@ -178,8 +174,6 @@ Puzzle birdhouse(String id, int n) {
     0xFF8D6E63,
   ]);
 }
-
-// ---- Hard -----------------------------------------------------------------
 
 Puzzle cherryBlossom(String id, int n) {
   const sky = 0, skyLow = 1, branch = 2, branchDark = 3, petal = 4, petalDark = 5, petalLight = 6, center = 7;

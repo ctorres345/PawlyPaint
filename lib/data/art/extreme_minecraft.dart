@@ -24,8 +24,6 @@ void _xSprite(ArtCanvas c, List<String> rows, Map<String, int> legend, double co
 void _xBox(ArtCanvas c, int l, int t, int r, int b, int color) =>
     c.rect(l / 40, t / 40, (r + 0.99) / 40, (b + 0.99) / 40, color);
 
-// ---- Extreme --------------------------------------------------------------
-
 Puzzle xMcBeeMeadow(String id, int n) {
   const sky = 0, skyLow = 1, cloud = 2, sun = 3, grassA = 4, grassB = 5, dirt = 6, logC = 7, logDark = 8;
   const leavesA = 9, leavesB = 10, nest = 11, bee = 12, stripe = 13, poppy = 14, cornflower = 15;

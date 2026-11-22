@@ -212,8 +212,6 @@ class GameController extends ChangeNotifier implements PlayStats {
     return result;
   }
 
-  // ---- Boosters -----------------------------------------------------------
-
   /// The color the wide brush was used on, while it is still unfinished.
   int? brushColor;
 

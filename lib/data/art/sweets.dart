@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import '../../models/puzzle.dart';
 import '../art_canvas.dart';
 
-// ---- Easy -----------------------------------------------------------------
-
 Puzzle lollipop(String id, int n) {
   const bg = 0, dot = 1, stick = 2, candyA = 3, candyB = 4, shine = stick;
   final c = ArtCanvas(n, n, background: bg);
@@ -91,8 +89,6 @@ Puzzle cookie(String id, int n) {
     0xFFE3F2FD, 0xFFBBDEFB, 0xFFD9A066, 0xFFB07A3B, 0xFFEBC28E, 0xFF4E342E, 0xFFFFFFFF, //
   ]);
 }
-
-// ---- Medium ---------------------------------------------------------------
 
 Puzzle macarons(String id, int n) {
   const bg = 0, plate = 1, plateShade = 2;
@@ -201,8 +197,6 @@ Puzzle pudding(String id, int n) {
     0xFFFCE4EC, 0xFFFFFFFF, 0xFFE0E0E0, 0xFFFFE082, 0xFFF9C74F, 0xFF8D4F1D, 0xFFFFFDE7, 0xFFE53935, //
   ]);
 }
-
-// ---- Hard -----------------------------------------------------------------
 
 Puzzle layerCake(String id, int n) {
   const bg = 0, bunting = 1, stand = 2, standShade = 3, cakeA = 4, cakeB = 5, cream = stand, creamShade = 7;

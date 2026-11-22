@@ -8,6 +8,7 @@ import 'package:pawlypaint/models/puzzle.dart';
 import 'package:pawlypaint/state/achievements.dart';
 import 'package:pawlypaint/state/progress_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// Transitive dependency the failing store below needs; PAP-72 declares it.
 // ignore: depend_on_referenced_packages
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 

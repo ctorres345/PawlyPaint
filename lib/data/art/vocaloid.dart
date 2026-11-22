@@ -90,8 +90,6 @@ void _body(ArtCanvas c, double cx, double neckY, double s, double bottom,
   c.rect(cx + 0.04 * s, neckY + 0.5 * s, cx + 0.14 * s, bottom, legs);
 }
 
-// ---- Easy -----------------------------------------------------------------
-
 Puzzle leek(String id, int n) {
   const bg = 0, bgDot = 1, stalk = 2, stalkShade = 3, light = 4, green = 5, dark = 6, root = 7;
   final c = ArtCanvas(n, n, background: bg);
@@ -174,8 +172,6 @@ Puzzle orange(String id, int n) {
     0xFFFFFDE7, 0xFFFFF59D, 0xFFFF9800, 0xFFE65100, 0xFFFFCC80, 0xFF43A047, 0xFF5D4037, //
   ]);
 }
-
-// ---- Medium ---------------------------------------------------------------
 
 const _skin = 0xFFFFE3D0;
 
@@ -264,8 +260,6 @@ Puzzle kaitoFace(String id, int n) {
     0xFF4A8BF0, 0xFF2D5FB8, 0xFFE0E0E0,
   ]);
 }
-
-// ---- Hard -----------------------------------------------------------------
 
 /// Full chibi Miku in a given colour scheme, with a little scenery.
 Puzzle _mikuFull(String id, int n, String title, List<int> palette, {required bool snow, required bool sakura}) {

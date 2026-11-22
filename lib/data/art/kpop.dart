@@ -81,8 +81,6 @@ void _crowd(ArtCanvas c, double top, int count, {required int head, required Lis
   }
 }
 
-// ---- Easy -----------------------------------------------------------------
-
 Puzzle lightstick(String id, int n) {
   const bg = 0, halo = 1, glow = 2, core = 3, handle = 4, grip = 5, spark = 6;
   final c = ArtCanvas(n, n, background: bg);
@@ -156,8 +154,6 @@ Puzzle sloganBanner(String id, int n) {
     0xFFE3F2FD, 0xFFF8BBD0, 0xFFC2185B, 0xFF4A148C, 0xFFE91E63, 0xFF90A4AE, //
   ]);
 }
-
-// ---- Medium ---------------------------------------------------------------
 
 Puzzle mainVocal(String id, int n) {
   const bg = 0, bgDot = 1, hair = 2, hairDark = 3, skin = 4, eye = 5, blush = 6, outfit = 7, mic = 8, spark = 9;
@@ -241,8 +237,6 @@ Puzzle fanLetter(String id, int n) {
     0xFFE0F7FA, 0xFFF8BBD0, 0xFFF06292, 0xFFFCE4EC, 0xFFC2185B, 0xFFFFFFFF, 0xFFFFD54F, //
   ]);
 }
-
-// ---- Hard -----------------------------------------------------------------
 
 Puzzle dancePractice(String id, int n) {
   const wall = 0, mirror = 1, mirrorLight = 2, floor = 3, floorLine = 4, skin = 5, eye = 6, blush = 7;
@@ -346,8 +340,6 @@ Puzzle idolGroup(String id, int n) {
     0xFF7C4DFF, 0xFFFF80AB, 0xFF4FC3F7, 0xFF212121,
   ]);
 }
-
-// ---- Extreme --------------------------------------------------------------
 
 Puzzle xStadiumNight(String id, int n) {
   const sky = 0, star = 1, screen = 2, screenGlow = 3, stand = 4, standDark = 5, stage = 6, beam = 7;

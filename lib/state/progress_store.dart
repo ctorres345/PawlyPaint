@@ -238,8 +238,6 @@ class ProgressStore extends ChangeNotifier {
   /// Sort-mode boards in progress, as the JSON the sort screen saved.
   final Map<String, Map<String, dynamic>> _sortSaved;
 
-  // ---- Unlocks ------------------------------------------------------------
-
   /// True when the save came from a newer build (or its version can't be read).
   /// It is shown as far as we understand it and never written over.
   bool _readOnly = false;
@@ -538,8 +536,6 @@ class ProgressStore extends ChangeNotifier {
     return g != null && g.signature == p.signature && g.placed.length == p.cellCount ? g : null;
   }
 
-  // ---- Daily picture ----------------------------------------------------
-
   String? _dailyDate;
   String? _dailyId;
   String? _dailyDone;
@@ -586,8 +582,6 @@ class ProgressStore extends ChangeNotifier {
     return _persist();
   }
 
-  // ---- Boosters -----------------------------------------------------------
-
   final Map<Booster, int> _boosters = {};
 
   int boosters(Booster b) => _boosters[b] ?? 0;
@@ -606,8 +600,6 @@ class ProgressStore extends ChangeNotifier {
     notifyListeners();
     return _persist();
   }
-
-  // ---- Combos and Time Attack ---------------------------------------------
 
   final Map<String, TimeAttackRecord> _timeAttack = {};
   int _bestCombo = 0;
