@@ -4,8 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/logic/boosters.dart';
 import 'package:pawlypaint/logic/unlocks.dart';
-import 'package:pawlypaint/models/puzzle.dart';
-import 'package:pawlypaint/state/achievements.dart';
 import 'package:pawlypaint/state/progress_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 // ignore: depend_on_referenced_packages -- transitive; the failing store below needs it. PAP-72 declares it.
