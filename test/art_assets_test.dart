@@ -96,14 +96,13 @@ void main() {
     });
   }
 
-  group('assets/pictures (PAP-77)', () {
+  group('assets/pictures', () {
     final courseFolders = Directory(picturesDir).listSync().whereType<Directory>().toList();
-    // Picture id (<course>-<slug>) -> its PNG files on disk.
-    final pngs = <String, List<String>>{};
+    final pngFilesByPictureId = <String, List<String>>{};
     for (final dir in courseFolders) {
       final course = dir.uri.pathSegments.where((s) => s.isNotEmpty).last;
       for (final name in _names(dir.path)) {
-        pngs.putIfAbsent('$course-${name.split('.').first}', () => []).add('$course/$name');
+        pngFilesByPictureId.putIfAbsent('$course-${name.split('.').first}', () => []).add('$course/$name');
       }
     }
 
@@ -115,7 +114,7 @@ void main() {
         expect(pubspec, contains('- $picturesDir$course/'), reason: '$course is not bundled');
         expect(dir.listSync().whereType<Directory>(), isEmpty, reason: '$course has subfolders that would not ship');
       }
-      for (final files in pngs.values) {
+      for (final files in pngFilesByPictureId.values) {
         for (final f in files) {
           expect(f, endsWith('.png'), reason: '$f is not a lowercase .png');
         }
@@ -124,8 +123,8 @@ void main() {
 
     test('every picture with a PNG has exactly one, and no PNG is orphaned', () {
       final ids = {for (final c in buildCourses()) ...c.puzzles.map((p) => p.id)};
-      expect(pngs, isNotEmpty);
-      for (final MapEntry(key: id, value: files) in pngs.entries) {
+      expect(pngFilesByPictureId, isNotEmpty);
+      for (final MapEntry(key: id, value: files) in pngFilesByPictureId.entries) {
         expect(files, hasLength(1), reason: '$id has several files');
         expect(ids, contains(id), reason: '${files.first} matches no course picture');
       }

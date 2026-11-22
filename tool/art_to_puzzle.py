@@ -42,10 +42,8 @@ SHADE_MERGE = 9 * 18 ** 2  # _dist below which capture shades are one colour
 INSET = 0.25  # part of each block edge skipped when reading its colour
 # Game grid size per level -> the level's colour limit (design/brief.md).
 COLOR_LIMIT = {16: 6, 24: 8, 32: 12, 40: 16}
-# Game grid size per level -> the smallest CIEDE2000 difference between two
-# drill colours (_minColorGap in lib/data/course_builder.dart).
 LEVEL_GAP = {16: 18.0, 24: 16.0, 32: 14.0, 40: 12.0}
-MIN_COLOURS = 3  # the game's tests call fewer "too plain"
+MIN_COLOURS = 3
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MANIFEST = os.path.join(REPO, 'design', 'assets.toml')
 PICTURES = os.path.join(REPO, 'assets', 'pictures')
@@ -215,11 +213,17 @@ def _rgb_gap(a, b):
     return math.dist(a, b)
 
 
+def _closest(colours, measure):
+    """(distance, a, b) of the closest pair of colours by `measure`, or
+    (inf, None, None) when there is no pair."""
+    colours = list(colours)
+    return min(((measure(a, b), a, b) for i, a in enumerate(colours) for b in colours[i + 1:]),
+               default=(math.inf, None, None))
+
+
 def min_gap(colours):
     """Smallest plain RGB distance between any two colours (inf for one)."""
-    colours = list(colours)
-    return min((_rgb_gap(a, b) for i, a in enumerate(colours) for b in colours[i + 1:]),
-               default=math.inf)
+    return _closest(colours, _rgb_gap)[0]
 
 
 def lab(rgb):
@@ -291,9 +295,7 @@ def _de_gap(a, b):
 
 def min_de_gap(colours):
     """Smallest CIEDE2000 difference between any two colours (inf for one)."""
-    colours = list(colours)
-    return min((_de_gap(a, b) for i, a in enumerate(colours) for b in colours[i + 1:]),
-               default=math.inf)
+    return _closest(colours, _de_gap)[0]
 
 
 def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0):
@@ -334,13 +336,15 @@ def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0):
 
     while len(pal) > 1:
         d, a, b = closest(_dist)
-        if d >= merge_below and (limit is None or len(pal) <= limit):
-            # The palette fits: merge a look-alike pair, if any is left.
-            rgb, ra, rb = closest(_rgb_gap)
-            de, da, db = closest(_de_gap) if de_gap else (math.inf, None, None)
-            if rgb >= gap and de >= de_gap:
-                break
-            a, b = (ra, rb) if rgb < gap else (da, db)
+        palette_fits = d >= merge_below and (limit is None or len(pal) <= limit)
+        if palette_fits:
+            d, a, b = closest(_rgb_gap)
+            if d >= gap:
+                if not de_gap:
+                    break
+                d, a, b = closest(_de_gap)
+                if d >= de_gap:
+                    break
         pb = pal.pop(b)
         del means[b]
         pal[a] = [x + y for x, y in zip(pal[a], pb)]
@@ -406,6 +410,10 @@ def puzzle_entries(manifest=MANIFEST):
         if 'course' not in a:
             continue
         name = a.get('name', '?')
+        if not a.get('source'):
+            raise ValueError(f'{name}: no source')
+        if not str(a['course']).isalnum() or a['course'] != a['course'].lower():
+            raise ValueError(f"{name}: course {a['course']!r} is not a lower-case word")
         if a.get('grid') not in COLOR_LIMIT:
             raise ValueError(f"{name}: grid {a.get('grid')} is not one of {sorted(COLOR_LIMIT)}")
         if not a.get('slug') or not a['slug'].replace('-', '').isalnum() or a['slug'] != a['slug'].lower():
@@ -435,29 +443,36 @@ def verify(img, n):
     gap = min_de_gap(used)
     if gap < LEVEL_GAP[n]:
         problems.append(f'colour gap {gap:.1f} under {LEVEL_GAP[n]:.0f}')
-    if min_gap(used) < MIN_RGB_GAP:
-        problems.append(f'plain RGB gap {min_gap(used):.0f} under {MIN_RGB_GAP:.0f}')
+    rgb = min_gap(used)
+    if rgb < MIN_RGB_GAP:
+        problems.append(f'plain RGB gap {rgb:.0f} under {MIN_RGB_GAP:.0f}')
     return problems
 
 
-def check_picture(entry, grids=None):
-    """Converts one manifest picture at its grid (or at each of `grids`) and
-    returns its problems, each prefixed with the grid when there are several."""
+def convert_entry(entry, grids=None):
+    """Converts one manifest picture at its grid (or at each of `grids`).
+    Returns (problems, {grid: (image, info)}); each problem is prefixed with
+    the grid when there are several."""
     path = entry['source']
     if not os.path.exists(path):
         shown = os.path.relpath(path, REPO) if path.startswith(REPO + os.sep) else path
-        return [f'missing source {shown}']
+        return [f'missing source {shown}'], {}
     try:
         analysis = analyse(path)
     except (OSError, ValueError) as e:
-        return [f'unreadable: {e}']
+        return [f'unreadable: {e}'], {}
     if not analysis[2]:
-        return ['no clean grid (sampled evenly, check it by eye)']
-    problems = []
+        return ['no clean grid (sampled evenly, check it by eye)'], {}
+    problems, outputs = [], {}
     for n in grids or [entry['grid']]:
-        out, _ = convert(analysis, n, COLOR_LIMIT[n], LEVEL_GAP[n])
-        problems += [f'{n}x{n}: {p}' if grids else p for p in verify(out, n)]
-    return problems
+        outputs[n] = convert(analysis, n, COLOR_LIMIT[n], LEVEL_GAP[n])
+        problems += [f'{n}x{n}: {p}' if grids else p for p in verify(outputs[n][0], n)]
+    return problems, outputs
+
+
+def check_picture(entry, grids=None):
+    """The problems of one manifest picture (empty: it passes)."""
+    return convert_entry(entry, grids)[0]
 
 
 def check(entries, all_grids=False):
@@ -481,14 +496,17 @@ def build(entries, out_root=PICTURES):
     failures = 0
     for e in entries:
         n = e['grid']
-        problems = check_picture(e)
+        problems, outputs = convert_entry(e)
+        target = os.path.join(out_root, e['course'], e['slug'] + '.png')
         if problems:
             failures += 1
+            if os.path.exists(target):
+                os.remove(target)
             print(f"FAIL {e['course']}/{e['slug']}: {'; '.join(problems)}")
             continue
-        out, info = convert(analyse(e['source']), n, COLOR_LIMIT[n], LEVEL_GAP[n])
-        os.makedirs(os.path.join(out_root, e['course']), exist_ok=True)
-        out.save(os.path.join(out_root, e['course'], e['slug'] + '.png'), optimize=True)
+        out, info = outputs[n]
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        out.save(target, optimize=True)
         print(f"wrote {e['course']}/{e['slug']}.png {n}x{n}, {info['colors']} colours")
     return failures
 

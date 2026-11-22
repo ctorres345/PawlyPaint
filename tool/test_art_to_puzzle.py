@@ -15,7 +15,6 @@ from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import art_to_puzzle as a2p  # noqa: E402
 
-# Well separated colours: every pair is far over the Easy CIEDE2000 gap.
 RED, GREEN, BLUE, YELLOW, WHITE = (220, 30, 40), (40, 160, 60), (30, 60, 200), (250, 220, 40), (255, 255, 255)
 
 
@@ -55,8 +54,7 @@ class Fixtures(unittest.TestCase):
 
 
 class ColourGap(unittest.TestCase):
-    def test_ciede2000_matches_the_reference_pairs(self):
-        # Sharma, Wu and Dalal (2005), test data pairs 1, 7 and 17.
+    def test_ciede2000_matches_sharma_wu_dalal_2005_pairs_1_7_17(self):
         self.assertAlmostEqual(a2p.de2000((50, 2.6772, -79.7751), (50, 0, -82.7485)), 2.0425, places=4)
         self.assertAlmostEqual(a2p.de2000((50, 0, 0), (50, -1, 2)), 2.3669, places=4)
         self.assertAlmostEqual(a2p.de2000((50, 2.5, 0), (73, 25, -18)), 27.1492, places=4)
@@ -68,8 +66,11 @@ class ColourGap(unittest.TestCase):
         self.assertAlmostEqual(b, 0, delta=0.05)
         self.assertEqual(a2p.lab((0, 0, 0))[0], 0)
 
-    def test_level_gaps(self):
-        self.assertEqual(a2p.LEVEL_GAP, {16: 18.0, 24: 16.0, 32: 14.0, 40: 12.0})
+    def test_matches_the_game_colour_distance(self):
+        pairs = [((220, 30, 40), (200, 40, 50), 4.6386), ((255, 255, 255), (0, 0, 0), 100.0),
+                 ((40, 160, 60), (30, 60, 200), 61.2893), ((250, 220, 40), (255, 240, 120), 7.5354)]
+        for a, b, de in pairs:
+            self.assertAlmostEqual(a2p.min_de_gap([a, b]), de, places=4)
 
 
 class Check(Fixtures):
@@ -82,10 +83,9 @@ class Check(Fixtures):
         self.assertTrue(any('missing' in p for p in problems), problems)
 
     def test_no_clean_grid_fails(self):
-        # A smooth gradient has no colour edges, so no block grid.
-        img = Image.new('RGB', (512, 512))
-        img.putdata([(x // 2, y // 2, 128) for y in range(512) for x in range(512)])
-        problems = self.problems_of(self.entry(self.save('blur.png', img)))
+        gradient = Image.new('RGB', (512, 512))
+        gradient.putdata([(x // 2, y // 2, 128) for y in range(512) for x in range(512)])
+        problems = self.problems_of(self.entry(self.save('blur.png', gradient)))
         self.assertTrue(any('no clean grid' in p for p in problems), problems)
 
     def test_fewer_than_three_colours_fails(self):
@@ -94,9 +94,8 @@ class Check(Fixtures):
         self.assertTrue(any('colours' in p for p in problems), problems)
 
     def test_colours_too_close_for_the_level_are_merged_not_kept(self):
-        # Two reds about 9 apart in CIEDE2000: Easy needs 18, so they merge.
-        close = (200, 40, 50)
-        path = self.save('close.png', blocks([RED, close, BLUE, WHITE, GREEN]))
+        red_9_de_away = (200, 40, 50)
+        path = self.save('close.png', blocks([RED, red_9_de_away, BLUE, WHITE, GREEN]))
         out, _ = a2p.convert(a2p.analyse(path), 16, a2p.COLOR_LIMIT[16], a2p.LEVEL_GAP[16])
         pal = out.getpalette()
         used = [tuple(pal[i * 3:i * 3 + 3]) for _, i in out.getcolors()]
@@ -125,7 +124,7 @@ class Verify(unittest.TestCase):
     def test_gap_under_the_level_minimum(self):
         rows = [[(x + y) % 3 for x in range(16)] for y in range(16)]
         img = indexed(rows, [RED, (200, 40, 50), BLUE])
-        self.assertTrue(any('gap' in p for p in a2p.verify(img, 16)))
+        self.assertTrue(any('colour gap' in p for p in a2p.verify(img, 16)))
 
     def test_wrong_size(self):
         img = indexed([[(x + y) % 3 for x in range(24)] for y in range(24)], [RED, GREEN, BLUE])
@@ -153,6 +152,14 @@ class Manifest(unittest.TestCase):
         self.assertEqual((e['course'], e['slug'], e['grid']), ('classics', 'heart-balloons', 40))
         self.assertTrue(e['source'].endswith(os.path.join('design', 'p.png')))
 
+    def test_rejects_a_missing_source_or_a_bad_course(self):
+        no_source = self.write('[[asset]]\nname = "p"\ncourse = "c"\nslug = "s"\ngrid = 16\n')
+        with self.assertRaises(ValueError):
+            a2p.puzzle_entries(no_source)
+        bad_course = self.write('[[asset]]\nname = "p"\nsource = "p.png"\ncourse = "Cat-Cafe"\nslug = "s"\ngrid = 16\n')
+        with self.assertRaises(ValueError):
+            a2p.puzzle_entries(bad_course)
+
     def test_rejects_a_bad_grid_or_a_duplicate_slug(self):
         bad_grid = self.write('[[asset]]\nname = "p"\nsource = "p.png"\ncourse = "c"\nslug = "s"\ngrid = 20\n')
         with self.assertRaises(ValueError):
@@ -173,6 +180,17 @@ class Manifest(unittest.TestCase):
         with Image.open(os.path.join(out_root, 'classics', 'heart.png')) as img:
             self.assertEqual((img.mode, img.size), ('P', (24, 24)))
             self.assertNotIn('transparency', img.info)
+
+    def test_build_removes_the_old_png_of_a_picture_that_now_fails(self):
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        out_root = os.path.join(d.name, 'pictures')
+        os.makedirs(os.path.join(out_root, 'classics'))
+        stale = os.path.join(out_root, 'classics', 'heart.png')
+        indexed([[0, 1, 2]], [RED, GREEN, BLUE]).save(stale)
+        entry = {'course': 'classics', 'slug': 'heart', 'grid': 16, 'source': os.path.join(d.name, 'gone.png')}
+        self.assertEqual(a2p.build([entry], out_root), 1)
+        self.assertFalse(os.path.exists(stale))
 
 
 if __name__ == '__main__':

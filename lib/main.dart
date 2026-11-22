@@ -12,10 +12,8 @@ import 'ui/theme/tokens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Load everything at once rather than one after another. The progress store
-  // reads the course list, so the picture PNGs load first.
   final (store, music, settings) = await (
-    loadPictures().then((_) => ProgressStore.load()),
+    _storeAfterPictures(),
     MusicController.load(),
     AppSettings.load(),
   ).wait;
@@ -23,6 +21,11 @@ Future<void> main() async {
   await baselineBadges(allCourses, store);
   runApp(PawlyPaintApp(store: store, music: music, settings: settings));
   music.playMenu();
+}
+
+Future<ProgressStore> _storeAfterPictures() async {
+  await loadPictures();
+  return ProgressStore.load();
 }
 
 class PawlyPaintApp extends StatelessWidget {

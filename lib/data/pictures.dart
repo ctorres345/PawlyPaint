@@ -55,9 +55,6 @@ Map<String, IndexedPng> get _loaded =>
     (throw StateError('The course list was read before loadPictures() finished, so pictures would '
         'stay on shape art. Await loadPictures() first (main.dart; tests: test/flutter_test_config.dart).'));
 
-/// The ids of every picture that has a PNG.
-Iterable<String> get pictureIds => _loaded.keys;
-
 /// Picture [id] from its PNG, titled [title], or null when it has no PNG.
 /// Throws [StateError] if the pictures are not loaded yet.
 Puzzle? picturePuzzle(String id, String title) {
