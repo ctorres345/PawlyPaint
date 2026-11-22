@@ -54,10 +54,9 @@ void main() {
     await tester.pump();
     expect(card, findsNothing);
 
-    // Restart: the stored flag is gone too.
     await tester.pumpWidget(const SizedBox());
-    final again = await launch(tester);
-    expect(again.freshPaintPending, isFalse);
+    final restarted = await launch(tester);
+    expect(restarted.freshPaintPending, isFalse, reason: 'the stored flag is gone too');
     expect(card, findsNothing);
     semantics.dispose();
   });

@@ -219,6 +219,20 @@
       "fixed_in": "20261119T002037Z"
     },
     {
+      "id": "VIA-home-1cffbe82",
+      "status": "new",
+      "first_seen": "2026-11-22T12:09:36",
+      "screen": "home",
+      "rule": "dismiss-motion",
+      "severity": "low",
+      "file": "lib/ui/home_screen.dart",
+      "line": 156,
+      "issue": "Dismissing the card removes it in one frame, so the cards below jump up.",
+      "last_seen": "2026-11-22T12:09:36",
+      "run": "20261122T170918Z",
+      "ticket": "PAP-88"
+    },
+    {
       "id": "VIA-home-50f280ae",
       "status": "fixed",
       "first_seen": "2026-11-12T03:55:25",
@@ -234,7 +248,7 @@
     },
     {
       "id": "VIA-home-709d46fe",
-      "status": "new",
+      "status": "open",
       "first_seen": "2026-11-22T11:37:04",
       "screen": "home",
       "rule": "text-clipped-largest-font",
@@ -242,8 +256,9 @@
       "file": "lib/ui/home_screen.dart",
       "line": 607,
       "issue": "At the largest font the locked Today's picture and Time Attack cards cut their hint text (fixed-height _LockedHero). It is the same on main without the new card; the course labels under the tip bar are only the list's scroll edge, since Home is a ListView.",
-      "last_seen": "2026-11-22T11:37:04",
-      "run": "20261122T163213Z"
+      "last_seen": "2026-11-22T12:09:36",
+      "run": "20261122T170918Z",
+      "ticket": "PAP-88"
     },
     {
       "id": "VIA-home-774c8889",
@@ -283,8 +298,8 @@
       "file": "lib/ui/badges_screen.dart",
       "line": 130,
       "issue": "The badge summary note uses a fixed 164 pt bottom margin to clear the unlock strip and dock; at very large text, or with no strip, the gap may be off.",
-      "last_seen": "2026-11-22T11:37:04",
-      "run": "20261122T163213Z"
+      "last_seen": "2026-11-22T12:09:36",
+      "run": "20261122T170918Z"
     },
     {
       "id": "VIA-paint-1ff2fb53",
@@ -504,8 +519,9 @@
 | VIA-course-65d0d4fb | course | med | new | lib/ui/theme/tokens.dart\:81 | Light-theme star \#E0A21B on surface \#FFFDF9 is about 2.25\:1, under the 3\:1 non-text minimum. The value is the PAP-19 prototype's --star token. |
 | VIA-course-70c78701 | course | med | fixed | lib/ui/course\_screen.dart\:321 | Unearned stars used the outline color and almost vanished on dark tiles. |
 | VIA-gallery-fdbb613c | gallery | low | fixed | lib/ui/gallery\_screen.dart\:150 | Footer said gray tiles are unfinished pictures, but they are grouped in one ? tile. |
+| VIA-home-1cffbe82 | home | low | new | lib/ui/home\_screen.dart\:156 | Dismissing the card removes it in one frame, so the cards below jump up. |
 | VIA-home-50f280ae | home | low | fixed | lib/ui/home\_screen.dart\:300 | Level pills and mode bars on open course cards use Colors.white70 and white54, so they cannot follow a dark theme. Existing code, not added by PAP-41. |
-| VIA-home-709d46fe | home | med | new | lib/ui/home\_screen.dart\:607 | At the largest font the locked Today's picture and Time Attack cards cut their hint text (fixed-height \_LockedHero). It is the same on main without the new card; the course labels under the tip bar are only the list's scroll edge, since Home is a ListView. |
+| VIA-home-709d46fe | home | med | open | lib/ui/home\_screen.dart\:607 | At the largest font the locked Today's picture and Time Attack cards cut their hint text (fixed-height \_LockedHero). It is the same on main without the new card; the course labels under the tip bar are only the list's scroll edge, since Home is a ListView. |
 | VIA-home-774c8889 | home | low | fixed | lib/ui/home\_screen.dart\:683 | Course shelf titles like Animal Friends were cut with an ellipsis at 78 wide. |
 | VIA-home-7d19a298 | home | low | fixed | lib/ui/home\_screen.dart\:702 | Gallery/How to play pills, the Unlocks strip and the Time Attack bar each use a different treatment; the strip has no progress bar. |
 | VIA-home-b40beffb | home | low | open | lib/ui/badges\_screen.dart\:130 | The badge summary note uses a fixed 164 pt bottom margin to clear the unlock strip and dock; at very large text, or with no strip, the gap may be off. |

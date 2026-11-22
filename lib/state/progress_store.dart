@@ -187,8 +187,7 @@ class ProgressStore extends ChangeNotifier {
   static const _unreadableKey = 'progress_v1_unreadable';
 
   /// Raw copy of the last save before the Fresh paint reset (PAP-78), written once and never
-  /// overwritten. Only a developer restores it. Older builds kept `progress_v1_backup_v1` (a
-  /// version-1 save before its first version-2 write); that key is left as it is.
+  /// overwritten. Only a developer restores it (docs/RUNBOOK.md, Save format version).
   static const _resetBackupKey = 'progress_v1_before_reset';
 
   /// Save format version. Any change to the shape of a record, saved game or
@@ -449,14 +448,11 @@ class ProgressStore extends ChangeNotifier {
         // Nothing in the UI says so yet (PAP-41), so leave a trace.
         debugPrint('Progress is from a newer build (version $version): shown, but not saved.');
       }
-      // Fresh paint (PAP-78): an older readable save starts over once, like a fresh install
-      // that has finished its tutorials. The raw save is copied first; without the copy
-      // nothing is written this session and the reset tries again next launch.
-      final older = readable && !readOnly && (version == null || (version is int && version < _version));
-      if (older) {
+      // PAP-78: an older save starts over once, so every star is earned on the new art.
+      final resetDue = readable && !readOnly && (version == null || (version is int && version < _version));
+      if (resetDue) {
         try {
-          // Never overwritten: a copy already there is from this same reset, cut short before its write.
-          if (prefs.getString(_resetBackupKey) == null && !await prefs.setString(_resetBackupKey, raw)) {
+          if (!prefs.containsKey(_resetBackupKey) && !await prefs.setString(_resetBackupKey, raw)) {
             // Android reports a failed write (a full disk, say) as false, not as an error.
             throw StateError('the write returned false');
           }
@@ -476,7 +472,7 @@ class ProgressStore extends ChangeNotifier {
           _parseEach(j['saved'], (k, v) => saved[k] = SavedGame.fromJson(v)) +
           _parseEach(j['sortSaved'], (k, v) => sortSaved[k] = v) +
           _parseEach(j['timeAttack'], (k, v) => timeAttack[k] = TimeAttackRecord.fromJson(v));
-      if (skipped > 0 && !older && prefs.getString(_backupKey) == null) {
+      if (skipped > 0 && !resetDue && prefs.getString(_backupKey) == null) {
         // The next save would drop the broken entries for good, so keep a copy first.
         try {
           await prefs.setString(_backupKey, raw);
@@ -484,15 +480,14 @@ class ProgressStore extends ChangeNotifier {
           debugPrint('Saving the progress backup failed: $e');
         }
       }
-      if (reset) {
-        // A fresh install keeps nothing open.
-      } else if (readable && (version == null || (version is int && version <= 1))) {
-        // Version 1 had every gate open. Only a session whose reset could not start gets here:
-        // it shows her old save as it was, read-only.
-        keptOpen = UnlockTables.legacyIds;
-      } else if (readable) {
-        // Also for a save we won't write over: its gates still count.
-        keptOpen = _stringSet(j['keptOpen']);
+      if (readable && !reset) {
+        if (version == null || (version is int && version <= 1)) {
+          assert(readOnly, 'only a session whose reset could not start keeps the version 1 gates');
+          keptOpen = UnlockTables.legacyIds;
+        } else {
+          // Also for a save we won't write over: its gates still count.
+          keptOpen = _stringSet(j['keptOpen']);
+        }
       }
       secrets = _stringSet(j['secrets']);
       celebrated = _stringSet(j['celebrated']);
@@ -553,8 +548,7 @@ class ProgressStore extends ChangeNotifier {
     } else {
       store._seedIntroduced();
     }
-    // The reset is written now, so the next launch never resets again (PAP-78). A failed
-    // write leaves the old save and its copy, so the next save or launch finishes the job.
+    // The reset is written now, so the next launch never resets again (PAP-78).
     if (reset) await store._persist();
     return store;
   }

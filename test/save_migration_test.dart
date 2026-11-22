@@ -1,10 +1,15 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/logic/boosters.dart';
+import 'package:pawlypaint/logic/photo_frames.dart';
 import 'package:pawlypaint/logic/unlocks.dart';
+import 'package:pawlypaint/state/music.dart';
 import 'package:pawlypaint/state/progress_store.dart';
+import 'package:pawlypaint/state/settings.dart';
+import 'package:pawlypaint/ui/gem_style.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 // ignore: depend_on_referenced_packages -- transitive; the failing store below needs it. PAP-72 declares it.
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
@@ -111,6 +116,8 @@ Future<Map<String, dynamic>> freshInstallSave() async {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final courses = buildCourses();
 
   group('fresh paint reset (save v3)', () {
@@ -126,15 +133,43 @@ void main() {
       expect(store.seenSortTutorial, isTrue);
       expect(prefs.getString('progress_v1_before_reset'), raw, reason: 'raw old save, byte for byte');
 
-      // Written inside load(), not on the next save.
       final saved = readSave(prefs);
-      expect(saved['version'], 3);
+      expect(saved['version'], 3, reason: 'written inside load(), not on the next save');
       expect(saved['freshPaintCard'], isTrue);
       expect(saved, isNot(contains('future')), reason: 'unknown keys live only in the backup');
       expect({...saved}..remove('freshPaintCard'), fresh);
       for (final e in settingsKeys.entries) {
         expect(prefs.get(e.key), e.value, reason: e.key);
       }
+    });
+
+    test('settings changed through the app survive the reset', () async {
+      SharedPreferences.setMockInitialValues({'progress_v1': jsonEncode(v2Save())});
+      final settings = await AppSettings.load();
+      await settings.setRelaxed(true);
+      await settings.setHaptics(false);
+      await settings.setTheme(CanvasTheme.night);
+      await settings.setShape(GemShape.round);
+      await settings.setFrame(PhotoFrame.wood);
+      await settings.setThemeMode(ThemeMode.dark);
+      await settings.setPlayerName('Mochi');
+      await settings.setPlayerTitle('collector');
+      final music = await MusicController.load();
+      await music.setMuted(true);
+      await music.setChoice(MusicTheme.hip);
+      await music.setSfx(false);
+      await music.setMusicVolume(0.2);
+      await music.setSfxVolume(0.9);
+      music.dispose();
+
+      expect((await ProgressStore.load()).freshPaintPending, isTrue);
+
+      final s = await AppSettings.load();
+      expect([s.relaxed, s.haptics, s.theme, s.shape, s.frame, s.themeMode, s.playerName, s.playerTitle],
+          [true, false, CanvasTheme.night, GemShape.round, PhotoFrame.wood, ThemeMode.dark, 'Mochi', 'collector']);
+      final m = await MusicController.load();
+      addTearDown(m.dispose);
+      expect([m.muted, m.choice, m.sfxOn, m.musicVolume, m.sfxVolume], [true, MusicTheme.hip, false, 0.2, 0.9]);
     });
 
     test('a version 1 save ends in the same state and its old copy is not rewritten', () async {
@@ -180,8 +215,8 @@ void main() {
       expect(prefs.getString('progress_v1'), raw);
       expect(prefs.getString('progress_v1_backup_v1'), isNull);
 
-      // Next launch, storage works again.
-      prefs = await seed({'progress_v1': raw});
+      final launchWithWorkingStorage = seed({'progress_v1': raw});
+      prefs = await launchWithWorkingStorage;
       final retried = await ProgressStore.load();
       expect(retried.isReadOnly, isFalse);
       expect(retried.freshPaintPending, isTrue);
@@ -194,13 +229,13 @@ void main() {
       final prefs = await seed({'progress_v1': raw});
       final first = await ProgressStore.load();
       await first.recordCompletion(courses.first.puzzles.first.id, score: 10, stars: 2, seconds: 30);
-      await prefs.setString('progress_v1_before_reset', 'marker');
+      await prefs.remove('progress_v1_before_reset');
 
       final second = await ProgressStore.load();
       expect(second.freshPaintPending, isTrue, reason: 'still pending until she closes it');
       expect(second.record(courses.first.puzzles.first.id)?.bestStars, 2, reason: 'new progress kept');
       expect(second.writes, 0);
-      expect(prefs.getString('progress_v1_before_reset'), 'marker');
+      expect(prefs.getString('progress_v1_before_reset'), isNull, reason: 'no second copy');
 
       await second.dismissFreshPaint();
       expect(second.freshPaintPending, isFalse);
@@ -210,8 +245,7 @@ void main() {
       expect(third.record(courses.first.puzzles.first.id)?.bestStars, 2);
     });
 
-    test('a copy already there is never overwritten, and the reset still happens', () async {
-      // Say the app stopped after the copy and before the version 3 write.
+    test('after a launch cut short before the version 3 write, the copy is kept and the reset still happens', () async {
       final raw = jsonEncode(v2Save());
       final prefs = await seed({'progress_v1': raw, 'progress_v1_before_reset': 'first copy'});
       final store = await ProgressStore.load();
@@ -229,7 +263,7 @@ void main() {
       final store = await ProgressStore.load();
       expect(store.isReadOnly, isFalse, reason: 'the next save tries again');
       expect(store.freshPaintPending, isTrue);
-      // The in-memory cache shows the write; what reached storage is what counts.
+      // SharedPreferences caches a value even when the platform write returns false, so read the store.
       var stored = await disk.getAll();
       expect(stored['flutter.progress_v1'], raw);
       expect(stored['flutter.progress_v1_before_reset'], raw);
