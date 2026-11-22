@@ -3,18 +3,12 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pawlypaint/data/courses.dart';
+import 'package:pawlypaint/data/pictures.dart';
 
 /// Folders under assets/art/ that the app bundles. app_icon/ is read only by
 /// the launcher icon tool, so it is checked on disk but not bundled.
-const _bundled = [
-  'badges',
-  'brand',
-  'courses',
-  'difficulty',
-  'icons',
-  'mochi',
-  'tiers'
-];
+const _bundled = ['badges', 'brand', 'courses', 'difficulty', 'icons', 'mochi', 'tiers'];
 
 /// Share of border pixels that must be fully transparent. Some art is cropped
 /// on purpose (a head-and-shoulders Mochi), so the border is not 100% clear.
@@ -55,12 +49,7 @@ Future<({List<int> corners, double clearBorder})> _edges(ui.Image image) async {
     count(w - 1, y);
   }
   return (
-    corners: [
-      alpha(0, 0),
-      alpha(w - 1, 0),
-      alpha(0, h - 1),
-      alpha(w - 1, h - 1)
-    ],
+    corners: [alpha(0, 0), alpha(w - 1, 0), alpha(0, h - 1), alpha(w - 1, h - 1)],
     clearBorder: clear / border,
   );
 }
@@ -85,9 +74,7 @@ void main() {
   });
 
   for (final folder in _bundled) {
-    test(
-        'assets/art/$folder: only PNGs, each loads, is transparent and at most 1024 px',
-        () async {
+    test('assets/art/$folder: only PNGs, each loads, is transparent and at most 1024 px', () async {
       final dir = 'assets/art/$folder';
       // Flutter bundles only the folder's own files, never subfolders.
       expect(Directory(dir).listSync().whereType<Directory>(), isEmpty,
@@ -99,28 +86,59 @@ void main() {
         // The folder is bundled whole, so anything else in it would ship unchecked.
         expect(name, endsWith('.png'), reason: '$key is not a lowercase .png');
         final data = await rootBundle.load(key);
-        final image = await _decode(
-            data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
-        expect(image.width <= 1024 && image.height <= 1024, isTrue,
-            reason: key);
+        final image = await _decode(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+        expect(image.width <= 1024 && image.height <= 1024, isTrue, reason: key);
         final edges = await _edges(image);
-        expect(edges.corners, everyElement(0),
-            reason: '$key corners should be transparent');
+        expect(edges.corners, everyElement(0), reason: '$key corners should be transparent');
         expect(edges.clearBorder, greaterThanOrEqualTo(_minClearBorder),
             reason: '$key border should be mostly transparent');
       }
     });
   }
 
+  group('assets/pictures (PAP-77)', () {
+    final courseFolders = Directory(picturesDir).listSync().whereType<Directory>().toList();
+    // Picture id (<course>-<slug>) -> its PNG files on disk.
+    final pngs = <String, List<String>>{};
+    for (final dir in courseFolders) {
+      final course = dir.uri.pathSegments.where((s) => s.isNotEmpty).last;
+      for (final name in _names(dir.path)) {
+        pngs.putIfAbsent('$course-${name.split('.').first}', () => []).add('$course/$name');
+      }
+    }
+
+    test('only course folders of PNGs, each declared in pubspec', () {
+      final pubspec = File('pubspec.yaml').readAsStringSync();
+      expect(Directory(picturesDir).listSync().whereType<File>(), isEmpty, reason: 'files outside a course folder');
+      for (final dir in courseFolders) {
+        final course = dir.uri.pathSegments.where((s) => s.isNotEmpty).last;
+        expect(pubspec, contains('- $picturesDir$course/'), reason: '$course is not bundled');
+        expect(dir.listSync().whereType<Directory>(), isEmpty, reason: '$course has subfolders that would not ship');
+      }
+      for (final files in pngs.values) {
+        for (final f in files) {
+          expect(f, endsWith('.png'), reason: '$f is not a lowercase .png');
+        }
+      }
+    });
+
+    test('every picture with a PNG has exactly one, and no PNG is orphaned', () {
+      final ids = {for (final c in buildCourses()) ...c.puzzles.map((p) => p.id)};
+      expect(pngs, isNotEmpty);
+      for (final MapEntry(key: id, value: files) in pngs.entries) {
+        expect(files, hasLength(1), reason: '$id has several files');
+        expect(ids, contains(id), reason: '${files.first} matches no course picture');
+      }
+    });
+  });
+
   test('pubspec declares the frames folder', () {
-    expect(File('pubspec.yaml').readAsStringSync(),
-        contains('- assets/art/frames/'));
+    expect(File('pubspec.yaml').readAsStringSync(), contains('- assets/art/frames/'));
   });
 
   // Frames fill their border, so they get their own check: the same names at
   // 1x, 2.0x and 3.0x, at most 1024 px, transparent corners and middle.
-  test('assets/art/frames: every frame at three sizes, clear corners and middle',
-      () async {
+  test('assets/art/frames: every frame at three sizes, clear corners and middle', () async {
     const dir = 'assets/art/frames';
     final names = _names(dir);
     expect(names, isNotEmpty);
@@ -137,17 +155,12 @@ void main() {
         final key = '$dir/$variant$name';
         expect(name, endsWith('.png'), reason: key);
         final data = await rootBundle.load(key);
-        final image = await _decode(
-            data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
-        expect(image.width <= 1024 && image.height <= 1024, isTrue,
-            reason: key);
-        expect((await _edges(image)).corners, everyElement(0),
-            reason: '$key corners should be transparent');
-        final rgba =
-            (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+        final image = await _decode(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+        expect(image.width <= 1024 && image.height <= 1024, isTrue, reason: key);
+        expect((await _edges(image)).corners, everyElement(0), reason: '$key corners should be transparent');
+        final rgba = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
         final mid = (image.height ~/ 2 * image.width + image.width ~/ 2) * 4 + 3;
-        expect(rgba.getUint8(mid), 0,
-            reason: '$key middle should be transparent');
+        expect(rgba.getUint8(mid), 0, reason: '$key middle should be transparent');
       }
     }
   });
@@ -167,14 +180,10 @@ void main() {
     }
   });
 
-  test('app icon art decodes; only the full icon has a solid background',
-      () async {
-    expect(_names('assets/art/app_icon'),
-        ['app_icon.png', 'app_icon_foreground.png']);
-    final full = await _decode(
-        File('assets/art/app_icon/app_icon.png').readAsBytesSync());
-    final fg = await _decode(
-        File('assets/art/app_icon/app_icon_foreground.png').readAsBytesSync());
+  test('app icon art decodes; only the full icon has a solid background', () async {
+    expect(_names('assets/art/app_icon'), ['app_icon.png', 'app_icon_foreground.png']);
+    final full = await _decode(File('assets/art/app_icon/app_icon.png').readAsBytesSync());
+    final fg = await _decode(File('assets/art/app_icon/app_icon_foreground.png').readAsBytesSync());
     expect([full.width, full.height, fg.width, fg.height], everyElement(1024));
     expect((await _edges(full)).corners, everyElement(255));
     expect((await _edges(fg)).clearBorder, 1.0);

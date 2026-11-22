@@ -2,6 +2,7 @@ import 'dart:ui' show Color;
 
 import '../models/puzzle.dart';
 import 'artworks.dart';
+import 'pictures.dart';
 import 'simplify.dart';
 
 /// Canvas size for each difficulty.
@@ -21,7 +22,9 @@ const _minColorGap = {
 };
 
 /// Pictures are keyed by a stable slug, so reordering or adding pictures
-/// never moves saved progress onto a different one.
+/// never moves saved progress onto a different one. A picture with a bundled
+/// PNG (lib/data/pictures.dart) comes from it; the others come from their
+/// shape art. Throws [StateError] before the pictures are loaded.
 Course buildCourse(
   String id,
   String title,
@@ -41,12 +44,24 @@ Course buildCourse(
           Level(
             difficulty: difficulty,
             puzzles: [
-              for (final MapEntry(key: slug, value: draw) in pictures.entries)
-                _forDifficulty(draw('$id-$slug', _sizes[difficulty]!), difficulty),
+              for (final MapEntry(key: slug, value: draw) in pictures.entries) _picture('$id-$slug', draw, difficulty),
             ],
           ),
       ],
     );
+
+Puzzle _picture(String id, Artwork draw, Difficulty difficulty) {
+  final size = _sizes[difficulty]!;
+  final drawn = draw(id, size);
+  // The converter already cut a PNG to the level's colour limit and gap, so
+  // it skips the simplify and colour-separation passes.
+  final png = picturePuzzle(id, drawn.title);
+  if (png == null) return _forDifficulty(drawn, difficulty);
+  if (png.width != size || png.height != size) {
+    throw StateError('$id: PNG is ${png.width}x${png.height}, its level needs ${size}x$size');
+  }
+  return png;
+}
 
 Puzzle _forDifficulty(Puzzle p, Difficulty difficulty) {
   final minDistance = _minDistance[difficulty];

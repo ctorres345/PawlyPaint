@@ -5,13 +5,12 @@ import 'art/animals.dart';
 import 'art/catcafe.dart';
 import 'art/garden.dart';
 import 'art/sweets.dart';
-import 'artworks.dart';
-import 'art/extreme_classics.dart';
 import 'art/extreme_animals.dart';
 import 'art/extreme_garden.dart';
 import 'art/extreme_sweets.dart';
 import 'build_flavor.dart';
 import 'course_builder.dart';
+import 'pictures.dart';
 import 'sideload_courses.dart';
 
 export 'sideload_courses.dart' show sideloadOnlyCourseIds;
@@ -21,7 +20,8 @@ export 'sideload_courses.dart' show sideloadOnlyCourseIds;
 /// level, each picture opens when the one before it is finished.
 const unlockAfter = 3;
 
-/// Every course this build ships, drawn once on first use. The store build
+/// Every course this build ships, drawn once on first use, which must come
+/// after `loadPictures()` (it throws before). The store build
 /// leaves out the sideload-only courses; the compiler drops their art because
 /// `isStoreBuild` is a constant. Keep the explicit `if (!isStoreBuild)` and
 /// don't swap it for `buildCourses(...)`.
@@ -36,27 +36,33 @@ List<Course> sharedCourses() => [
         'Hearts, pets, flowers and sweet treats',
         const Color(0xFFF48FB1),
         {
-          Difficulty.easy: {'heart': heart, 'paw': paw, 'sun': sun, 'mushroom': mushroom, 'cherries': cherries},
+          Difficulty.easy: {
+            'heart': pngArt('Sweetheart'),
+            'paw': pngArt('Little Paw'),
+            'sun': pngArt('Sunny Day'),
+            'mushroom': pngArt('Forest Friend'),
+            'cherries': pngArt('Cherry Pair'),
+          },
           Difficulty.medium: {
-            'cat': cat,
-            'daisy': daisy,
-            'strawberry': strawberry,
-            'rainbow': rainbow,
-            'cupcake': cupcake,
+            'cat': pngArt('Curious Cat'),
+            'daisy': pngArt('Daisy'),
+            'strawberry': pngArt('Berry Picnic'),
+            'rainbow': pngArt('After the Rain'),
+            'cupcake': pngArt('Party Cupcake'),
           },
           Difficulty.hard: {
-            'sunset': sunset,
-            'butterfly': butterfly,
-            'puppy': puppy,
-            'tulips': tulips,
-            'moonlight': moonlight,
+            'sunset': pngArt('Golden Hour'),
+            'butterfly': pngArt('Garden Flutter'),
+            'puppy': pngArt('Best Buddy'),
+            'tulips': pngArt('Tulip Bouquet'),
+            'moonlight': pngArt('Moonlit Watch'),
           },
           Difficulty.extreme: {
-            'heart-balloons': xHeartBalloons,
-            'picnic': xPicnic,
-            'yarn-kitten': xYarnKitten,
-            'carousel': xCarousel,
-            'fireside': xFireside,
+            'heart-balloons': pngArt('Heart Balloons'),
+            'picnic': pngArt('Picnic Day'),
+            'yarn-kitten': pngArt('Yarn Kitten'),
+            'carousel': pngArt('Carousel'),
+            'fireside': pngArt('Fireside Nap'),
           },
         },
       ),
