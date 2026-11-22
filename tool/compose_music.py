@@ -270,8 +270,6 @@ def shaker():
 DRUMS = {'kick': kick, 'brush': brush, 'snap': snap, 'shaker': shaker}
 
 
-# ---- Composition helpers ---------------------------------------------------
-
 PENTATONIC = [0, 2, 4, 7, 9]
 
 

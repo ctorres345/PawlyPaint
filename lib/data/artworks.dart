@@ -7,8 +7,6 @@ import 'art_canvas.dart';
 /// Palette index 0 is the background; colors a drawing never uses are dropped.
 typedef Artwork = Puzzle Function(String id, int size);
 
-// ---- Beginner -------------------------------------------------------------
-
 Puzzle heart(String id, int n) {
   const bg = 0, dots = 1, dark = 2, red = 3, light = 4, white = 5;
   final c = ArtCanvas(n, n, background: bg);
@@ -93,8 +91,6 @@ Puzzle cherries(String id, int n) {
     0xFFFFF8E1, 0xFF795548, 0xFF66BB6A, 0xFF388E3C, 0xFFA0102A, 0xFFE0243F, 0xFFFF9EAD, //
   ]);
 }
-
-// ---- Intermediate ---------------------------------------------------------
 
 Puzzle cat(String id, int n) {
   const bg = 0, dots = 1, fur = 2, furLight = 3, dark = 4, pink = 5, green = 6, white = 7;
@@ -212,8 +208,6 @@ Puzzle cupcake(String id, int n) {
     0xFFD81B60, 0xFFFF6F9B, 0xFFFFEB3B, 0xFF4FC3F7, 0xFF6D4C41,
   ]);
 }
-
-// ---- Expert ---------------------------------------------------------------
 
 Puzzle sunset(String id, int n) {
   const sun = 5, sunLight = 6, sea1 = 7, sea2 = 8, sea3 = 9, glint = 10, boat = 11, sail = 12;

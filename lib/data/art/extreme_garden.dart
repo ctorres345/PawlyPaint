@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import '../../models/puzzle.dart';
 import '../art_canvas.dart';
 
-// ---- Extreme --------------------------------------------------------------
-
 Puzzle xPumpkinPatch(String id, int n) {
   const skyTop = 0, skyMid = 1, skyLow = 2, sun = 3, cloud = 4, hill = 5, fence = 7, soil = 9, soilDark = 10;
   const vine = 11, leaf = 12, pumpkin = 13, pumpkinDark = 14, crow = 16, hay = sun, hayDark = 18;

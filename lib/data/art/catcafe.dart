@@ -53,8 +53,6 @@ void catHead(
   }
 }
 
-// ---- Easy -----------------------------------------------------------------
-
 Puzzle cafeCat(String id, int n) {
   const bg = 0, fur = 1, ear = 2, eye = 3, nose = 4, blush = 5, whisker = 6;
   final c = ArtCanvas(n, n, background: bg);
@@ -139,8 +137,6 @@ Puzzle fishTreat(String id, int n) {
     0xFFE8F5E9, 0xFFFFFFFF, 0xFF4DD0C8, 0xFF26A69A, 0xFFFFA726, 0xFFEF6C00, 0xFF263238, //
   ]);
 }
-
-// ---- Medium ---------------------------------------------------------------
 
 Puzzle catNap(String id, int n) {
   const bg = 0, cushion = 1, cushionDark = 2, fur = 3, furDark = 4, ear = 5, eye = 6, nose = 7, z = 8;
@@ -251,8 +247,6 @@ Puzzle tuxedo(String id, int n) {
     0xFFFCE4EC, 0xFF37293E, 0xFFFFFFFF, 0xFFFFC1D3, 0xFF2E2233, 0xFFF2709A, 0xFF8BC34A, //
   ]);
 }
-
-// ---- Hard -----------------------------------------------------------------
 
 Puzzle catLoaf(String id, int n) {
   const wall = 0, wallStripe = 1, cushion = 2, cushionDark = 3, cushionLight = 4, fur = 5, furDark = 6, furLight = 7;
@@ -384,8 +378,6 @@ Puzzle cuddlePuddle(String id, int n) {
     0xFFF2709A, 0xFFFFAB91, 0xFFF48FB1,
   ]);
 }
-
-// ---- Extreme --------------------------------------------------------------
 
 Puzzle xCafeCounter(String id, int n) {
   const wall = 0, wallDot = 1, board = 2, chalk = 3, counter = 4, counterDark = 5, counterLight = 6;

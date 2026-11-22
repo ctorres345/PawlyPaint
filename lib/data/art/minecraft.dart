@@ -13,8 +13,6 @@ void _textured(ArtCanvas c, ShapeTest test, List<int> tones, [int seed = 0]) {
   }
 }
 
-// ---- Easy -----------------------------------------------------------------
-
 Puzzle grassBlock(String id, int n) {
   const sky = 0, grassA = 1, grassB = 2, dirtA = 3, dirtB = 4, dirtC = 5, stone = 6;
   final c = ArtCanvas(n, n, background: sky);
@@ -130,8 +128,6 @@ Puzzle torch(String id, int n) {
   ]);
 }
 
-// ---- Medium ---------------------------------------------------------------
-
 Puzzle pickaxe(String id, int n) {
   const bg = 0, bgDot = 1, outline = 2, head = 3, headLight = 4, handle = 5, handleDark = 6;
   final c = ArtCanvas(n, n, background: bg);
@@ -241,8 +237,6 @@ Puzzle mcCake(String id, int n) {
     0xFF9AD0F5, 0xFF8CC4EB, 0xFFF7F7F7, 0xFFD9D9D9, 0xFFD62828, 0xFFE3B577, 0xFFB98A4C, 0xFFE8604C, //
   ]);
 }
-
-// ---- Hard -----------------------------------------------------------------
 
 Puzzle overworld(String id, int n) {
   const sky = 0, skyLow = 1, sun = 2, cloud = 3, grassA = 4, grassB = 5, dirtA = 6, dirtB = 7;

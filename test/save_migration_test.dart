@@ -8,7 +8,7 @@ import 'package:pawlypaint/models/puzzle.dart';
 import 'package:pawlypaint/state/achievements.dart';
 import 'package:pawlypaint/state/progress_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// ignore: depend_on_referenced_packages
+// ignore: depend_on_referenced_packages -- transitive; the failing store below needs it. PAP-72 declares it.
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 /// A store that reports a failed write for one key, the way Android does on a full disk.

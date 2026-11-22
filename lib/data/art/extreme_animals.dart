@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import '../../models/puzzle.dart';
 import '../art_canvas.dart';
 
-// ---- Extreme (Animal Friends) -----------------------------------------------
-
 Puzzle xHamster(String id, int n) {
   const wall = 0, wallDot = 1, table = 2, tableDark = 3, cup = 4, cupShade = 5, cupBlue = 6, rim = 7;
   const fur = 8, furDark = 9, belly = 10, pink = 11, eye = 12, seed = 13, steam = cupShade;

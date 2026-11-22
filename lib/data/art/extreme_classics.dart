@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import '../../models/puzzle.dart';
 import '../art_canvas.dart';
 
-// ---- Extreme (Cozy Classics) ------------------------------------------------
-
 Puzzle xHeartBalloons(String id, int n) {
   const sky = 0, skyMid = 1, skyLow = 2, cloud = 3, cloudShade = 4, hill = 5, hillDark = 6, fence = 7;
   const fenceShade = 8, red = 9, redDark = 10, pink = 11, pinkDark = 12, purple = 13, string = 14;

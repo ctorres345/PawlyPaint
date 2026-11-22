@@ -435,8 +435,6 @@ class _GameScreenState extends State<_GamePage>
     await leaveFinishedPicture(context, widget.store, gifts: gifts);
   }
 
-  // ---- Boosters -----------------------------------------------------------
-
   bool _boosterActive(Booster b) => switch (b) {
         Booster.bomb => _bombArmed,
         Booster.brush => game.brushActive,

@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import '../../models/puzzle.dart';
 import '../art_canvas.dart';
 
-// ---- Extreme --------------------------------------------------------------
-
 Puzzle xCupcakeParty(String id, int n) {
   const wall = 0, wallDot = 1, flagA = 2, flagB = 3, string = 4, table = 5, tableDark = 6, wrap = 7, wrapDark = 8;
   const frost = 9, frostDark = 10, white = 11, cherry = 12, yellow = 13, cake = 14, flame = 15;

@@ -103,8 +103,6 @@ void _xNote(ArtCanvas c, double col, double row, int color) {
 
 const _xSkin = 0xFFFFE3D0;
 
-// ---- Extreme --------------------------------------------------------------
-
 Puzzle xVocKaitoIceCream(String id, int n) {
   const sky = 0, sun = 1, sea = 2, sand = 3, hair = 4, hairDark = 5, skin = 6, white = 7, blush = 8, mouth = 9;
   const coatShade = 10, scarf = 11, pants = 12, cone = 13, coneDark = 14, pink = 15, mint = 16;

@@ -138,8 +138,6 @@ class ProgressFacts {
   int platinumTarget = 0;
 }
 
-// ---- Registry ---------------------------------------------------------------
-
 class _Registered {
   const _Registered(this.badge, this.sideloadOnly);
   final Achievement badge;
@@ -164,8 +162,6 @@ void registerBadge(Achievement a, {bool sideloadOnly = false}) {
 
 @visibleForTesting
 void resetRegisteredBadges() => _registered.clear();
-
-// ---- Built-in badges --------------------------------------------------------
 
 final _retiredBadges = <Achievement>[
   Achievement('streak7', 'Week of sparkle', 'Keep a 7-day daily streak', (f) => f.bestStreak >= 7,
@@ -339,8 +335,6 @@ List<Achievement> achievementsShown(List<Course> courses, ProgressStore store) =
       for (final a in _retiredBadges)
         if (store.hasSeenBadge(a.id)) a,
     ];
-
-// ---- Earned, progress, completion --------------------------------------------
 
 /// Whether [a] counts toward [completionPercent] and platinum.
 bool countsTowardCompletion(Achievement a) => a.tier != BadgeTier.rainbow && !a.retired;

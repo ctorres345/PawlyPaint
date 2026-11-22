@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import '../../models/puzzle.dart';
 import '../art_canvas.dart';
 
-// ---- Easy -----------------------------------------------------------------
-
 Puzzle fish(String id, int n) {
   const sea = 0, seaLight = 1, bubble = 2, bodyDark = 3, body = 4, bodyLight = 5, fin = 6, eye = 7;
   final c = ArtCanvas(n, n, background: sea);
@@ -90,8 +88,6 @@ Puzzle snail(String id, int n) {
     0xFFF1F8E9, 0xFF8D6E63, 0xFFFFE0B2, 0xFFE0B98C, 0xFFF4A261, 0xFF8D4F2B, 0xFFFFD199, 0xFF3E2723, //
   ]);
 }
-
-// ---- Medium ---------------------------------------------------------------
 
 Puzzle fox(String id, int n) {
   const bg = 0, bgDot = 1, fur = 2, furDark = 3, white = 4, dark = 5, earIn = 6;
@@ -225,8 +221,6 @@ Puzzle whale(String id, int n) {
     0xFFF48FB1,
   ]);
 }
-
-// ---- Hard -----------------------------------------------------------------
 
 Puzzle panda(String id, int n) {
   const bg = 0, stalk = 1, stalkDark = 2, leaf = 3, white = 4, shade = 5, black = 6, eye = white, pink = 8;
