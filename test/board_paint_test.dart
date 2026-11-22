@@ -69,7 +69,8 @@ void main() {
     }
     sw.stop();
     expect(cache.raster.usedImage, isTrue);
-    expect(cache.committed, greaterThanOrEqualTo(BoardCache.chunk), reason: 'placed drills were committed to the bitmap');
+    expect(cache.committed, greaterThanOrEqualTo(BoardCache.chunk),
+        reason: 'placed drills were committed to the bitmap');
     expect(game.order.length - cache.committed, lessThan(BoardCache.chunk));
     // ignore: avoid_print -- benchmark timing, printed on purpose; PAP-73 moves it off print.
     print('60 frames of a ${puzzle.width}x${puzzle.height} board: ${sw.elapsedMilliseconds} ms');

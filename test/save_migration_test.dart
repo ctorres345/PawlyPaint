@@ -1,12 +1,15 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/courses.dart';
 import 'package:pawlypaint/logic/boosters.dart';
+import 'package:pawlypaint/logic/photo_frames.dart';
 import 'package:pawlypaint/logic/unlocks.dart';
-import 'package:pawlypaint/models/puzzle.dart';
-import 'package:pawlypaint/state/achievements.dart';
+import 'package:pawlypaint/state/music.dart';
 import 'package:pawlypaint/state/progress_store.dart';
+import 'package:pawlypaint/state/settings.dart';
+import 'package:pawlypaint/ui/gem_style.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 // ignore: depend_on_referenced_packages -- transitive; the failing store below needs it. PAP-72 declares it.
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
@@ -75,72 +78,219 @@ Future<SharedPreferences> seed(Map<String, Object> values) async {
 Map<String, dynamic> readSave(SharedPreferences prefs) =>
     jsonDecode(prefs.getString('progress_v1')!) as Map<String, dynamic>;
 
+/// Settings, music and player keys live beside the progress blob and must survive the reset.
+const settingsKeys = <String, Object>{
+  'relaxed_mode': true,
+  'haptics_on': false,
+  'canvas_theme': 'night',
+  'drill_shape': 'heart',
+  'photo_frame': 'gold',
+  'theme_mode': 'dark',
+  'player_name': 'Mochi',
+  'player_title': 'collector',
+  'music_muted': true,
+  'music_choice': 'lofi',
+  'sfx_on': false,
+  'music_volume': 0.4,
+  'sfx_volume': 0.6,
+};
+
+/// A version-2 save with something in every section, an unknown key and both tutorials done.
+Map<String, dynamic> v2Save() => v1Save(version: 2, extra: {
+      'secrets': ['mochi'],
+      'celebrated': ['course.garden'],
+      'streakBonusPaid': 2,
+      'keptOpen': UnlockTables.legacyIds.toList(),
+      'introduced': [UnlockTables.modeSort],
+      'daysPlayed': ['2026-11-08', '2026-11-09'],
+      'future': {'a': 1},
+    });
+
+/// What a fresh install writes on its first save, with both tutorials done.
+Future<Map<String, dynamic>> freshInstallSave() async {
+  final prefs = await seed({});
+  final store = await ProgressStore.load();
+  await store.markTutorialSeen();
+  await store.markSortTutorialSeen();
+  return readSave(prefs);
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final courses = buildCourses();
 
-  group('version 1 save', () {
-    test('keeps every field, opens everything it had, and saves as version 2', () async {
-      final original = v1Save();
-      final prefs = await seed({'progress_v1': jsonEncode(original)});
-      final store = await ProgressStore.load(gatesEnforced: true);
+  group('fresh paint reset (save v3)', () {
+    test('a version 2 save starts over like a fresh install, keeping the tutorials', () async {
+      final fresh = await freshInstallSave();
+      final raw = jsonEncode(v2Save());
+      final prefs = await seed({'progress_v1': raw, ...settingsKeys});
+      final store = await ProgressStore.load();
 
       expect(store.isReadOnly, isFalse);
-      expect(store.record(original['records'].keys.first as String)?.bestStars, 3);
-      expect(store.bestStreak, 6);
-      expect(store.bestCombo, 9);
-      expect(store.timeAttack(Difficulty.easy).wins, 2);
-      expect(store.boosters(Booster.bomb), 5);
+      expect(store.freshPaintPending, isTrue);
       expect(store.seenTutorial, isTrue);
-      expect(store.hasSeenBadge('wide'), isTrue);
+      expect(store.seenSortTutorial, isTrue);
+      expect(prefs.getString('progress_v1_before_reset'), raw, reason: 'raw old save, byte for byte');
 
-      // Nothing she could play before is locked, even with only 4 stars.
-      final s = store.unlockState(courses);
-      for (final c in courses) {
-        expect(s.isCourseOpen(c.id), isTrue, reason: c.id);
-      }
-      expect(s.isModeOpen(UnlockTables.modeSort), isTrue);
-      expect(s.isModeOpen(UnlockTables.modeTimeAttack), isTrue);
-      expect(s.isModeOpen(UnlockTables.modeDaily), isTrue);
-      for (final b in Booster.values) {
-        expect(s.isBoosterOpen(b), isTrue);
-      }
-      expect(s.catchUp, containsAll(UnlockTables.legacyIds), reason: 'one catch-up summary');
-
-      await store.noteCombo(12);
       final saved = readSave(prefs);
-      expect(saved['version'], 2);
-      expect(saved['bestCombo'], 12);
-      for (final k in original.keys.where((k) => k != 'version' && k != 'bestCombo')) {
-        expect(saved[k], original[k], reason: 'key $k kept as it was');
+      expect(saved['version'], 3, reason: 'written inside load(), not on the next save');
+      expect(saved['freshPaintCard'], isTrue);
+      expect(saved, isNot(contains('future')), reason: 'unknown keys live only in the backup');
+      expect({...saved}..remove('freshPaintCard'), fresh);
+      for (final e in settingsKeys.entries) {
+        expect(prefs.get(e.key), e.value, reason: e.key);
       }
-      expect(saved['celebrated'], isEmpty);
-      expect(saved['secrets'], isEmpty);
-      expect(saved['streakBonusPaid'], 0);
-      expect(saved['keptOpen'], containsAll(UnlockTables.legacyIds));
     });
 
-    test('keeps its earned badges quietly under the tiered engine and gains daysPlayed', () async {
-      final prefs = await seed({'progress_v1': jsonEncode(v1Save())});
+    test('settings changed through the app survive the reset', () async {
+      SharedPreferences.setMockInitialValues({'progress_v1': jsonEncode(v2Save())});
+      final settings = await AppSettings.load();
+      await settings.setRelaxed(true);
+      await settings.setHaptics(false);
+      await settings.setTheme(CanvasTheme.night);
+      await settings.setShape(GemShape.round);
+      await settings.setFrame(PhotoFrame.wood);
+      await settings.setThemeMode(ThemeMode.dark);
+      await settings.setPlayerName('Mochi');
+      await settings.setPlayerTitle('collector');
+      final music = await MusicController.load();
+      await music.setMuted(true);
+      await music.setChoice(MusicTheme.hip);
+      await music.setSfx(false);
+      await music.setMusicVolume(0.2);
+      await music.setSfxVolume(0.9);
+      music.dispose();
+
+      expect((await ProgressStore.load()).freshPaintPending, isTrue);
+
+      final s = await AppSettings.load();
+      expect([s.relaxed, s.haptics, s.theme, s.shape, s.frame, s.themeMode, s.playerName, s.playerTitle],
+          [true, false, CanvasTheme.night, GemShape.round, PhotoFrame.wood, ThemeMode.dark, 'Mochi', 'collector']);
+      final m = await MusicController.load();
+      addTearDown(m.dispose);
+      expect([m.muted, m.choice, m.sfxOn, m.musicVolume, m.sfxVolume], [true, MusicTheme.hip, false, 0.2, 0.9]);
+    });
+
+    test('a version 1 save ends in the same state and its old copy is not rewritten', () async {
+      final fresh = await freshInstallSave();
+      for (final version in [1, null]) {
+        final raw = jsonEncode(v1Save(version: version));
+        final prefs = await seed({'progress_v1': raw, 'progress_v1_backup_v1': 'older copy'});
+        final store = await ProgressStore.load();
+        expect(store.freshPaintPending, isTrue, reason: 'version $version');
+        expect(store.unlockState(courses).isCourseOpen('catcafe'), isFalse, reason: 'no legacy gates after a reset');
+        expect({...readSave(prefs)}..remove('freshPaintCard'), fresh, reason: 'version $version');
+        expect(prefs.getString('progress_v1_before_reset'), raw);
+        expect(prefs.getString('progress_v1_backup_v1'), 'older copy');
+      }
+    });
+
+    test('tutorials she had not finished stay unfinished', () async {
+      final save = v2Save()
+        ..remove('seenTutorial')
+        ..['seenSortTutorial2'] = false;
+      await seed({'progress_v1': jsonEncode(save)});
       final store = await ProgressStore.load();
-      expect(store.hasSeenBadge('first'), isTrue);
-      expect(store.hasSeenBadge('wide'), isTrue, reason: 'an id this build no longer knows is kept');
-      await baselineBadges(courses, store);
-      expect(store.hasSeenBadge('first'), isTrue);
-      expect(store.hasSeenBadge('wide'), isTrue);
-      expect(store.hasSeenBadge('combo10'), isFalse, reason: 'best combo is 9');
-      expect(takeNewAchievements(courses, store), isEmpty);
-      // Her 4-day daily streak ending 2026-11-09 is the only dated play she has.
-      expect(store.playedDays, {'2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09'});
-      await store.noteCombo(12);
-      final saved = readSave(prefs);
-      expect(saved['version'], 2);
-      expect(saved['daysPlayed'], ['2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09']);
-      expect(saved['badges'], containsAll(['first', 'wide']));
+      expect(store.freshPaintPending, isTrue);
+      expect(store.seenTutorial, isFalse);
+      expect(store.seenSortTutorial, isFalse);
     });
 
-    test('rewards a version 1 save already earned stay earned when the build grows', () async {
+    test('when the copy cannot be written, the old save is left alone and the reset retries next launch', () async {
+      final raw = jsonEncode(v1Save());
+      SharedPreferencesStorePlatform.instance = _RefusesKey(
+        'flutter.progress_v1_before_reset',
+        {'flutter.progress_v1': raw},
+      );
+      SharedPreferences.resetStatic();
+      var prefs = await SharedPreferences.getInstance();
+      final refused = await ProgressStore.load();
+      expect(refused.isReadOnly, isTrue);
+      expect(refused.freshPaintPending, isFalse);
+      expect(refused.bestCombo, 9, reason: 'her old save, shown as it was');
+      expect(refused.unlockState(courses).isCourseOpen('catcafe'), isTrue,
+          reason: 'version 1 gates, this session only');
+      await refused.noteCombo(50);
+      expect(prefs.getString('progress_v1'), raw);
+      expect(prefs.getString('progress_v1_backup_v1'), isNull);
+
+      final launchWithWorkingStorage = seed({'progress_v1': raw});
+      prefs = await launchWithWorkingStorage;
+      final retried = await ProgressStore.load();
+      expect(retried.isReadOnly, isFalse);
+      expect(retried.freshPaintPending, isTrue);
+      expect(retried.bestCombo, 0);
+      expect(prefs.getString('progress_v1_before_reset'), raw);
+    });
+
+    test('runs once: the second launch copies nothing and the card stays gone once closed', () async {
+      final raw = jsonEncode(v2Save());
+      final prefs = await seed({'progress_v1': raw});
+      final first = await ProgressStore.load();
+      await first.recordCompletion(courses.first.puzzles.first.id, score: 10, stars: 2, seconds: 30);
+      await prefs.remove('progress_v1_before_reset');
+
+      final second = await ProgressStore.load();
+      expect(second.freshPaintPending, isTrue, reason: 'still pending until she closes it');
+      expect(second.record(courses.first.puzzles.first.id)?.bestStars, 2, reason: 'new progress kept');
+      expect(second.writes, 0);
+      expect(prefs.getString('progress_v1_before_reset'), isNull, reason: 'no second copy');
+
+      await second.dismissFreshPaint();
+      expect(second.freshPaintPending, isFalse);
+      expect(readSave(prefs), isNot(contains('freshPaintCard')));
+      final third = await ProgressStore.load();
+      expect(third.freshPaintPending, isFalse);
+      expect(third.record(courses.first.puzzles.first.id)?.bestStars, 2);
+    });
+
+    test('after a launch cut short before the version 3 write, the copy is kept and the reset still happens', () async {
+      final raw = jsonEncode(v2Save());
+      final prefs = await seed({'progress_v1': raw, 'progress_v1_before_reset': 'first copy'});
+      final store = await ProgressStore.load();
+      expect(store.freshPaintPending, isTrue);
+      expect(store.bestCombo, 0);
+      expect(readSave(prefs)['version'], 3);
+      expect(prefs.getString('progress_v1_before_reset'), 'first copy');
+    });
+
+    test('when the version 3 write fails, the copy is kept and the next launch resets again', () async {
+      final raw = jsonEncode(v2Save());
+      final disk = _RefusesKey('flutter.progress_v1', {'flutter.progress_v1': raw});
+      SharedPreferencesStorePlatform.instance = disk;
+      SharedPreferences.resetStatic();
+      final store = await ProgressStore.load();
+      expect(store.isReadOnly, isFalse, reason: 'the next save tries again');
+      expect(store.freshPaintPending, isTrue);
+      // SharedPreferences caches a value even when the platform write returns false, so read the store.
+      var stored = await disk.getAll();
+      expect(stored['flutter.progress_v1'], raw);
+      expect(stored['flutter.progress_v1_before_reset'], raw);
+
+      SharedPreferences.resetStatic();
+      final again = await ProgressStore.load();
+      expect(again.freshPaintPending, isTrue);
+      expect(again.bestCombo, 0);
+      stored = await disk.getAll();
+      expect(stored['flutter.progress_v1_before_reset'], raw);
+    });
+
+    test('a version 2 save with a broken entry writes only the reset copy', () async {
+      final broken = v2Save();
+      broken['records'] = {...(broken['records'] as Map), 'bad': 'not a record'};
+      final raw = jsonEncode(broken);
+      final prefs = await seed({'progress_v1': raw});
+      await ProgressStore.load();
+      expect(prefs.getString('progress_v1_before_reset'), raw);
+      expect(prefs.getString('progress_v1_backup'), isNull);
+    });
+  });
+
+  group('a version 3 save', () {
+    test('rewards it already earned stay earned when the build grows', () async {
       final ids = buildCourses(store: true).first.puzzles.map((p) => p.id).take(3);
-      final save = v1Save(extra: {
+      final save = v1Save(version: 3, extra: {
         'records': {
           for (final id in ids) id: {'score': 1, 'stars': 3, 'seconds': 1},
         },
@@ -155,48 +305,30 @@ void main() {
       expect(grown.unlockState(courses).unlocked, contains('reward.bg.sakura'));
     });
 
-    test('keeps a raw copy of the old save once', () async {
-      final prefs = await seed({'progress_v1': jsonEncode(v1Save())});
-      final raw = prefs.getString('progress_v1');
+    test('loads as it is: no reset, no copy, no card', () async {
+      final raw = jsonEncode(v1Save(version: 3));
+      final prefs = await seed({'progress_v1': raw});
       final store = await ProgressStore.load();
-      await store.noteCombo(12);
-      expect(prefs.getString('progress_v1_backup_v1'), raw);
-
-      // A second load of the version-2 save leaves that copy alone.
-      await ProgressStore.load();
-      expect(prefs.getString('progress_v1_backup_v1'), raw);
-    });
-
-    test('a save with no version field is version 1', () async {
-      await seed({'progress_v1': jsonEncode(v1Save(version: null))});
-      final store = await ProgressStore.load(gatesEnforced: true);
-      expect(store.isReadOnly, isFalse);
-      expect(store.unlockState(courses).isCourseOpen('catcafe'), isTrue);
-    });
-
-    test('the legacy gates survive a second launch', () async {
-      await seed({'progress_v1': jsonEncode(v1Save())});
-      final first = await ProgressStore.load(gatesEnforced: true);
-      await first.noteCombo(12);
-      final second = await ProgressStore.load(gatesEnforced: true);
-      expect(second.unlockState(courses).isCourseOpen('catcafe'), isTrue);
-      expect(second.unlockState(courses).isModeOpen(UnlockTables.modeTimeAttack), isTrue);
-      for (final b in Booster.values) {
-        expect(second.unlockState(courses).isBoosterOpen(b), isTrue);
-      }
+      expect(store.freshPaintPending, isFalse);
+      expect(store.bestCombo, 9);
+      expect(store.writes, 0);
+      expect(prefs.getString('progress_v1'), raw);
+      expect(prefs.getString('progress_v1_before_reset'), isNull);
     });
   });
 
   group('fresh and new data', () {
-    test('once the UI follows the gates, a fresh install saves as version 2 with gates closed', () async {
+    test('once the UI follows the gates, a fresh install saves as version 3 with gates closed', () async {
       final prefs = await seed({});
       final store = await ProgressStore.load(gatesEnforced: true);
       expect(store.unlockState(courses).isModeOpen(UnlockTables.modeSort), isFalse);
       await store.markTutorialSeen();
       final saved = readSave(prefs);
-      expect(saved['version'], 2);
+      expect(saved['version'], 3);
       expect(saved['keptOpen'], isEmpty);
-      expect(prefs.getString('progress_v1_backup_v1'), isNull);
+      expect(saved, isNot(contains('freshPaintCard')));
+      expect(store.freshPaintPending, isFalse, reason: 'a fresh install has nothing to explain');
+      expect(prefs.getString('progress_v1_before_reset'), isNull);
     });
 
     test('the gates are enforced by default, so a fresh install starts closed', () async {
@@ -213,7 +345,7 @@ void main() {
     test('a save from the build before the gates stays fully open and is not re-introduced', () async {
       // That build wrote every old gate into keptOpen and had no introduced key.
       final prefs = await seed({
-        'progress_v1': jsonEncode({'version': 2, 'keptOpen': UnlockTables.legacyIds.toList()}),
+        'progress_v1': jsonEncode({'version': 3, 'keptOpen': UnlockTables.legacyIds.toList()}),
       });
       final store = await ProgressStore.load();
       final s = store.unlockState(courses);
@@ -261,7 +393,7 @@ void main() {
   group('save safety', () {
     test('unknown top-level keys survive load and save', () async {
       final prefs = await seed({
-        'progress_v1': jsonEncode(v1Save(version: 2, extra: {
+        'progress_v1': jsonEncode(v1Save(version: 3, extra: {
           'future': {
             'a': [1, 2]
           },
@@ -275,39 +407,24 @@ void main() {
         'a': [1, 2]
       });
       expect(saved['flag'], isTrue);
-      expect(saved['version'], 2);
+      expect(saved['version'], 3);
     });
 
     test('a newer save is read but never written over', () async {
-      final raw = jsonEncode(v1Save(version: 3, extra: {'future': 1}));
+      final raw = jsonEncode(v1Save(version: 4, extra: {'future': 1}));
       final prefs = await seed({'progress_v1': raw});
       final store = await ProgressStore.load();
       expect(store.isReadOnly, isTrue);
-      expect(store.bestCombo, 9);
+      expect(store.bestCombo, 9, reason: 'not reset');
+      expect(store.freshPaintPending, isFalse);
       await store.noteCombo(50);
       await store.markTutorialSeen();
       expect(prefs.getString('progress_v1'), raw);
-      expect(prefs.getString('progress_v1_backup_v1'), isNull);
-    });
-
-    test('when the old-save copy cannot be written, the save is left alone', () async {
-      final raw = jsonEncode(v1Save());
-      SharedPreferencesStorePlatform.instance = _RefusesKey(
-        'flutter.progress_v1_backup_v1',
-        {'flutter.progress_v1': raw},
-      );
-      SharedPreferences.resetStatic();
-      final prefs = await SharedPreferences.getInstance();
-      final store = await ProgressStore.load();
-      expect(store.isReadOnly, isTrue);
-      await store.noteCombo(50);
-      expect(prefs.getString('progress_v1'), raw);
-      // Her gates are still judged as before in this session.
-      expect(store.unlockState(courses).isCourseOpen('catcafe'), isTrue);
+      expect(prefs.getString('progress_v1_before_reset'), isNull);
     });
 
     test('a newer save keeps the gates it recorded open', () async {
-      final raw = jsonEncode(v1Save(version: 3, extra: {'keptOpen': UnlockTables.legacyIds.toList()}));
+      final raw = jsonEncode(v1Save(version: 4, extra: {'keptOpen': UnlockTables.legacyIds.toList()}));
       await seed({'progress_v1': raw});
       final store = await ProgressStore.load();
       expect(store.isReadOnly, isTrue);
@@ -315,24 +432,18 @@ void main() {
       expect(store.unlockState(courses).isModeOpen(UnlockTables.modeTimeAttack), isTrue);
     });
 
-    test('migrating again after a downgrade refreshes the version 1 copy', () async {
-      final newer = jsonEncode(v1Save(extra: {'bestCombo': 33}));
-      final prefs = await seed({'progress_v1': newer, 'progress_v1_backup_v1': jsonEncode(v1Save())});
-      await ProgressStore.load();
-      expect(prefs.getString('progress_v1_backup_v1'), newer);
-    });
-
     test('a version that is not a number is never written over', () async {
       final raw = jsonEncode(v1Save(version: 'two'));
       final prefs = await seed({'progress_v1': raw});
       final store = await ProgressStore.load();
       expect(store.isReadOnly, isTrue);
+      expect(store.freshPaintPending, isFalse, reason: 'not reset either');
       await store.noteCombo(50);
       expect(prefs.getString('progress_v1'), raw);
     });
 
     test('a broken entry is backed up before the next save drops it', () async {
-      final broken = v1Save();
+      final broken = v1Save(version: 3);
       broken['records'] = {...(broken['records'] as Map), 'bad': 'not a record'};
       final raw = jsonEncode(broken);
       final prefs = await seed({'progress_v1': raw});
@@ -359,7 +470,9 @@ void main() {
       final prefs = await seed({'progress_v1': '{not json'});
       final store = await ProgressStore.load(gatesEnforced: true);
       expect(store.isReadOnly, isFalse);
+      expect(store.freshPaintPending, isFalse);
       expect(prefs.getString('progress_v1_unreadable'), '{not json');
+      expect(prefs.getString('progress_v1_before_reset'), isNull);
       expect(store.unlockState(courses).isModeOpen(UnlockTables.modeSort), isFalse);
     });
   });
