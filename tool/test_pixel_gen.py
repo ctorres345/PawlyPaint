@@ -1,0 +1,272 @@
+"""Tests for tool/pixel_gen.py against a stubbed ComfyUI server.
+
+Run by hand with a Python that has Pillow:
+  ~/.local/share/nousfx/via/venv/bin/python3 -m unittest tool/test_pixel_gen.py
+"""
+import io
+import json
+import os
+import sys
+import tempfile
+import threading
+import time
+import unittest
+import urllib.parse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+from PIL import Image
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pixel_gen as pg  # noqa: E402
+from test_art_to_puzzle import BLUE, RED, WHITE, YELLOW, draw, paint, plain  # noqa: E402
+
+
+def owl(blocks, size):
+    """A subject on a plain background, drawn `blocks` blocks across on a
+    canvas of `size` px. Its box is (blocks - 4) x (blocks - 3), so it fits
+    grid 24 1:1 from 21 to 27 blocks."""
+    rows = plain(blocks, blocks, BLUE)
+    paint(rows, 2, 2, blocks - 2, blocks - 1, WHITE)
+    paint(rows, 4, 4, blocks - 4, blocks - 6, RED)
+    rows[5][5] = YELLOW
+    return draw(rows, block=1).resize((size, size), Image.NEAREST)
+
+
+class StubComfy:
+    """A ComfyUI stand-in: /system_stats, /prompt, /history/<id> (empty on the
+    first poll) and /view. `picture(size, seed)` draws each result, or
+    returns 'refuse' (a 400 from /prompt), 'empty' (a job with no image),
+    'garbage' (an image that does not decode), 'hang' (a job that never
+    finishes), 'slow' (the first history poll answers late, then the image
+    of picture(240, 0)) or 'die' (the server stops)."""
+
+    def __init__(self, picture):
+        self.picture, self.jobs, self.polls, self.results, self.cancels = picture, {}, {}, {}, []
+        stub = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def reply(self, body, kind='application/json'):
+                self.send_response(200)
+                self.send_header('Content-Type', kind)
+                self.end_headers()
+                self.wfile.write(body)
+
+            def do_GET(self):
+                url = urllib.parse.urlparse(self.path)
+                if url.path == '/system_stats':
+                    return self.reply(b'{"system": {}}')
+                if url.path.startswith('/history/'):
+                    pid = url.path.rsplit('/', 1)[1]
+                    stub.polls[pid] = stub.polls.get(pid, 0) + 1
+                    if stub.results[pid] == 'slow' and stub.polls[pid] == 1:
+                        time.sleep(0.3)
+                    if stub.polls[pid] < 2 or stub.results[pid] == 'hang':
+                        return self.reply(b'{}')
+                    image = {'filename': f'{pid}.png', 'subfolder': '', 'type': 'output'}
+                    images = [] if stub.results[pid] == 'empty' else [image]
+                    return self.reply(json.dumps({pid: {'outputs': {'10': {'images': images}}}}).encode())
+                if url.path == '/view':
+                    pid = urllib.parse.parse_qs(url.query)['filename'][0][:-4]
+                    if stub.results[pid] == 'slow':
+                        stub.results[pid] = stub.picture(240, 0)
+                    if stub.results[pid] == 'garbage':
+                        return self.reply(b'not a png', 'image/png')
+                    out = io.BytesIO()
+                    stub.results[pid].save(out, 'PNG')
+                    return self.reply(out.getvalue(), 'image/png')
+                self.send_error(404)
+
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                if self.path in ('/queue', '/interrupt'):
+                    stub.cancels.append((self.path, body))
+                    return self.reply(b'{}')
+                pid = f'job{len(stub.jobs)}'
+                stub.jobs[pid] = inputs = body['prompt']
+                result = stub.picture(inputs['7']['inputs']['width'], inputs['8']['inputs']['seed'])
+                if result == 'die':
+                    threading.Thread(target=stub.close).start()
+                    self.close_connection = True
+                    return
+                if result == 'refuse':
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b'{"error": "value_not_in_list: ae.safetensors"}')
+                    return
+                stub.results[pid] = result
+                self.reply(json.dumps({'prompt_id': pid}).encode())
+
+        self.server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        self.host = f'http://127.0.0.1:{self.server.server_port}'
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
+class Workflow(unittest.TestCase):
+    def test_builds_the_redmond_workflow(self):
+        wf = pg.workflow('Pixel Art, PixArFK, an owl', 240, 2010)
+        by_class = {node['class_type']: node['inputs'] for node in wf.values()}
+        self.assertEqual(by_class['UNETLoader']['unet_name'], 'z_image_turbo_bf16.safetensors')
+        self.assertEqual(by_class['CLIPLoader']['clip_name'], 'qwen_3_4b.safetensors')
+        self.assertEqual(by_class['VAELoader']['vae_name'], 'ae.safetensors')
+        lora = by_class['LoraLoaderModelOnly']
+        self.assertEqual((lora['lora_name'], lora['strength_model']), ('ZImageTurbo_PixelArt_Redmond.safetensors', 1.0))
+        self.assertEqual(by_class['ModelSamplingAuraFlow']['shift'], 3.0)
+        sampler = by_class['KSampler']
+        self.assertEqual((sampler['steps'], sampler['sampler_name'], sampler['scheduler'], sampler['cfg'], sampler['seed']),
+                         (9, 'res_multistep', 'simple', 1.0, 2010))
+        self.assertEqual((by_class['EmptySD3LatentImage']['width'], by_class['EmptySD3LatentImage']['height']), (240, 240))
+        self.assertEqual(by_class['CLIPTextEncode']['text'], 'Pixel Art, PixArFK, an owl')
+        self.assertEqual(wf[lora_id(wf)]['inputs']['model'], ['1', 0], 'the LoRA takes the model')
+        self.assertEqual(by_class['ModelSamplingAuraFlow']['model'], [lora_id(wf), 0], 'the sampler takes the LoRA')
+
+    def test_the_prompt_starts_with_the_trigger_and_names_the_level_colours(self):
+        prompt = pg.prompt_for('a round owl', 24)
+        self.assertTrue(prompt.startswith('Pixel Art, PixArFK, a round owl. '))
+        self.assertIn('at most 8 colours', prompt)
+
+
+def lora_id(wf):
+    return next(k for k, node in wf.items() if node['class_type'] == 'LoraLoaderModelOnly')
+
+
+class Host(unittest.TestCase):
+    def test_the_host_comes_from_the_flag_or_the_environment(self):
+        self.assertEqual(pg.host_of('pc.lan:8188', {}), 'http://pc.lan:8188')
+        self.assertEqual(pg.host_of(None, {'PAWLY_COMFY_HOST': 'http://pc.lan:8188/'}), 'http://pc.lan:8188')
+        with self.assertRaises(SystemExit) as caught:
+            pg.host_of(None, {})
+        self.assertIn('PAWLY_COMFY_HOST', str(caught.exception))
+
+
+class Search(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        self.out = os.path.join(self.dir.name, 'owl')
+        self.job = {'name': 'owl', 'grid': 24, 'fit': 'subject', 'prompt': pg.prompt_for('a round owl', 24)}
+
+    def serve(self, picture):
+        stub = StubComfy(picture)
+        self.addCleanup(stub.close)
+        return stub
+
+    def test_keeps_only_the_seeds_that_fit_1_to_1(self):
+        stub = self.serve(lambda size, seed: owl(24 if seed == 2010 else 30 if size == 240 else 32, size))
+        result = pg.search(pg.Comfy(stub.host, poll=0.01), self.job, self.out, seeds=2, scales=[10, 12], log=lambda *_: None)
+        self.assertEqual([(h['seed'], h['scale']) for h in result['hits']], [(2010, 10)],
+                         'only seed 2010 draws 24 blocks; the rest draw 30 or 32')
+        self.assertEqual(len(result['misses']), 3)
+        self.assertEqual(sorted(os.listdir(self.out)), ['owl-c10-s2010.png', 'puzzle-owl-c10-s2010.png', 'report.json'])
+        with Image.open(os.path.join(self.out, 'puzzle-owl-c10-s2010.png')) as puzzle:
+            self.assertEqual(puzzle.size, (24 * 16, 24 * 16))
+        self.assertEqual(sorted(job['7']['inputs']['width'] for job in stub.jobs.values()), [240, 240, 288, 288])
+        report = json.load(open(os.path.join(self.out, 'report.json')))
+        self.assertEqual((report['prompt'], report['grid'], report['fit']), (self.job['prompt'], 24, 'subject'))
+
+    def test_no_fit_reports_the_closest_sizes(self):
+        stub = self.serve(lambda size, seed: owl(30 if size == 240 else 36, size))
+        lines = []
+        result = pg.search(pg.Comfy(stub.host, poll=0.01), self.job, self.out, seeds=1, scales=[10, 12], log=lines.append)
+        self.assertEqual(result['hits'], [])
+        self.assertRegex(lines[-1], r'^no 1:1 fit in 2 tries; closest: subject 2\dx2\d over grid 24; subject 3\dx3\d over grid 24$',
+                         'closest first: the 30-block picture before the 36-block one')
+        self.assertEqual(os.listdir(self.out), ['report.json'])
+
+    def test_stops_when_comfyui_is_not_reachable_and_writes_nothing(self):
+        stub = StubComfy(lambda size, seed: owl(24, size))
+        host = stub.host
+        stub.close()
+        with self.assertRaises(SystemExit) as caught:
+            pg.search(pg.Comfy(host, poll=0.01), self.job, self.out, seeds=1, scales=[10], log=lambda *_: None)
+        self.assertEqual(str(caught.exception), f'ComfyUI not reachable at {host}')
+        self.assertFalse(os.path.exists(self.out))
+
+
+    def test_a_failed_job_is_a_miss_and_the_search_goes_on(self):
+        outcomes = {1010: 'refuse', 2010: 'empty', 3010: 'garbage'}
+        stub = self.serve(lambda size, seed: outcomes.get(seed) or owl(24, size))
+        result = pg.search(pg.Comfy(stub.host, poll=0.01), self.job, self.out, seeds=4, scales=[10], log=lambda *_: None)
+        self.assertEqual([h['seed'] for h in result['hits']], [4010])
+        whys = {m['seed']: m['why'] for m in result['misses']}
+        self.assertIn('HTTP 400', whys[1010])
+        self.assertIn('ae.safetensors', whys[1010])
+        self.assertIn('no image', whys[2010])
+        self.assertIn('cannot identify image', whys[3010])
+
+    def test_a_job_that_times_out_is_cancelled_and_the_next_one_still_runs(self):
+        stub = self.serve(lambda size, seed: 'hang' if seed == 1010 else owl(24, size))
+        comfy = pg.Comfy(stub.host, poll=0.01, timeout=0.2)
+        result = pg.search(comfy, self.job, self.out, seeds=2, scales=[10], log=lambda *_: None)
+        self.assertEqual([h['seed'] for h in result['hits']], [2010])
+        self.assertIn('no picture after', result['misses'][0]['why'])
+        self.assertEqual(stub.cancels, [('/queue', {'delete': ['job0']}), ('/interrupt', {})])
+
+    def test_a_poll_that_answers_late_is_retried_not_cancelled(self):
+        stub = self.serve(lambda size, seed: 'slow' if seed else owl(24, size))
+        comfy = pg.Comfy(stub.host, poll=0.01, timeout=5, http_timeout=0.1)
+        result = pg.search(comfy, self.job, self.out, seeds=1, scales=[10], log=lambda *_: None)
+        self.assertEqual([h['seed'] for h in result['hits']], [1010])
+        self.assertEqual(stub.cancels, [])
+
+    def test_when_every_job_is_refused_the_summary_says_why(self):
+        stub = self.serve(lambda size, seed: 'refuse')
+        lines = []
+        pg.search(pg.Comfy(stub.host, poll=0.01), self.job, self.out, seeds=2, scales=[10], log=lines.append)
+        self.assertTrue(lines[-1].startswith('no 1:1 fit in 2 tries; closest: none measured: ComfyUI refused the job'))
+        self.assertIn('ae.safetensors', lines[-1])
+
+    def test_a_server_lost_mid_run_stops_and_keeps_the_report(self):
+        stub = StubComfy(lambda size, seed: 'die' if seed == 2010 else owl(24, size))
+        with self.assertRaises(SystemExit) as caught:
+            pg.search(pg.Comfy(stub.host, poll=0.01), self.job, self.out, seeds=3, scales=[10], log=lambda *_: None)
+        self.assertEqual(str(caught.exception), f'ComfyUI not reachable at {stub.host}')
+        report = json.load(open(os.path.join(self.out, 'report.json')))
+        self.assertEqual([h['seed'] for h in report['hits']], [1010])
+
+    def test_a_bad_port_is_reported_as_not_reachable(self):
+        with self.assertRaises(SystemExit) as caught:
+            pg.Comfy('http://pc.lan:88a8').check()
+        self.assertEqual(str(caught.exception), 'ComfyUI not reachable at http://pc.lan:88a8')
+
+
+class Jobs(unittest.TestCase):
+    def test_the_owl_test_picture(self):
+        job = pg.bakeoff_job('owl')
+        self.assertEqual((job['grid'], job['fit']), (24, 'subject'))
+        self.assertIn('owl', job['prompt'])
+
+    def test_an_entry_with_a_seed_and_scale_makes_that_one_picture_again(self):
+        entries = [{'course': 'animals', 'slug': 'owl', 'grid': 24, 'fit': 'subject', 'prompt': 'a round owl',
+                    'seed': 2012, 'scale': 12},
+                   {'course': 'classics', 'slug': 'heart', 'grid': 16, 'fit': None, 'prompt': None,
+                    'seed': None, 'scale': None}]
+        job = pg.entry_job('owl', entries)
+        self.assertEqual((job['name'], job['grid'], job['fit'], job['seed'], job['scale']),
+                         ('animals-owl', 24, 'subject', 2012, 12))
+        self.assertTrue(job['prompt'].startswith('Pixel Art, PixArFK, a round owl. '))
+        self.assertEqual(pg.entry_job('animals/owl', entries)['name'], 'animals-owl')
+        with self.assertRaises(SystemExit, msg='heart has no prompt recorded'):
+            pg.entry_job('heart', entries)
+        with self.assertRaises(SystemExit):
+            pg.entry_job('fox', entries)
+
+    def test_a_recorded_seed_is_searched_alone(self):
+        stub = StubComfy(lambda size, seed: owl(24, size))
+        self.addCleanup(stub.close)
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        job = {'name': 'animals-owl', 'grid': 24, 'fit': 'subject', 'prompt': 'p', 'seed': 2012, 'scale': 12}
+        result = pg.search(pg.Comfy(stub.host, poll=0.01), job, d.name, seeds=6, scales=[10, 12], log=lambda *_: None)
+        self.assertEqual([(h['seed'], h['scale']) for h in result['hits']], [(2012, 12)])
+        self.assertEqual(len(stub.jobs), 1)
+
+
+if __name__ == '__main__':
+    unittest.main()

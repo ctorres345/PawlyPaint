@@ -344,4 +344,50 @@ It prints `true`.
 
 ## Regenerate assets
 
-Music, sounds and the icon come from `tool/*.py`; never hand-edit the outputs. Commands are in the README, "Development".
+Music, sounds and the icon come from `tool/*.py`; never hand-edit the outputs. Commands are in the README, "Development". Puzzle picture sources come from "Local art generation" below.
+
+## Local art generation
+
+Puzzle pictures are drawn by Z-Image Turbo with the PIXELART-REDMOND LoRA on ComfyUI, on Cesar's Windows PC (RTX 5070 Ti, 16 GB), and fetched over the home network by `tool/pixel_gen.py` on the Mac. The style and canvas sizes are in `design/brief.md`, "Local generation". No address belongs in this repo: the host lives only in the `PAWLY_COMFY_HOST` environment variable on the Mac (or `--host`).
+
+### One time: set up ComfyUI on the PC
+
+1. Install the ComfyUI Windows portable build for NVIDIA (`ComfyUI_windows_portable_nvidia.7z`) from the [ComfyUI releases](https://github.com/comfyanonymous/ComfyUI/releases) and extract it.
+2. Put the model files in its `ComfyUI\models\` folders, with exactly these names (`pixel_gen.py` asks for them by name):
+
+   | File | Folder | Source | Licence |
+   |---|---|---|---|
+   | `z_image_turbo_bf16.safetensors` | `diffusion_models` | [Comfy-Org/z_image_turbo](https://huggingface.co/Comfy-Org/z_image_turbo) (from [Tongyi-MAI/Z-Image-Turbo](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo)) | [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) |
+   | `qwen_3_4b.safetensors` | `text_encoders` | [Comfy-Org/z_image_turbo](https://huggingface.co/Comfy-Org/z_image_turbo) (from [Qwen/Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B)) | [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) |
+   | `ae.safetensors` | `vae` | [Comfy-Org/z_image_turbo](https://huggingface.co/Comfy-Org/z_image_turbo) | not stated on the repack; check the repo before using the art outside the game |
+   | `ZImageTurbo_PixelArt_Redmond.safetensors` | `loras` | [artificialguybr/PIXELART-REDMOND-ZIMAGETURBO](https://huggingface.co/artificialguybr/PIXELART-REDMOND-ZIMAGETURBO), saved under this name | [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) |
+
+   ComfyUI itself is [GPL-3.0](https://github.com/comfyanonymous/ComfyUI/blob/master/LICENSE); the pictures it makes are not part of it. The [ComfyUI Z-Image Turbo guide](https://docs.comfy.org/tutorials/image/z-image/z-image-turbo) shows the same files and folders.
+3. Start it from the portable folder so it listens on the home network: add `--listen --port 8188` to the command line in `run_nvidia_gpu.bat`, then run it.
+4. **Cesar:** Windows shows a firewall prompt for Python. Allow it on Private networks only, never Public. `--listen` has no login, so anyone on the network can queue jobs: in the firewall rule's Scope, limit the remote address to the Mac, and don't install ComfyUI-Manager or custom nodes on this server.
+
+### Every session: check the server
+
+On the Mac, set the host for this shell (ask Cesar for the PC's name or address; never commit it):
+
+```bash
+export PAWLY_COMFY_HOST=http://<pc>:8188
+curl -s "$PAWLY_COMFY_HOST/system_stats" | head -c 200
+curl -s "$PAWLY_COMFY_HOST/object_info/LoraLoaderModelOnly" | grep -o 'ZImageTurbo_PixelArt_Redmond.safetensors' | head -1
+curl -s "$PAWLY_COMFY_HOST/object_info/UNETLoader" | grep -o 'z_image_turbo_bf16.safetensors' | head -1
+```
+
+Each line must print something. No answer: the PC is asleep or ComfyUI is not running (`pixel_gen.py` then stops with "ComfyUI not reachable at <host>" and writes nothing). A missing file name: a model file was renamed or replaced, which changes the style; put the file from the table back.
+
+### Make pictures
+
+Run with the Via venv (the fit check needs Pillow) and keep the output outside the repo:
+
+```bash
+~/.local/share/nousfx/via/venv/bin/python3 tool/pixel_gen.py --test owl --out ~/Releases/pawlypaint/<KEY>/owl
+```
+
+- `--prompt "<subject and setting>" --grid <16|24|32|40> --name <slug>` for a new picture; `--entry <course>/<slug>` makes a recorded picture again.
+- It keeps only the seeds that fit the grid 1:1: `<name>-c<scale>-s<seed>.png` (the source), `puzzle-<...>.png` (the converted puzzle) and `report.json` (every try, with its time and why it missed).
+- No fit: it prints the closest sizes it saw and exits non-zero. Try more `--seeds`, other `--scales` (7 to 16), or change how much of the frame the prompt asks the subject to fill.
+- An approved source goes to `design/assets/`, with `fit`, `prompt`, `seed` and `scale` in its `design/assets.toml` entry; then `tool/art_to_puzzle.py --check` and `--build`.

@@ -60,6 +60,10 @@ usage = "PAP-43 hidden gallery frame, shown after the PAP-45 secret; picker swat
 # `slug` (the game's hyphenated picture slug) and `grid` (Easy 16, Medium 24, Hard 32, Extreme 40).
 # `exact = true` (PAP-93) marks a source drawn at its grid: --check fails it unless the whole frame
 # is exactly `grid` blocks across on a clean block grid. The Classics are off-grid and leave it out.
+# PAP-95: `fit = "subject"` or `"scene"` (not with `exact`) places a source drawn near its grid 1:1:
+# a subject is padded with its background, a scene up to 4 blocks over is trimmed evenly. `exact` and
+# `fit` sources get the region-safe colour cut. `prompt` (the subject text), `seed` and `scale` (px a
+# cell, 7-16; set both or neither) record how tool/pixel_gen.py made the picture: `pixel_gen.py --entry <course>/<slug>`.
 # "web" is a git-ignored staging sink so approve never writes into assets/art.
 
 [[asset]]
