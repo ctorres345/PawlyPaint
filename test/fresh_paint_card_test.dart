@@ -51,7 +51,7 @@ void main() {
     expect(tester.getSemantics(find.byTooltip('Dismiss')).label, 'Dismiss', reason: 'its own button');
 
     await tester.tap(find.byTooltip('Dismiss'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(card, findsNothing);
 
     await tester.pumpWidget(const SizedBox());
