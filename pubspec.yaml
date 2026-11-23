@@ -45,6 +45,7 @@ flutter:
     # Picture art (PAP-77): one indexed PNG per picture, written by
     # tool/art_to_puzzle.py --build. One line per course folder.
     - assets/pictures/classics/
+    - assets/pictures/animals/
   fonts:
     # Variable font (weights 300-700), SIL Open Font License: assets/fonts/OFL.txt
     - family: Quicksand

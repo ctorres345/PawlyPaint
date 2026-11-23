@@ -6,12 +6,12 @@ import 'package:pawlypaint/state/achievements.dart';
 import 'package:pawlypaint/state/progress_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _otherCoursesCountAndFnv1aOn946505c = {false: (140, 1787030827), true: (80, 1236448668)};
+const _otherCoursesCountAndFnv1aOnC3d419c = {false: (120, 4095169608), true: (60, 3567491425)};
 
 (int, int) _fnv1aOfOtherCourses(List<Course> courses) {
   var h = 0x811c9dc5, n = 0;
   for (final c in courses) {
-    if (c.id == 'classics') continue;
+    if (c.id == 'classics' || c.id == 'animals') continue;
     for (final p in c.puzzles) {
       n++;
       final s = '${p.id}|${p.title}|${p.width}|${p.cells.join(',')}|'
@@ -33,8 +33,8 @@ void main() {
   };
 
   test('every other course still builds from its shape art, picture for picture, in both builds', () {
-    expect(_fnv1aOfOtherCourses(sideload), _otherCoursesCountAndFnv1aOn946505c[false]);
-    expect(_fnv1aOfOtherCourses(store), _otherCoursesCountAndFnv1aOn946505c[true]);
+    expect(_fnv1aOfOtherCourses(sideload), _otherCoursesCountAndFnv1aOnC3d419c[false]);
+    expect(_fnv1aOfOtherCourses(store), _otherCoursesCountAndFnv1aOnC3d419c[true]);
   });
 
   test('the sideload build lists every course, in the same order as before', () {

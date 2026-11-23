@@ -285,3 +285,237 @@ usage = "PAP-71 Cozy Classics Extreme (40x40 pixel art): Fireside Nap, a cat nap
 course = "classics"
 slug = "fireside"
 grid = 40
+
+# Animal Friends (PAP-79): Gemini pixel art, same pipeline as Classics. Titles and slugs from lib/data/courses.dart.
+
+[[asset]]
+name = "puzzle_animals_fish"
+kind = "image"
+source = "design/assets/puzzle_animals_fish.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Goldie, a round orange goldfish with a big eye and a fanned tail"
+course = "animals"
+slug = "fish"
+grid = 16
+
+[[asset]]
+name = "puzzle_animals_bunny"
+kind = "image"
+source = "design/assets/puzzle_animals_bunny.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Bun Bun, a white bunny face with long pink-lined ears"
+course = "animals"
+slug = "bunny"
+grid = 16
+
+[[asset]]
+name = "puzzle_animals_chick"
+kind = "image"
+source = "design/assets/puzzle_animals_chick.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Peep, a round fluffy yellow chick with an orange beak"
+course = "animals"
+slug = "chick"
+grid = 16
+
+[[asset]]
+name = "puzzle_animals_ladybug"
+kind = "image"
+source = "design/assets/puzzle_animals_ladybug.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Lucky Bug, a red ladybug with black spots seen from above"
+course = "animals"
+slug = "ladybug"
+grid = 16
+
+[[asset]]
+name = "puzzle_animals_snail"
+kind = "image"
+source = "design/assets/puzzle_animals_snail.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Slowpoke, a little snail with a swirly brown shell"
+course = "animals"
+slug = "snail"
+grid = 16
+
+[[asset]]
+name = "puzzle_animals_fox"
+kind = "image"
+source = "design/assets/puzzle_animals_fox.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Clever Fox, a sitting orange fox with a white-tipped bushy tail"
+course = "animals"
+slug = "fox"
+grid = 24
+
+[[asset]]
+name = "puzzle_animals_penguin"
+kind = "image"
+source = "design/assets/puzzle_animals_penguin.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Waddles, a chubby penguin with a white belly and orange feet"
+course = "animals"
+slug = "penguin"
+grid = 24
+
+[[asset]]
+name = "puzzle_animals_owl"
+kind = "image"
+source = "design/assets/puzzle_animals_owl.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Night Owl, a round brown owl with big eyes on a branch"
+course = "animals"
+slug = "owl"
+grid = 24
+
+[[asset]]
+name = "puzzle_animals_frog"
+kind = "image"
+source = "design/assets/puzzle_animals_frog.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Lily Hopper, a happy green frog sitting on a lily pad"
+course = "animals"
+slug = "frog"
+grid = 24
+
+[[asset]]
+name = "puzzle_animals_whale"
+kind = "image"
+source = "design/assets/puzzle_animals_whale.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Big Blue, a smiling blue whale with a little water spout"
+course = "animals"
+slug = "whale"
+grid = 24
+
+[[asset]]
+name = "puzzle_animals_panda"
+kind = "image"
+source = "design/assets/puzzle_animals_panda.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Bamboo Bear, a panda sitting and holding a green bamboo stalk"
+course = "animals"
+slug = "panda"
+grid = 32
+
+[[asset]]
+name = "puzzle_animals_turtle"
+kind = "image"
+source = "design/assets/puzzle_animals_turtle.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Sea Wanderer, a sea turtle swimming, with a patterned green shell"
+course = "animals"
+slug = "turtle"
+grid = 32
+
+[[asset]]
+name = "puzzle_animals_hedgehog"
+kind = "image"
+source = "design/assets/puzzle_animals_hedgehog.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Prickles, a hedgehog with soft brown spines and a tiny nose"
+course = "animals"
+slug = "hedgehog"
+grid = 32
+
+[[asset]]
+name = "puzzle_animals_parrot"
+kind = "image"
+source = "design/assets/puzzle_animals_parrot.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Polly, a bright parrot with red, blue and yellow feathers on a perch"
+course = "animals"
+slug = "parrot"
+grid = 32
+
+[[asset]]
+name = "puzzle_animals_bee"
+kind = "image"
+source = "design/assets/puzzle_animals_bee.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Busy Bee, a fuzzy striped bumblebee with clear wings"
+course = "animals"
+slug = "bee"
+grid = 32
+
+[[asset]]
+name = "puzzle_animals_hamster"
+kind = "image"
+source = "design/assets/puzzle_animals_hamster.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Teacup Hamster, a fluffy hamster sitting inside a teacup"
+course = "animals"
+slug = "hamster"
+grid = 40
+
+[[asset]]
+name = "puzzle_animals_koala"
+kind = "image"
+source = "design/assets/puzzle_animals_koala.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Sleepy Koala, a sleepy koala hugging a eucalyptus branch"
+course = "animals"
+slug = "koala"
+grid = 40
+
+[[asset]]
+name = "puzzle_animals_otter"
+kind = "image"
+source = "design/assets/puzzle_animals_otter.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Otter Float, an otter floating on its back holding a shell"
+course = "animals"
+slug = "otter"
+grid = 40
+
+[[asset]]
+name = "puzzle_animals_lion"
+kind = "image"
+source = "design/assets/puzzle_animals_lion.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Little Lion, a lion cub with a fluffy golden mane"
+course = "animals"
+slug = "lion"
+grid = 40
+
+[[asset]]
+name = "puzzle_animals_fawn"
+kind = "image"
+source = "design/assets/puzzle_animals_fawn.png"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Forest Fawn, a spotted fawn standing in soft grass"
+course = "animals"
+slug = "fawn"
+grid = 40
+
+# Animal Friends course card (PAP-79). Approve keys out the green; the bundled cover
+# assets/art/courses/animals.png is that cutout cropped to the subject and scaled to at most 512 px.
+
+[[asset]]
+name = "course_animals_cover"
+kind = "image"
+source = "design/assets/course_animals_cover.png"
+transparent = "#00FF00"
+platforms = ["web"]
+size = "1024x1024"
+usage = "PAP-79 Home course card for Animal Friends: pixel art group of cute animal friends (bunny, fox, chick, panda) side by side, wide composition, on a flat key-green background"
