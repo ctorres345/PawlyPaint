@@ -4,11 +4,13 @@ CI does not run these (it has no Python). Run by hand with a Python that has
 Pillow:
   ~/.local/share/nousfx/via/venv/bin/python3 -m unittest tool/test_art_to_puzzle.py
 """
+import math
 import os
 import random
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from PIL import Image
 
@@ -49,14 +51,35 @@ def paint(grid, x0, y0, x1, y1, colour):
 
 
 class Crop(unittest.TestCase):
+    def test_ground_that_runs_off_the_frame_stays_on_its_edges(self):
+        grid = paint(plain(98, 100, WHITE), 0, 85, 98, 100, GREEN)
+        grid = paint(grid, 40, 20, 60, 40, RED)
+        framed = a2p.crop(grid, 40)
+        self.assertEqual(len(framed), 98)
+        self.assertEqual(set(framed[-1]), {GREEN})
+        self.assertEqual({row[0] for row in framed[-15:]} | {row[-1] for row in framed[-15:]}, {GREEN})
+
+    def test_an_oversized_square_pads_only_the_open_side(self):
+        size, side = 10, 20
+        self.assertEqual(a2p._square_start(0, 8, side, size), 0)
+        self.assertEqual(a2p._square_start(2, size, side, size), size - side)
+        self.assertEqual(a2p._square_start(2, 8, side, size), -5)
+
+    def test_a_one_block_diagonal_antenna_is_kept(self):
+        grid = paint(plain(100, 100, WHITE), 40, 50, 60, 80, RED)
+        for i in range(1, 15):
+            grid[50 - i][60 + i - 1] = RED
+        self.assertEqual(a2p.subject_box(grid, WHITE), (40, 36, 74, 80))
+
     def test_crops_a_square_around_the_subject_with_one_cell_of_margin(self):
-        grid = paint(plain(100, 100, WHITE), 60, 50, 80, 90, RED)  # 20 wide, 40 tall
-        framed = a2p.crop(grid, 16)
-        side = 46  # ceil(40 * 16 / 14): one target cell of margin each side
+        w, h, n = 20, 40, 16
+        grid = paint(plain(100, 100, WHITE), 60, 50, 60 + w, 50 + h, RED)
+        framed = a2p.crop(grid, n)
+        side = math.ceil(h * n / (n - 2))
         self.assertEqual((len(framed), len(framed[0])), (side, side))
         reds = [(x, y) for y, row in enumerate(framed) for x, c in enumerate(row) if c == RED]
-        self.assertEqual(len(reds), 20 * 40)
-        margin = side / 16
+        self.assertEqual(len(reds), w * h)
+        margin = side / n
         self.assertGreaterEqual(min(y for _, y in reds), margin - 1)
         self.assertLessEqual(max(y for _, y in reds), side - margin)
 
@@ -78,7 +101,8 @@ class Crop(unittest.TestCase):
 
     def test_a_stray_speck_does_not_widen_the_crop(self):
         grid = paint(plain(100, 100, WHITE), 40, 40, 60, 60, RED)
-        grid[2][97] = BLUE  # a lone block near the corner
+        speck_x, speck_y = 97, 2
+        grid[speck_y][speck_x] = BLUE
         self.assertEqual(a2p.subject_box(grid, WHITE), (40, 40, 60, 60))
 
     def test_a_subject_wider_than_a_short_frame_is_padded_not_cut(self):
@@ -91,9 +115,16 @@ class Crop(unittest.TestCase):
 class DominantMerge(unittest.TestCase):
     def test_a_merged_group_keeps_its_biggest_members_colour(self):
         pale_bg, pale_body = (200, 200, 235), (214, 214, 240)
-        grid = paint(plain(10, 10, pale_bg), 0, 0, 10, 3, pale_body)  # 70 bg, 30 body
+        body_rows = 3
+        grid = paint(plain(10, 10, pale_bg), 0, 0, 10, body_rows, pale_body)
         out = a2p.reduce_palette(grid, gap=a2p.MIN_RGB_GAP)
         self.assertEqual({c for row in out for c in row}, {pale_bg})
+
+    def test_the_most_common_colour_wins_over_a_bigger_group_of_shades(self):
+        shade_a, shade_b, flat = (100, 100, 100), (115, 100, 100), (100, 100, 120)
+        grid = [[shade_a] * 40 + [shade_b] * 35 + [flat] * 50]
+        out = a2p.reduce_palette(grid, limit=1)
+        self.assertEqual({c for row in out for c in row}, {flat})
 
     def test_shade_folding_keeps_the_main_shade(self):
         grid = paint(plain(10, 10, RED), 0, 0, 10, 2, (226, 34, 44))
@@ -102,32 +133,44 @@ class DominantMerge(unittest.TestCase):
 
 
 class DetailVote(unittest.TestCase):
-    def face(self):
-        # 48 x 48 native blocks of yellow with a dark outline ring and a 2 x 2
-        # eye: at 16 cells each cell is 3 x 3 blocks, so the eye covers 4/9 of
-        # cell (3, 3) and yellow the rest.
+    def face_with_outline_and_eye_in_cell_3_3(self):
+        """48 x 48 yellow blocks with a one-block outline ring. At 16 cells a
+        cell is 3 x 3 blocks; the 2 x 2 eye covers 4/9 of cell (3, 3)."""
         grid = plain(48, 48, YELLOW)
         for i in range(48):
             grid[0][i] = grid[47][i] = grid[i][0] = grid[i][47] = BLUE
         return paint(grid, 10, 10, 12, 12, BLUE)
 
     def test_a_small_feature_wins_a_cell_it_covers_under_half_of(self):
-        self.assertEqual(a2p.shrink(self.face(), 16)[3][3], BLUE)
+        self.assertEqual(a2p.shrink(self.face_with_outline_and_eye_in_cell_3_3(), 16)[3][3], BLUE)
 
     def test_the_plain_majority_vote_drops_it(self):
-        out = a2p.shrink(self.face(), 16, detail=False)
+        no_colour_qualifies = 1.01
+        with mock.patch.object(a2p, 'DETAIL_SHARE', no_colour_qualifies):
+            out = a2p.shrink(self.face_with_outline_and_eye_in_cell_3_3(), 16)
         self.assertFalse(any(out[y][x] == BLUE for y in range(1, 15) for x in range(1, 15)))
 
     def test_a_sliver_under_the_minimum_share_does_not_win(self):
         grid = plain(64, 64, YELLOW)
-        grid[10][10] = BLUE  # 1 block of a 4 x 4 cell: 6%
+        sliver_x, sliver_y = 10, 10
+        grid[sliver_y][sliver_x] = BLUE
         self.assertEqual({c for row in a2p.shrink(grid, 16) for c in row}, {YELLOW})
+
+    def test_even_texture_does_not_speckle(self):
+        fur, stroke = (150, 100, 60), (90, 60, 30)
+        grid = [[stroke if (x + 2 * y) % 5 == 0 else fur for x in range(48)] for y in range(48)]
+        self.assertEqual({c for row in a2p.shrink(grid, 16) for c in row}, {fur})
+
+    def test_a_one_block_outline_stays_one_cell_thick(self):
+        out = a2p.shrink(self.face_with_outline_and_eye_in_cell_3_3(), 16)
+        self.assertTrue(all(out[0][x] == BLUE and out[1][x] == YELLOW for x in range(2, 14)))
 
 
 class SubjectLoss(unittest.TestCase):
     def test_fails_a_subject_merged_into_the_background(self):
         rows = [[0] * 16 for _ in range(16)]
-        rows[3][3], rows[3][4], rows[4][3] = 1, 2, 1  # only the eyes are left
+        for x, y, colour in [(3, 3, 1), (4, 3, 2), (3, 4, 1)]:
+            rows[y][x] = colour
         img = indexed(rows, [WHITE, RED, BLUE])
         self.assertTrue(any('subject' in p for p in a2p.verify(img, 16, subject=0.5)))
 
@@ -290,6 +333,20 @@ class Manifest(unittest.TestCase):
         with Image.open(os.path.join(out_root, 'classics', 'heart.png')) as img:
             self.assertEqual((img.mode, img.size), ('P', (24, 24)))
             self.assertNotIn('transparency', img.info)
+
+    def test_check_fails_a_built_png_that_is_missing_or_out_of_date(self):
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        src = os.path.join(d.name, 'src.png')
+        blocks([RED, GREEN, BLUE, WHITE]).save(src)
+        out_root = os.path.join(d.name, 'pictures')
+        entry = {'course': 'classics', 'slug': 'heart', 'grid': 16, 'source': src}
+        self.assertEqual(a2p.check([entry], out_root=out_root), 1)
+        a2p.build([entry], out_root)
+        self.assertEqual(a2p.check([entry], out_root=out_root), 0)
+        built = os.path.join(out_root, 'classics', 'heart.png')
+        indexed([[(x + y) % 3 for x in range(16)] for y in range(16)], [RED, GREEN, BLUE]).save(built)
+        self.assertEqual(a2p.check([entry], out_root=out_root), 1)
 
     def test_build_removes_the_old_png_of_a_picture_that_now_fails(self):
         d = tempfile.TemporaryDirectory()
