@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../data/rewards.dart';
 import '../data/tutorial.dart';
@@ -153,27 +154,23 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     children: [
                       if (store.isReadOnly) ...[const _ReadOnlyBanner(), const SizedBox(height: 16)],
                       const SizedBox(height: 4),
-                      if (store.freshPaintPending) ...[
-                        _FreshPaintCard(onClose: store.dismissFreshPaint),
-                        _gapAboveTaggedCard,
-                      ],
-                      SizedBox(
-                        height: 176,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(flex: 12, child: _DailyCard(courses: courses, store: store, unlocks: unlocks)),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 10,
-                              child: _TimeAttackCard(
-                                store: store,
-                                open: unlocks.isModeOpen(UnlockTables.modeTimeAttack),
-                                onRace: () => _openTimeAttack(store),
-                              ),
-                            ),
-                          ],
+                      _Collapse(
+                        child: store.freshPaintPending
+                            ? Column(
+                                key: const ValueKey('freshPaint'),
+                                children: [_FreshPaintCard(onClose: store.dismissFreshPaint), _gapAboveTaggedCard],
+                              )
+                            : const SizedBox(width: double.infinity),
+                      ),
+                      _HeroRow(
+                        daily: _DailyCard(courses: courses, store: store, unlocks: unlocks),
+                        timeAttack: _TimeAttackCard(
+                          store: store,
+                          open: unlocks.isModeOpen(UnlockTables.modeTimeAttack),
+                          onRace: () => _openTimeAttack(store),
                         ),
+                        dailyOpen: unlocks.isModeOpen(UnlockTables.modeDaily),
+                        timeAttackOpen: unlocks.isModeOpen(UnlockTables.modeTimeAttack),
                       ),
                       sectionGap,
                       StickerHeader(
@@ -370,6 +367,34 @@ class _ReadOnlyBanner extends StatelessWidget {
 
 const _gapAboveTaggedCard = SizedBox(height: 26);
 
+/// Shrinks and fades out a child that leaves, so the cards below glide up
+/// instead of jumping (PAP-88). Closes at once with reduce motion. Give each
+/// child its own key.
+class _Collapse extends StatelessWidget {
+  const _Collapse({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 250),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeOut,
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topCenter,
+        children: [...previous, if (current != null) current],
+      ),
+      transitionBuilder: (child, animation) => SizeTransition(
+        sizeFactor: animation,
+        alignment: Alignment.topCenter,
+        child: FadeTransition(opacity: animation, child: child),
+      ),
+      child: child,
+    );
+  }
+}
+
 /// Says why her progress is empty after the Fresh paint reset, until she closes it (PAP-78).
 class _FreshPaintCard extends StatelessWidget {
   const _FreshPaintCard({required this.onClose});
@@ -425,13 +450,7 @@ class _DailyCard extends StatelessWidget {
     final puzzle = all.firstWhere((p) => p.id == id);
     final done = store.dailyDoneToday(today);
     final streak = store.streak(today);
-    if (!unlocks.isModeOpen(UnlockTables.modeDaily)) {
-      return _LockedHero(
-        icon: Icons.calendar_today_rounded,
-        title: "Today's picture",
-        condition: unlockCondition(UnlockTables.modeDaily),
-      );
-    }
+    if (!unlocks.isModeOpen(UnlockTables.modeDaily)) return const _LockedHero.daily();
     void play() => _pickDailyMode(context, store, puzzle, sortOpen: unlocks.isModeOpen(UnlockTables.modeSort));
     return Semantics(
       container: true,
@@ -544,13 +563,7 @@ class _TimeAttackCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.paw;
-    if (!open) {
-      return _LockedHero(
-        icon: Icons.bolt_rounded,
-        title: 'Time Attack',
-        condition: unlockCondition(UnlockTables.modeTimeAttack),
-      );
-    }
+    if (!open) return const _LockedHero.timeAttack();
     final best = Difficulty.values.map((d) => store.timeAttack(d)).where((r) => r.wins > 0).fold(0, (m, r) {
       return r.bestLeft > m ? r.bestLeft : m;
     });
@@ -603,17 +616,82 @@ class _TimeAttackCard extends StatelessWidget {
   }
 }
 
+/// The minimum height of Today's picture and Time Attack.
+const _heroHeight = 176.0;
+
+/// Today's picture beside Time Attack, both the same height: [_heroHeight],
+/// or taller when a locked card needs room for its whole hint at large text
+/// (PAP-88).
+class _HeroRow extends StatelessWidget {
+  const _HeroRow({
+    required this.daily,
+    required this.timeAttack,
+    required this.dailyOpen,
+    required this.timeAttackOpen,
+  });
+
+  final Widget daily;
+  final Widget timeAttack;
+  final bool dailyOpen;
+  final bool timeAttackOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget sized(Widget card, bool open) => open ? _OpenHeroHeight(child: card) : card;
+    final row = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(flex: 12, child: sized(daily, dailyOpen)),
+        const SizedBox(width: 12),
+        Expanded(flex: 10, child: sized(timeAttack, timeAttackOpen)),
+      ],
+    );
+    if (dailyOpen && timeAttackOpen) return SizedBox(height: _heroHeight, child: row);
+    return IntrinsicHeight(
+      child: ConstrainedBox(constraints: const BoxConstraints(minHeight: _heroHeight), child: row),
+    );
+  }
+}
+
+/// Answers intrinsic height queries for an open hero card with
+/// [_heroHeight]: its thumb uses a LayoutBuilder, which can't answer them,
+/// and only a locked card should make the row taller.
+class _OpenHeroHeight extends SingleChildRenderObjectWidget {
+  const _OpenHeroHeight({required super.child});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderOpenHeroHeight();
+}
+
+class _RenderOpenHeroHeight extends RenderProxyBox {
+  @override
+  double computeMinIntrinsicHeight(double width) => _heroHeight;
+
+  @override
+  double computeMaxIntrinsicHeight(double width) => _heroHeight;
+}
+
 /// A hero card that is not open yet: dashed, with what it needs.
 class _LockedHero extends StatelessWidget {
-  const _LockedHero({required this.icon, required this.title, required this.condition});
+  const _LockedHero.daily()
+      : icon = Icons.calendar_today_rounded,
+        title = "Today's picture",
+        mode = UnlockTables.modeDaily;
+  const _LockedHero.timeAttack()
+      : icon = Icons.bolt_rounded,
+        title = 'Time Attack',
+        mode = UnlockTables.modeTimeAttack;
 
   final IconData icon;
   final String title;
-  final String condition;
+
+  /// The unlock this card waits for, from [UnlockTables].
+  final String mode;
 
   @override
   Widget build(BuildContext context) {
     final t = context.paw;
+    final condition = unlockCondition(mode);
     return Semantics(
       button: true,
       label: '$title, locked. $condition',
@@ -623,7 +701,9 @@ class _LockedHero extends StatelessWidget {
           onTap: () => showLockedHint(context, condition),
           child: Padding(
             padding: const EdgeInsets.all(14),
+            // The hero row grows to fit this, so nothing here is cut (PAP-88).
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -631,25 +711,12 @@ class _LockedHero extends StatelessWidget {
                     Icon(Icons.lock_rounded, size: 20, color: t.muted),
                     const SizedBox(width: 6),
                     Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontWeight: FontWeight.w800, color: t.ink),
-                      ),
+                      child: Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: t.ink)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                // The card has a fixed height; a tap shows the whole condition.
-                Flexible(
-                  child: Text(
-                    condition,
-                    maxLines: 6,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
+                Text(condition, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
