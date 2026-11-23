@@ -19,6 +19,9 @@ and, for `yes`, one `  failing: <name>` line per failing test. Verdicts:
     build          the restored run failed and named nothing (build or import error)      exit 1
     baseline-fail  the check fails with the change, so nothing can be concluded            exit 1
     n/a            no production file or no test file changed                              exit 0
+                   (comments only) after base:<hash> when both changed but `comment_check.py verify` (next to
+                   this file) finds only comments and leaves no file to the suite; nothing runs (NFX-251). A
+                   missing or crashing comment_check.py, or a file it leaves to the suite, runs as above
 Exit 2 prints a reason to stderr and nothing to stdout (timeout, detached HEAD, no check command, tree changed).
 NFX-222: a Python import error naming a .py file the change added splits by who else names that module. When a file
 that is not a test (docs count) names it, it is production, and the verdict is `yes`. When only tests name it, it is a
@@ -26,7 +29,9 @@ helper: a note says to list it in `[check] tests`. A `build` also lists `  suite
 log names. These notes go in the stamp, so `attest` prints them too.
 The check, its timeout and its two optional keys come from `[check]` in .nousfx/project.toml, read where the gate
 reads it (the default branch's copy when it has one):
-    tests = ["glob", ...]       test files; default is test_*, *_test.*, or a tests/ folder
+    tests = ["glob", ...]       test files; default is test_*, *_test.*, a tests/ folder, a Gradle test source set
+                                (src/test*/, src/androidTest*/, src/*Test/), or a *Test.* / *Tests.* name outside
+                                src/main/, src/*Main/ and src/testFixtures/
     failure_pattern = "regex"   matched per line against the restored run's output; group 1 (or the whole match) is a
                                 failing test's name; default covers unittest, pytest, go, cargo and Gradle
 
@@ -69,7 +74,8 @@ DEFAULT_PATTERN = "|".join([
 # a `from pkg import n` could not find, read as the module pkg.n (NFX-222).
 IMPORT_ERROR = re.compile(r"ModuleNotFoundError: No module named '([\w.]+)'"
                           r"|ImportError: cannot import name '(\w+)' from '([\w.]+)'")
-RUN_CHECKS_SUITE_FAILED = r"^FAIL (\S+) \(\d+s\)$"
+TEST_SOURCE_SET = re.compile(r"(?:test|androidTest)(?:[A-Z]\w*)?$")
+RUN_CHECKS_SUITE_FAILED =r"^FAIL (\S+) \(\d+s\)$"
 UNITTEST_MODULE_UNLOADABLE = r"^ERROR: \S+ \(unittest\.loader\._FailedTest\.(\S+)\)$"
 PYTEST_COLLECTION_ERROR = r"ERROR collecting (\S+)"
 SUITE_LINE = re.compile("|".join([RUN_CHECKS_SUITE_FAILED, UNITTEST_MODULE_UNLOADABLE, PYTEST_COLLECTION_ERROR]), re.M)
@@ -184,6 +190,21 @@ def load_tier():
     return tier
 
 
+def comments_only(s):
+    """True when comment_check.py verify finds no difference since the base and leaves no file to the suite (NFX-251).
+    Loaded by path, never from sys.path. Missing or crashing: a note, and False, so the check runs."""
+    try:
+        spec = importlib.util.spec_from_file_location("comment_check_for_testfail",
+                                                      os.path.join(HERE, "comment_check.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        found, unchecked = module.differences(s.top, s.base)
+    except Exception as e:
+        print(f"note: running the check: comment_check.py verify did not finish ({e})", file=sys.stderr)
+        return False
+    return not found and not unchecked
+
+
 def suite_slot_hold():
     """The machine-wide suite slot (NFX-217), or no limit with a note when suite_slot.py is not next to this file."""
     if HERE not in sys.path:
@@ -234,12 +255,28 @@ def read_config(gate, top, check):
     return globs, compiled
 
 
+def is_jvm_test(parts):
+    """Gradle layout (NFX-266): the source set under src/ decides (test, androidTest, testDebug, commonTest: test;
+    main, commonMain, testFixtures: production); with no src/<set>, a FooTest.* or FooTests.* name does."""
+    for i, part in enumerate(parts[:-2]):
+        if part == "src":
+            source_set = parts[i + 1]
+            if source_set == "main" or source_set.endswith("Main") or source_set.startswith("testFixtures"):
+                return False
+            if TEST_SOURCE_SET.match(source_set) or source_set.endswith("Test"):
+                return True
+    name = parts[-1]
+    return fnmatch.fnmatchcase(name, "?*Test.*") or fnmatch.fnmatchcase(name, "?*Tests.*")
+
+
 def is_test(path, globs):
     p = path.replace("\\", "/")
-    name = p.rsplit("/", 1)[-1]
+    parts = p.split("/")
+    name = parts[-1]
     if globs:
         return any(fnmatch.fnmatch(p, g) or fnmatch.fnmatch(name, g) for g in globs)
-    return name.startswith("test_") or fnmatch.fnmatch(name, "*_test.*") or "tests" in p.split("/")[:-1]
+    return (name.startswith("test_") or fnmatch.fnmatch(name, "*_test.*") or "tests" in parts[:-1]
+            or is_jvm_test(parts))
 
 
 def split(tier, top, base, globs):
@@ -428,13 +465,13 @@ def run_in_copy(gate, s, restore):
         shutil.rmtree(scratch, ignore_errors=True)
 
 
-def line(verdict, tree, base):
-    return f"Tests-Fail-Without: {verdict} {tree} base:{base}"
+def line(verdict, tree, base, why=""):
+    return f"Tests-Fail-Without: {verdict} {tree} base:{base}" + (f" ({why})" if why else "")
 
 
-def report(verdict, tree, base, named, notes):
+def report(verdict, tree, base, named, notes, why=""):
     """What run and attest both print: the verdict line, then the failing names and the notes (NFX-222)."""
-    print(line(verdict, tree, base))
+    print(line(verdict, tree, base, why))
     for name in named:
         print(f"  failing: {name}")
     for note in notes:
@@ -449,7 +486,10 @@ def run(args):
     with refusing("cannot read the stamp key"):
         key = gate.stamp_key(s.top)
     tests, production, restore = split(tier, s.top, s.base, s.globs)
-    if tests and production:
+    why = ""
+    if tests and production and comments_only(s):
+        verdict, named, detail, notes, why = "n/a", [], "", [], "comments only"
+    elif tests and production:
         with refusing("the test-fail run stopped; nothing was recorded"):
             verdict, named, detail, notes = run_in_copy(gate, s, restore)
     else:
@@ -461,10 +501,12 @@ def run(args):
         raise Refused(f"the working tree changed during the run ({', '.join(moved[:5]) or 'unknown'}); "
                       "nothing was recorded. Run again.")
     with refusing("cannot write the test-fail stamp"):
-        gate.write_stamp(s.top, {**s.fields, "verdict": verdict, "named": named, "notes": notes, "exit": 0,
-                                 "time": time.strftime("%Y-%m-%dT%H:%M:%S")}, key, gate.TESTFAIL_STAMP_FILE)
-    report(verdict, s.tree, s.base, named, notes)
-    if verdict == "n/a" and production:
+        gate.write_stamp(s.top, {**s.fields, "verdict": verdict, "why": why, "named": named, "notes": notes,
+                                 "exit": 0, "time": time.strftime("%Y-%m-%dT%H:%M:%S")}, key, gate.TESTFAIL_STAMP_FILE)
+    report(verdict, s.tree, s.base, named, notes, why)
+    if why:
+        print("  comment_check.py verify: only comments changed, so no run")
+    elif verdict == "n/a" and production:
         print("  production files changed, but no changed file matched a test glob; if the tests are named another "
               "way, list them in [check] tests = [...]")
     elif verdict == "n/a":
@@ -480,7 +522,7 @@ def attest(args):
     stamp = gate.valid_stamp(s.top, s.fields, gate.TESTFAIL_STAMP_FILE)
     if not stamp or stamp.get("verdict") not in VERDICT_EXIT:
         raise Refused("no valid test-fail stamp for this tree, branch, base and check; run `testfail.py run` again")
-    report(stamp["verdict"], s.tree, s.base, stamp.get("named", []), stamp.get("notes", []))
+    report(stamp["verdict"], s.tree, s.base, stamp.get("named", []), stamp.get("notes", []), stamp.get("why", ""))
     return VERDICT_EXIT[stamp["verdict"]]
 
 

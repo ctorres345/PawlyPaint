@@ -6,11 +6,16 @@ Python only, standard library only; runs the same on macOS and Windows.
     python3 -B tier.py [--base HASH] [--base-ref BRANCH] [--labels fable-review,size-L] [--synced] [--cwd DIR]
 
 Prints one JSON object: {"tier", "reasons", "ui", "fallback", "security", "gates", "synced", "stats"}. "synced" (NFX-216,
-only with --synced) lists changed files byte-equal to their NousFX sync source: not counted, not keyword-scanned. "gates" lists human
+only with --synced) lists changed files byte-equal to their NousFX sync source on NousFX's default branch (origin/HEAD,
+else origin/main), or to the text sync renders from it for a generated file such as .githooks/pre-push. NFX-261: a synced file adds no path, keyword, line or gate reason; it is
+named only in the "synced: N files" reason, since NousFX reviewed that change. "gates" lists human
 gates (NFX-200: a changed byte cap, see CAP_NAMES), each also in "reasons" as "Gate: ...". "security" lists the security skills the
 diff calls for (NFX-124): agentic-actions-auditor for a path under .github/workflows/, sharp-edges for a security
 keyword in a code file's path or changed lines. It is empty when none applies. Exits 2 (nothing on stdout) when the branch has no
 merge base with the default branch; any other error gives Tier 2 with the reason, never a lower tier.
+NFX-252: a keyword on a whole-line comment does not raise the tier. When `comment_check.py verify BASE` (next to this
+file) proves only comments changed and leaves no other changed file, "ui" is false and the tier is at most 1 (a
+fable-review label keeps 3), with the reason "Tier 1: comments only (verify OK)"; the reasons it replaces start "was ".
 """
 import argparse
 import fnmatch
@@ -128,6 +133,29 @@ def path_keyword(path, keywords=RISK_KEYWORDS):
     return None
 
 
+# NFX-252: whole-line comments by file type. A `*` line counts only where no statement can start with `*` (a pointer).
+HASH_COMMENT_EXTENSIONS = (".py", ".sh", ".bash", ".zsh", ".rb", ".yml", ".yaml", ".toml", ".pl", ".r", ".cmake")
+SLASH_COMMENT_EXTENSIONS = (".js", ".mjs", ".cjs", ".ts", ".mts", ".cts", ".tsx", ".jsx", ".kt", ".kts", ".java",
+                            ".swift", ".dart", ".scala", ".gradle", ".go", ".rs", ".c", ".h", ".cpp", ".cs")
+POINTER_EXTENSIONS = (".go", ".rs", ".c", ".h", ".cpp", ".cs")
+
+
+def is_comment_line(path, line):
+    """True when the whole line is a comment in this file's language. Code before or after it keeps it code."""
+    ext = os.path.splitext(norm(path))[1].lower()
+    s = line.strip()
+    if ext in HASH_COMMENT_EXTENSIONS:
+        return s.startswith("#")
+    if ext not in SLASH_COMMENT_EXTENSIONS:
+        return False
+    if s.startswith("//"):
+        return True
+    star = s == "*" or s.startswith(("* ", "*/"))
+    block = s.startswith("/*") or (ext not in POINTER_EXTENSIONS and star)
+    end = s.find("*/", 2 if s.startswith("/*") else 0)
+    return block and end in (-1, len(s) - 2)
+
+
 def line_keywords(lines, keywords=RISK_KEYWORDS):
     found = []
     for line in lines:
@@ -218,7 +246,7 @@ def bump_size_l(tier, reasons, labels):
 
 def classify(files, labels=(), project_paths=()):
     """files: [{"path", "added": [line, ...], "removed": int, "hunks": int, "synced"?: True}]. Returns {tier, reasons,
-    ui, stats, ...}. A synced file still meets the risk paths and cap gates, nothing else."""
+    ui, stats, ...}. A synced file meets no rule (NFX-261): NousFX reviewed it, and the project cannot fix it."""
     labels = norm_labels(labels)
     synced = [x["path"] for x in files if x.get("synced")]
     unsynced = [x for x in files if not x.get("synced")]
@@ -229,7 +257,7 @@ def classify(files, labels=(), project_paths=()):
     stats = {"lines": lines, "files": len(code), "hunks": hunks, "synced": len(synced)}
 
     why3 = []  # every reason for Tier 3
-    for x in files:
+    for x in unsynced:
         if risk_path_hit(x["path"], project_paths):
             why3.append("Tier 3: touches " + x["path"])
     keyword_reasons = []
@@ -237,9 +265,11 @@ def classify(files, labels=(), project_paths=()):
         hit = path_keyword(x["path"])
         if hit:
             keyword_reasons.append('Tier 3: keyword "%s" in the path %s' % (hit, x["path"]))
-        for w in line_keywords(x["added"]):
+        added, removed = ([y for y in part if not is_comment_line(x["path"], y)]
+                          for part in (x["added"], x.get("removed_lines", [])))
+        for w in line_keywords(added):
             keyword_reasons.append('Tier 3: keyword "%s" in %s' % (w, x["path"]))
-        for w in line_keywords(x.get("removed_lines", [])):  # deleting a security check is as risky as adding one
+        for w in line_keywords(removed):  # deleting a security check is as risky as adding one
             keyword_reasons.append('Tier 3: keyword "%s" removed in %s' % (w, x["path"]))
     if len(keyword_reasons) > MAX_KEYWORD_REASONS:
         extra = len(keyword_reasons) - MAX_KEYWORD_REASONS
@@ -254,6 +284,8 @@ def classify(files, labels=(), project_paths=()):
 
     if why3:
         tier, reasons = 3, why3
+    elif synced and not unsynced:  # only synced files: the synced reason below is the whole story (NFX-261)
+        tier, reasons = 0, []
     elif not code:
         tier, reasons = 0, ["Tier 0: no code counted (only docs, text, lock, generated or binary files)"]
     elif lines <= TINY_LINES and len(code) <= TINY_FILES and hunks <= TINY_HUNKS:
@@ -264,13 +296,14 @@ def classify(files, labels=(), project_paths=()):
         tier, reasons = 2, ["Tier 2: %d lines, %d file(s), %d hunk(s)" % (lines, len(code), hunks)]
 
     if synced:
-        reasons.append("synced: %d files (byte-equal to their NousFX source, not counted)" % len(synced))
+        reasons.append("synced: %d files (byte-equal to their NousFX source: reviewed in NousFX, not counted here)"
+                       % len(synced))
     tier = bump_size_l(tier, reasons, labels)
     ui_path = next((x["path"] for x in code if is_ui(x["path"], x.get("content", []) + x["added"] + x.get("removed_lines", []))), None)
     if ui_path and tier < 1:
         tier = 1
         reasons.append("Tier 1: UI change (%s)" % ui_path)
-    gates = cap_gates(files)  # a gate never changes the tier; it is printed with the reasons so the loop stops to ask
+    gates = cap_gates(unsynced)  # a gate never changes the tier; it is printed with the reasons so the loop stops to ask
     reasons += ["Gate: " + g for g in gates]
     return {"tier": tier, "reasons": reasons, "ui": ui_path is not None, "fallback": False,
             "security": security_skills(unsynced), "gates": gates, "synced": synced, "stats": stats}
@@ -415,7 +448,8 @@ def load_project_risk_paths(top, base_ref=None):
 
 
 def parse_diff(text):
-    """Files of a `git diff -U0 --no-renames` text as classify() wants them."""
+    """Files of a `git diff -U0 --no-renames` text as classify() wants them. "mode" is the file's git mode after the
+    change, when the diff names one (a new file or a mode change)."""
     files, current, in_hunk = [], None, False
     for line in text.split("\n"):
         if line.startswith("diff --git "):
@@ -426,6 +460,8 @@ def parse_diff(text):
             in_hunk = False
         elif current is None:
             continue
+        elif not in_hunk and line.startswith(("new mode ", "new file mode ")):
+            current["mode"] = line.rsplit(" ", 1)[1]
         elif line.startswith("@@"):
             current["hunks"] += 1
             in_hunk = True
@@ -479,52 +515,140 @@ NOUSFX_MANIFEST = ("scripts", "nousfx_project.py")
 
 @functools.lru_cache(maxsize=1)
 def nousfx_copies():
-    """(NousFX root, {project path: NousFX path}) from the sync manifest (nousfx_project.COPIES) of the NousFX
-    checkout this file's real path sits in, or (None, {}) when there is none (a flat or project copy). Its folder goes
-    on sys.path while it loads, for its sibling import of nousfx_agents."""
+    """(NousFX root, {project path: NousFX path}, {project path: (NousFX path, render)}) from the sync manifest
+    (nousfx_project.COPIES and GENERATED_FILES, such as .githooks/pre-push) of the NousFX checkout this file's real
+    path sits in, or (None, {}, {}) when there is none (a flat or project copy). Its folder goes on sys.path while it
+    loads, for its sibling import of nousfx_agents."""
     root = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", ".."))
     scripts = os.path.join(root, NOUSFX_MANIFEST[0])
     path = os.path.join(scripts, NOUSFX_MANIFEST[1])
     if not os.path.isfile(path):
-        return None, {}
+        return None, {}, {}
     sys.dont_write_bytecode = True
     sys.path.insert(0, scripts)
     try:
         spec = importlib.util.spec_from_file_location("nousfx_project", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        return root, {norm(k): norm(v) for k, v in module.COPIES.items()}
+        copies = {norm(k): norm(v) for k, v in module.COPIES.items()}
+        generated = {norm(k): (norm(src), render) for k, (src, render) in
+                     getattr(module, "GENERATED_FILES", {}).items()}
+        return root, copies, generated
     except Exception:
-        return None, {}
+        return None, {}, {}
     finally:
         sys.path.remove(scripts)
 
 
+EXECUTABLE, REGULAR = "100755", "100644"
+
+
+def nousfx_source(root, ref, rel, copies, generated):
+    """(bytes, git mode) sync writes for the project path `rel`, from NousFX's commit `ref`. The mode is None for a
+    copy (sync keeps a copy's existing mode) and executable for a generated file (sync sets it). Raises when git
+    cannot read it."""
+    if rel in copies:
+        return git(["show", "%s:%s" % (ref, copies[rel])], root, raw=True), None
+    source, render = generated[rel]
+    text = git(["show", "%s:%s" % (ref, source)], root, raw=True).decode("utf-8")
+    return render(as_text_mode_read(text)).encode("utf-8"), EXECUTABLE
+
+
+def file_mode(x, full):
+    """The project file's git mode: the diff's when it names one, else the working tree's executable bit (POSIX), else
+    None (Windows has no executable bit to read)."""
+    if x.get("mode"):
+        return x["mode"]
+    if os.name == "nt":
+        return None
+    return EXECUTABLE if os.access(full, os.X_OK) else REGULAR
+
+
+def as_text_mode_read(text):
+    """`text` with the newlines Python's text-mode read gives, as sync reads a source."""
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
 def mark_synced(top, files):
-    """NFX-216: set "synced" on each file whose working-tree bytes equal its NousFX sync source. Off when the repo
-    under review and the NousFX checkout hold one another (a NousFX worktree, or a manifest that is branch code). A
-    link, a deleted file or a path the manifest does not name is never synced."""
-    root, copies = nousfx_copies()
+    """NFX-216: set "synced" on each file whose working-tree bytes equal what sync writes from its NousFX source on
+    NousFX's default branch: the file itself, or the text sync renders (NFX-261: .githooks/pre-push). Never the NousFX
+    working tree's bytes: a feature branch or an uncommitted edit there is not reviewed, and a synced file skips every
+    rule. A generated file's mode must match too (a hook that lost its executable bit no longer runs). The manifest and its render
+    function still load from the working tree, so they are trusted as the checkout's own code.
+    Off when the repo under review and the NousFX checkout hold one another (a NousFX worktree, or a manifest that is
+    branch code). A link, a deleted file, a path the manifest does not name or a NousFX checkout with no default
+    branch is never synced, nor is a file git cannot read or render."""
+    root, copies, generated = nousfx_copies()
     real_top = os.path.realpath(top)
     try:
         nested = os.path.commonpath([root, real_top]) in (root, real_top) if root else True
     except ValueError:  # Windows: different drives, so neither holds the other
         nested = False
-    if nested:
+    wanted = [x for x in files if norm(x["path"]) in copies or norm(x["path"]) in generated]
+    if nested or not wanted:
         return
-    for x in files:
+    try:
+        ref = default_ref(root)
+    except Exception:
+        return
+    if not ref:
+        return
+    for x in wanted:
         rel = norm(x["path"])
-        source = copies.get(rel)
         full = os.path.join(top, *rel.split("/"))
-        no_link_on_the_way = os.path.realpath(full) == os.path.join(real_top, *rel.split("/"))
-        if not source or not no_link_on_the_way:
+        if os.path.realpath(full) != os.path.join(real_top, *rel.split("/")):
             continue
         try:
             if os.path.isfile(full) and os.path.getsize(full) <= MAX_UNTRACKED_BYTES:
-                with open(full, "rb") as mine, open(os.path.join(root, *source.split("/")), "rb") as theirs:
-                    x["synced"] = mine.read() == theirs.read()
-        except OSError:
+                data, mode = nousfx_source(root, ref, rel, copies, generated)
+                with open(full, "rb") as mine:
+                    same = mine.read() == data
+                mine_mode = file_mode(x, full) if mode else None
+                x["synced"] = same and (mode is None or mine_mode is None or mine_mode == mode)
+        except Exception:
             pass
+
+
+COMMENT_CHECK = "comment_check.py"
+COMMENT_ONLY = "Tier 1: comments only (verify OK)"
+VERIFY_OK = re.compile(r"comment_check verify: OK, .*; 0 other changed files left to the suite")
+VERIFY_TIMEOUT = 10
+MAX_VERIFIED_LINES = 1000  # NFX-252: a comment cleanup PR stays under ~800 lines, so a bigger diff is not worth the gate's time
+
+
+def comment_check_path():
+    """comment_check.py next to this file (the repo layout and CI's flat copy), else next to its real path."""
+    for folder in (os.path.dirname(os.path.abspath(__file__)), os.path.dirname(os.path.realpath(__file__))):
+        path = os.path.join(folder, COMMENT_CHECK)
+        if os.path.isfile(path):
+            return path
+    return None
+
+
+def comments_only(top, base, files):
+    """NFX-252: True only when `comment_check.py verify BASE` exits 0 and its last line is the OK line with 0 other
+    changed files. A missing script, a crash, a timeout or any other output is False, and so is a deleted file (verify
+    skips one it cannot type)."""
+    path = comment_check_path()
+    if not path or any(not os.path.lexists(os.path.join(top, *x["path"].split("/"))) for x in files):
+        return False
+    try:
+        r = subprocess.run([sys.executable, "-I", "-B", path, "verify", base], cwd=top, capture_output=True,
+                           stdin=subprocess.DEVNULL, timeout=VERIFY_TIMEOUT)
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+    lines = r.stdout.decode("utf-8", "replace").strip().splitlines()
+    return r.returncode == 0 and bool(lines) and VERIFY_OK.fullmatch(lines[-1].strip()) is not None
+
+
+def cap_comment_only(result, labels):
+    """A proved comment-only diff: `ui` false and the tier capped at 1, unless a fable-review label asks for Tier 3.
+    The reasons it replaces read `was Tier N: ...`, since verify-tier takes each `Tier N:` reason as a measurement."""
+    result["ui"] = False
+    if "fable-review" in norm_labels(labels):
+        return
+    result["tier"] = min(result["tier"], 1)
+    result["reasons"] = [COMMENT_ONLY] + ["was " + r if re.match(r"Tier \d:", r) else r for r in result["reasons"]]
 
 
 def fallback(reason, labels, base=None):
@@ -574,6 +698,9 @@ def run(cwd, base, labels, base_ref=None, synced=False):
     if project_error is not None:
         result["tier"] = max(result["tier"], 2)
         result["reasons"].insert(0, "Tier 2: could not read [review] risk_paths (%s)" % project_error)
+    if ((result["tier"] > 1 or result["ui"]) and result["stats"]["lines"] <= MAX_VERIFIED_LINES
+            and comments_only(top, base, files)):
+        cap_comment_only(result, labels)
     return result
 
 

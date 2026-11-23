@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""List the comments a diff adds, so the reviewer can judge each one (NFX-196). Warn-only.
+"""List the comments a diff adds, so the reviewer can judge each one (NFX-196).
 
   comment_check.py <base>       flags in `git diff <base>` (the working tree) plus untracked files
   comment_check.py --keep-list  print the keep list
   comment_check.py --all PATH   inventory every comment under PATH (the delete-comments skill, NFX-228)
-  comment_check.py verify BASE  prove that only comments changed since BASE (the delete-comments skill)
+  comment_check.py verify [BASE]  prove that only comments changed since BASE (the delete-comments skill)
 
 Prints one line per flag, `file:line kind text`, then `comment_check: N flags (kind n, ...)`.
 Kinds: comment; banner (a section divider like `# --- gh ---`, a Tautology); docstring (on a private function or
@@ -21,7 +21,8 @@ shell (a whole-line comment in a shell file) or line (any other whole-line or bl
 keep:<rule> or flag:<kind>. The last line counts each form, the kept items, and the lines that deleting the
 non-kept docstring, line and shell items would shed. Files git ignores and generated files are skipped.
 
-verify compares the working tree (untracked files included) with BASE and prints `file: difference` per problem: a
+verify compares the working tree (untracked files included) with `git merge-base BASE HEAD` (with no BASE,
+review-loop's base: origin/HEAD, else origin/main), prints that commit, then prints `file: difference` per problem: a
 Python file whose AST, docstrings stripped, differs; in a file that reads __doc__, a changed module docstring or a
 changed docstring of a def or class it reads as `name.__doc__` (any of them can be --help text; verify reads scripts
 and never runs them); a symlink that changed or replaced a file; a changed file mode, in any language; a shell file
@@ -1055,17 +1056,44 @@ def deleted_lines(root, base):
     return total
 
 
+def verify_base(root, base):
+    """`git merge-base BASE HEAD`, so commits BASE gained after the branch point are not counted as changes; with
+    no BASE, review-loop's base (origin/HEAD, else origin/main). None, after saying why on stderr, when there is
+    no common ancestor."""
+    if base is None:
+        try:
+            return tier.merge_base(root)
+        except tier.NoMergeBase:
+            print("comment_check verify: no origin/HEAD or origin/main shares history with HEAD; give BASE",
+                  file=sys.stderr)
+            return None
+    commit = git(root, "rev-parse", "--verify", "--end-of-options", f"{base}^{{commit}}").strip()
+    try:
+        return git(root, "merge-base", commit, "HEAD").strip()
+    except tier.GitUnavailable:
+        raise
+    except RuntimeError:
+        print(f"comment_check verify: {base} has no common ancestor with HEAD (a shallow clone or an unrelated "
+              "ref); give a BASE on this branch's history", file=sys.stderr)
+        return None
+
+
 def verify_main(argv):
     parser = argparse.ArgumentParser(
         prog="comment_check.py verify", description="Prove that only comments changed since BASE (see comment_check.py -h).")
-    parser.add_argument("base", metavar="BASE", help="the commit the cleanup started from")
+    parser.add_argument("base", metavar="BASE", nargs="?",
+                        help="the commit the cleanup started from (default: review-loop's merge base)")
     args = parser.parse_args(argv)
-    if args.base.startswith("-"):
+    if args.base and args.base.startswith("-"):
         parser.error("give the BASE hash, not an option")
     try:
         root = tier.repo_top(os.getcwd())
-        found, unchecked = differences(root, args.base)
-        deleted = deleted_lines(root, args.base)
+        base = verify_base(root, args.base)
+        if base is None:
+            return 2
+        print(f"comment_check verify: comparing with {base}, the merge base with HEAD")
+        found, unchecked = differences(root, base)
+        deleted = deleted_lines(root, base)
     except RuntimeError as e:
         print(f"comment_check: git failed: {e}", file=sys.stderr)
         return 2
