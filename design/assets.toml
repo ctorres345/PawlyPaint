@@ -58,6 +58,8 @@ usage = "PAP-43 hidden gallery frame, shown after the PAP-45 secret; picker swat
 # Picture art (PAP-71 sources, PAP-77 pipeline). Sources only: tool/art_to_puzzle.py --build turns
 # each into assets/pictures/<course>/<slug>.png at its grid. A puzzle entry is one with `course`,
 # `slug` (the game's hyphenated picture slug) and `grid` (Easy 16, Medium 24, Hard 32, Extreme 40).
+# `exact = true` (PAP-93) marks a source drawn at its grid: --check fails it unless the whole frame
+# is exactly `grid` blocks across on a clean block grid. The Classics are off-grid and leave it out.
 # "web" is a git-ignored staging sink so approve never writes into assets/art.
 
 [[asset]]

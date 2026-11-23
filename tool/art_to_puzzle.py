@@ -19,14 +19,20 @@ So this tool works in four steps:
    takes the colour that covers most of it, except that a colour rare in the
    cells around it (an eye, a spot) wins a cell it covers enough of.
 
+A source read at exactly the game grid keeps every block in place: crop keeps
+it whole and shrink gives each cell its own block, so only the palette cut may
+merge colours.
+
 Needs Pillow. Run with a Python that has it, for example:
   python3 tool/art_to_puzzle.py in.png out.png --grid 16 --preview big.png
 Prints the detected block size and the picture's own grid size. --colors
 overrides the level's colour limit.
 
 The asset manifest (design/assets.toml) lists every picture source: a puzzle
-entry has `course`, `slug` and `grid`. --check converts each at its own grid
-and exits non-zero if any fails (missing, no clean pixel grid, too few or too
+entry has `course`, `slug`, `grid` and optionally `exact = true`. --check
+prints each source's block count (whole frame and subject square), converts
+each at its own grid and exits non-zero if any fails (missing, no clean pixel
+grid, an `exact` source not drawn at grid blocks across, too few or too
 many colours, one colour over 95% of cells, two colours under the level's
 gap, a subject that lost most of its cells against the native read, or a
 built PNG in assets/pictures that is missing or out of date).
@@ -41,6 +47,7 @@ import sys
 import tomllib
 from collections import Counter
 from functools import lru_cache
+from typing import NamedTuple
 
 from PIL import Image
 
@@ -65,6 +72,8 @@ PLAIN_BACKGROUND = 0.25
 DETAIL_SHARE = 0.18
 RARITY = 0.5
 SUBJECT_KEPT = 0.5
+HINT_MIN_COHERENCE = 0.9
+HINT_MARGIN = 0.05
 
 
 def edge_profiles(img):
@@ -111,7 +120,7 @@ def _coherence(edges, total, period):
     return math.hypot(c, s) / total, phase
 
 
-def find_grid(cols, rows, min_block=4.0, max_cells=160):
+def find_grid(cols, rows, min_block=4.0, max_cells=160, hint=None):
     """Returns (block size, x offset, y offset) of the picture's square grid,
     or None when the colour changes don't line up on any grid.
 
@@ -119,6 +128,16 @@ def find_grid(cols, rows, min_block=4.0, max_cells=160):
     itself, while multiples do not, so the answer is the largest block size
     that lines up nearly as well as the best one. `max_cells` leaves room for
     Gemini's own grid, which runs to about 100 cells across.
+
+    `hint` is the block size the picture should have (its width over the
+    puzzle grid). A sparse picture (flat shapes on a plain background) can
+    have every colour change on every second or third block, so a bigger
+    block lines up nearly as well and wins. The hint wins instead when it is
+    smaller and lines up at least as well, to within HINT_MIN_COHERENCE of
+    perfectly, and HINT_MARGIN better than each of its whole multiples up to
+    the found block. A divisor of the true block lines up as well as the
+    block itself, so without that last test a source drawn at 8 blocks would
+    read as 16; with it some changes must fall on odd lines of the hint.
     """
     n = min(len(cols), len(rows))
     ex = [(x, w) for x, w in enumerate(cols) if w]
@@ -138,6 +157,15 @@ def find_grid(cols, rows, min_block=4.0, max_cells=160):
         return None
     good = [f for f in found if f[0] >= 0.85 * peak]
     top = max(good, key=lambda f: f[1])
+    if hint and top[1] > hint:
+        def both(period):
+            (cx, px), (cy, py) = _coherence(ex, tx, period), _coherence(ey, ty, period)
+            return (cx + cy) / 2, px, py
+
+        line_up, px, py = both(hint)
+        multiples = max(both(k * hint)[0] for k in range(2, int(top[1] / hint) + 2))
+        if line_up >= max(top[0], HINT_MIN_COHERENCE) and line_up - multiples >= HINT_MARGIN:
+            return hint, px, py
     # Fine-tune around the chosen size: the local best line-up.
     near = [f for f in found if abs(f[1] - top[1]) <= 0.3]
     _, period, px, py = max(near, key=lambda f: f[0])
@@ -475,21 +503,47 @@ def to_indexed(grid):
     return img, len(colours)
 
 
-def analyse(src):
-    """Reads the picture at its own grid, with capture shades folded together.
+class Analysis(NamedTuple):
+    """A picture read at its own grid. Only a sparse source drawn at its
+    puzzle grid reads differently for another grid (analyse), so one analysis
+    serves all four."""
+    native: list  # rows of RGB tuples, one per source block
+    period: float  # block size in source pixels
+    clean: bool  # False: no clean grid, sampled evenly
 
-    Returns (native grid, block size, whether a clean grid was found). The
-    result does not depend on the target grid, so one analysis serves all four.
-    """
+    @property
+    def frame(self):
+        """(columns, rows) of source blocks across the whole frame."""
+        return len(self.native[0]), len(self.native)
+
+    @property
+    def subject(self):
+        """Blocks across the square around the subject, or None for a full
+        scene with no plain background."""
+        bg = border_colour(self.native)
+        box = bg is not None and subject_box(self.native, bg)
+        return max(box[2] - box[0], box[3] - box[1]) if box else None
+
+
+def blocks_text(frame):
+    """'37 blocks' for a square frame, '37x30 blocks' otherwise."""
+    w, h = frame
+    return f'{w} blocks' if w == h else f'{w}x{h} blocks'
+
+
+def analyse(src, grid=None):
+    """Reads the picture at its own grid, with capture shades folded together.
+    `grid` is the puzzle grid the source should be drawn at: a sparse source
+    drawn at it is read at it, not at a multiple of its block (find_grid)."""
     img = Image.open(src).convert('RGB')
     cols, rows = edge_profiles(img)
-    found = find_grid(cols, rows)
+    found = find_grid(cols, rows, hint=img.size[0] / grid if grid else None)
     # No clean grid (blurred capture or free-hand pixels): sample twice as fine
     # as the largest game grid, so the majority vote in shrink still has a say.
     period, phase_x, phase_y = found or (min(img.size) / (2 * max(COLOR_LIMIT)), 0.0, 0.0)
     native = native_grid(img, period, phase_x, phase_y)
     # Fold capture shades together first so they don't split the vote.
-    return reduce_palette(native, merge_below=SHADE_MERGE), period, found is not None
+    return Analysis(reduce_palette(native, merge_below=SHADE_MERGE), period, found is not None)
 
 
 def subject_share(grid, bg=None):
@@ -507,16 +561,18 @@ def convert(analysis, n, colors, de_gap=0.0):
 
     The palette is cut to the level's drill colours before the shrink as well
     as after, so the rarity vote in shrink weighs drill colours rather than
-    leftover capture shades."""
+    leftover capture shades. A source read at exactly n x n blocks converts
+    block for block: crop never goes under n blocks, so it keeps the grid
+    whole, and shrink gives each cell its one block. Only the palette cut
+    changes it."""
     native, period, clean = analysis
     bg = border_colour(native)
-    framed = crop(native, n, bg)
 
     def fit(grid):
         return reduce_palette(grid, limit=colors, gap=MIN_RGB_GAP, de_gap=de_gap)
 
-    drill_colours = fit(framed)
-    out, used = to_indexed(fit(shrink(drill_colours, n)))
+    framed = crop(native, n, bg)
+    out, used = to_indexed(fit(shrink(fit(framed), n)))
     info = {
         'block': round(period, 2),
         'native': (len(native[0]), len(native)),
@@ -549,9 +605,12 @@ def puzzle_entries(manifest=MANIFEST):
         key = (a['course'], a['slug'])
         if key in seen:
             raise ValueError(f'{name}: {key[0]}/{key[1]} is listed twice')
+        exact = a.get('exact', False)
+        if not isinstance(exact, bool):
+            raise ValueError(f'{name}: exact {exact!r} is not true or false')
         seen.add(key)
         out.append({'course': a['course'], 'slug': a['slug'], 'grid': a['grid'],
-                    'source': os.path.join(REPO, a['source'])})
+                    'source': os.path.join(REPO, a['source']), 'exact': exact})
     return out
 
 
@@ -587,31 +646,55 @@ def verify(img, n, subject=None):
     return problems
 
 
+def exact_problem(entry, analysis):
+    """Why an `exact` entry's source isn't drawn at its grid, or None. The
+    whole frame must be grid x grid blocks: 1:1 needs every block of the
+    source, so a subject square of the right size inside a bigger frame
+    doesn't count."""
+    n = entry['grid']
+    if not entry.get('exact') or analysis.frame == (n, n):
+        return None
+    return f'drawn at {blocks_text(analysis.frame)}, needs {n}: regenerate'
+
+
 def convert_entry(entry, grids=None):
     """Converts one manifest picture at its grid (or at each of `grids`).
-    Returns (problems, {grid: (image, info)}); each problem is prefixed with
-    the grid when there are several."""
+    Returns (problems, {grid: (image, info)}, analysis or None); each problem
+    is prefixed with the grid when there are several."""
     path = entry['source']
     if not os.path.exists(path):
         shown = os.path.relpath(path, REPO) if path.startswith(REPO + os.sep) else path
-        return [f'missing source {shown}'], {}
+        return [f'missing source {shown}'], {}, None
     try:
-        analysis = analyse(path)
+        analysis = analyse(path, entry['grid'])
     except (OSError, ValueError) as e:
-        return [f'unreadable: {e}'], {}
-    if not analysis[2]:
-        return ['no clean grid (sampled evenly, check it by eye)'], {}
-    problems, outputs = [], {}
+        return [f'unreadable: {e}'], {}, None
+    if not analysis.clean:
+        regenerate = f', needs {entry["grid"]}: regenerate' if entry.get('exact') else ''
+        return [f'no clean grid (sampled evenly, check it by eye){regenerate}'], {}, analysis
+    problems, outputs = list(filter(None, [exact_problem(entry, analysis)])), {}
     for n in grids or [entry['grid']]:
         outputs[n] = convert(analysis, n, COLOR_LIMIT[n], LEVEL_GAP[n])
         out, info = outputs[n]
         problems += [f'{n}x{n}: {p}' if grids else p for p in verify(out, n, info['subject'])]
-    return problems, outputs
+    return problems, outputs, analysis
 
 
 def check_picture(entry, grids=None):
     """The problems of one manifest picture (empty: it passes)."""
     return convert_entry(entry, grids)[0]
+
+
+def source_text(entry, analysis, outputs):
+    """'source 37 blocks (subject 30), grid 16, 6 colours' for one --check
+    line; the colour count is the converted picture's at its grid."""
+    n = entry['grid']
+    colours = f", {outputs[n][1]['colors']} colours" if n in outputs else ''
+    if analysis is None:
+        return f'grid {n}{colours}'
+    subject = analysis.subject
+    note = ' (no clean grid)' if not analysis.clean else f' (subject {subject})' if subject else ''
+    return f'source {blocks_text(analysis.frame)}{note}, grid {n}{colours}'
 
 
 def stale(entry, image, out_root):
@@ -627,18 +710,19 @@ def stale(entry, image, out_root):
 
 
 def check(entries, all_grids=False, out_root=None):
-    """Checks every picture and prints one line each. With `out_root`, a
-    built PNG that is missing or out of date fails too. Returns the failures."""
+    """Checks every picture and prints one line each, with the source's block
+    count. With `out_root`, a built PNG that is missing or out of date fails
+    too. Returns the failures."""
     if not entries:
         print('the manifest lists no puzzle pictures')
         return 1
     failures = 0
     for e in entries:
-        problems, outputs = convert_entry(e, sorted(COLOR_LIMIT) if all_grids else None)
+        problems, outputs, analysis = convert_entry(e, sorted(COLOR_LIMIT) if all_grids else None)
         if out_root and e['grid'] in outputs:
             problems += filter(None, [stale(e, outputs[e['grid']][0], out_root)])
         failures += bool(problems)
-        print(f"{'FAIL' if problems else 'ok  '} {e['course']}/{e['slug']} {e['grid']}x{e['grid']}"
+        print(f"{'FAIL' if problems else 'ok  '} {e['course']}/{e['slug']} {source_text(e, analysis, outputs)}"
               + (': ' + '; '.join(problems) if problems else ''), flush=True)
     print(f'{len(entries)} pictures, {failures} failed')
     return failures
@@ -650,7 +734,7 @@ def build(entries, out_root=PICTURES):
     failures = 0
     for e in entries:
         n = e['grid']
-        problems, outputs = convert_entry(e)
+        problems, outputs, _ = convert_entry(e)
         target = os.path.join(out_root, e['course'], e['slug'] + '.png')
         if problems:
             failures += 1
@@ -689,7 +773,7 @@ def main(argv):
     if not (args.src and args.out and args.grid):
         ap.error('src, out and --grid are required unless --check or --build is given')
     colors = args.colors or COLOR_LIMIT[args.grid]
-    analysis = analyse(args.src)
+    analysis = analyse(args.src, args.grid)
     out, info = convert(analysis, args.grid, colors, LEVEL_GAP[args.grid])
     out.save(args.out)
     if args.preview:

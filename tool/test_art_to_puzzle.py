@@ -4,12 +4,14 @@ CI does not run these (it has no Python). Run by hand with a Python that has
 Pillow:
   ~/.local/share/nousfx/via/venv/bin/python3 -m unittest tool/test_art_to_puzzle.py
 """
+import io
 import math
 import os
 import random
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from unittest import mock
 
 from PIL import Image
@@ -260,6 +262,149 @@ class Check(Fixtures):
         self.assertEqual(a2p.check(entries), 1)
 
 
+def layout(colours, cells, seed=1):
+    """cells x cells rows of colours picked at random: what blocks() draws."""
+    rnd = random.Random(seed)
+    return [[rnd.choice(colours) for _ in range(cells)] for _ in range(cells)]
+
+
+def draw(rows, block=32):
+    """A pixel art picture with one block of `block` px per entry of `rows`."""
+    img = Image.new('RGB', (len(rows[0]) * block, len(rows) * block))
+    for y, row in enumerate(rows):
+        for x, c in enumerate(row):
+            img.paste(c, (x * block, y * block, (x + 1) * block, (y + 1) * block))
+    return img
+
+
+def bordered(cells, border, colours, seed=1):
+    """A one-block ring of `border` around random blocks of `colours`."""
+    rows = layout(colours, cells, seed)
+    for i in range(cells):
+        rows[0][i] = rows[-1][i] = rows[i][0] = rows[i][-1] = border
+    return rows
+
+
+def pixels(img):
+    w, h = img.size
+    rgb = list(img.convert('RGB').getdata())
+    return [rgb[y * w:(y + 1) * w] for y in range(h)]
+
+
+class BlockCount(Fixtures):
+    def test_counts_the_blocks_across_the_frame(self):
+        analysis = a2p.analyse(self.save('37.png', blocks([RED, GREEN, BLUE, WHITE], cells=37)))
+        self.assertEqual(analysis.frame, (37, 37))
+        self.assertTrue(analysis.clean)
+
+    def test_a_one_block_border_is_counted_not_dropped(self):
+        rows = bordered(16, BLUE, [RED, GREEN, YELLOW, WHITE])
+        analysis = a2p.analyse(self.save('border.png', draw(rows)))
+        self.assertEqual(analysis.frame, (16, 16))
+
+    def test_counts_the_subject_square_on_a_plain_background(self):
+        rows = plain(37, 37, WHITE)
+        for y, row in enumerate(layout([RED, GREEN, BLUE], 20)[:12]):
+            rows[10 + y][8:28] = row
+        analysis = a2p.analyse(self.save('subject.png', draw(rows, block=16)))
+        self.assertEqual(analysis.subject, 20)
+
+    def test_a_sparse_source_is_read_at_its_grid_not_a_multiple(self):
+        one_block_eye_on_an_odd_line = (6, 6, 7, 7)
+        rows = paint(plain(16, 16, WHITE), 4, 4, 12, 12, RED)
+        path = self.save('sparse.png', draw(paint(rows, *one_block_eye_on_an_odd_line, BLUE)))
+        self.assertNotEqual(a2p.analyse(path).frame, (16, 16))
+        self.assertEqual(a2p.analyse(path, 16).frame, (16, 16))
+
+    def test_a_source_drawn_at_half_the_grid_is_not_read_at_the_grid(self):
+        path = self.save('8.png', blocks([RED, GREEN, BLUE, WHITE], cells=8, block=64))
+        self.assertEqual(a2p.analyse(path, 16).frame, (8, 8))
+
+    def test_shapes_on_every_second_block_line_read_at_half_the_grid(self):
+        rows = paint(plain(16, 16, WHITE), 4, 4, 12, 12, RED)
+        path = self.save('even.png', draw(paint(rows, 6, 6, 8, 8, BLUE)))
+        self.assertEqual(a2p.analyse(path, 16).frame, (8, 8))
+
+    def test_a_grid_hint_does_not_override_a_source_drawn_at_another_count(self):
+        path = self.save('37.png', blocks([RED, GREEN, BLUE, WHITE], cells=37))
+        self.assertEqual(a2p.analyse(path, 16).frame, (37, 37))
+
+    def test_a_full_scene_has_no_subject_square(self):
+        analysis = a2p.analyse(self.save('scene.png', blocks([RED, GREEN, BLUE, WHITE], cells=24)))
+        self.assertIsNone(analysis.subject)
+
+
+class OneToOne(Fixtures):
+    def converted(self, rows, n=16):
+        analysis = a2p.analyse(self.save('src.png', draw(rows)), n)
+        out, _ = a2p.convert(analysis, n, a2p.COLOR_LIMIT[n], a2p.LEVEL_GAP[n])
+        return pixels(out)
+
+    def test_a_source_at_its_grid_converts_block_for_block(self):
+        rows = layout([RED, GREEN, BLUE, YELLOW, WHITE], 16)
+        self.assertEqual(self.converted(rows), rows)
+
+    def test_a_one_block_border_stays_in_place(self):
+        rows = bordered(16, BLUE, [RED, GREEN, YELLOW, WHITE])
+        self.assertEqual(self.converted(rows), rows)
+
+    def test_a_sparse_source_with_a_one_block_border_converts_block_for_block(self):
+        rows = paint(plain(16, 16, WHITE), 5, 4, 10, 11, RED)
+        rows[6][7] = GREEN
+        for i in range(16):
+            rows[0][i] = rows[-1][i] = rows[i][0] = rows[i][-1] = BLUE
+        self.assertEqual(self.converted(rows), rows)
+
+    def test_a_small_subject_is_not_cropped_or_shrunk(self):
+        rows = paint(plain(16, 16, WHITE), 5, 5, 11, 11, RED)
+        rows[7][7] = BLUE
+        self.assertEqual(self.converted(rows), rows)
+
+    def test_too_many_colours_are_merged_down_to_the_level(self):
+        many = [RED, GREEN, BLUE, YELLOW, WHITE, (0, 0, 0), (250, 130, 200), (120, 60, 20)]
+        out = self.converted(layout(many, 16))
+        colours = {c for row in out for c in row}
+        self.assertLessEqual(len(colours), a2p.COLOR_LIMIT[16])
+        self.assertGreaterEqual(a2p.min_de_gap(colours), a2p.LEVEL_GAP[16])
+
+
+class Exact(Fixtures):
+    def exact(self, path, grid=16):
+        return {**self.entry(path, grid), 'exact': True}
+
+    def test_fails_a_source_drawn_at_the_wrong_block_count(self):
+        path = self.save('37.png', blocks([RED, GREEN, BLUE, WHITE], cells=37))
+        self.assertIn('drawn at 37 blocks, needs 16: regenerate', self.problems_of(self.exact(path)))
+
+    def test_fails_a_source_drawn_at_half_its_grid(self):
+        path = self.save('8.png', blocks([RED, GREEN, BLUE, WHITE], cells=8, block=64))
+        self.assertIn('drawn at 8 blocks, needs 16: regenerate', self.problems_of(self.exact(path)))
+
+    def test_without_the_flag_the_same_source_passes(self):
+        path = self.save('37.png', blocks([RED, GREEN, BLUE, WHITE], cells=37))
+        self.assertEqual(self.problems_of(self.entry(path)), [])
+
+    def test_passes_a_source_drawn_at_its_grid(self):
+        path = self.save('16.png', draw(bordered(16, BLUE, [RED, GREEN, YELLOW, WHITE])))
+        self.assertEqual(self.problems_of(self.exact(path)), [])
+
+    def test_fails_a_source_with_no_clean_grid(self):
+        gradient = Image.new('RGB', (512, 512))
+        gradient.putdata([(x // 2, y // 2, 128) for y in range(512) for x in range(512)])
+        problems = self.problems_of(self.exact(self.save('blur.png', gradient)))
+        self.assertTrue(any('no clean grid' in p and 'regenerate' in p for p in problems), problems)
+
+    def test_check_prints_the_block_count_of_every_picture(self):
+        path = self.save('37.png', blocks([RED, GREEN, BLUE, WHITE], cells=37))
+        out = io.StringIO()
+        with redirect_stdout(out):
+            failures = a2p.check([self.entry(path, slug='a'), {**self.exact(path), 'slug': 'b'}])
+        self.assertEqual(failures, 1)
+        lines = out.getvalue().splitlines()
+        self.assertRegex(lines[0], r'^ok   test/a source 37 blocks, grid 16, \d colours$')
+        self.assertTrue(lines[1].startswith('FAIL test/b') and 'needs 16: regenerate' in lines[1], lines[1])
+
+
 class Verify(unittest.TestCase):
     """The rules a converted picture must meet (some can't come out of convert)."""
 
@@ -304,6 +449,14 @@ class Manifest(unittest.TestCase):
         (e,) = a2p.puzzle_entries(path)
         self.assertEqual((e['course'], e['slug'], e['grid']), ('classics', 'heart-balloons', 40))
         self.assertTrue(e['source'].endswith(os.path.join('design', 'p.png')))
+        self.assertFalse(e['exact'])
+
+    def test_reads_the_exact_flag_and_rejects_a_non_boolean(self):
+        entry = '[[asset]]\nname = "p"\nsource = "p.png"\ncourse = "c"\nslug = "s"\ngrid = 16\n'
+        (e,) = a2p.puzzle_entries(self.write(entry + 'exact = true\n'))
+        self.assertTrue(e['exact'])
+        with self.assertRaises(ValueError):
+            a2p.puzzle_entries(self.write(entry + 'exact = "yes"\n'))
 
     def test_rejects_a_missing_source_or_a_bad_course(self):
         no_source = self.write('[[asset]]\nname = "p"\ncourse = "c"\nslug = "s"\ngrid = 16\n')
