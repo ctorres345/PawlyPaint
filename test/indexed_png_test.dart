@@ -45,27 +45,22 @@ void main() {
     expect(p.palette, [0xFFFF0000, 0xFF0000FF]);
   });
 
-  test('a wrong zlib checksum is a FormatException naming the file', () {
-    final bad = Uint8List.fromList(pixels)..[pixels.length - 1] ^= 0xFF;
-    expect(
-      () => decodeIndexedPng(png(bad), name: 'bad-sum.png'),
-      throwsA(isA<FormatException>().having((e) => e.message, 'message', startsWith('bad-sum.png: '))),
-    );
-  });
-
-  test('a cut zlib stream is a FormatException naming the file', () {
-    expect(
-      () => decodeIndexedPng(png(pixels.sublist(0, pixels.length - 3)), name: 'cut.png'),
-      throwsA(isA<FormatException>().having((e) => e.message, 'message', startsWith('cut.png: '))),
-    );
-  });
-
-  test('damaged deflate data is a FormatException naming the file', () {
-    expect(
-      () => decodeIndexedPng(png([0x78, 0x9C, 0xFF, 0xFF, 0xFF, 0xFF]), name: 'junk.png'),
-      throwsA(isA<FormatException>().having((e) => e.message, 'message', startsWith('junk.png: '))),
-    );
-  });
+  final badStreams = {
+    'bad-sum.png': Uint8List.fromList(pixels)..[pixels.length - 1] ^= 0xFF,
+    'cut.png': pixels.sublist(0, pixels.length - 3),
+    'junk.png': [0x78, 0x9C, 0xFF, 0xFF, 0xFF, 0xFF],
+  };
+  for (final MapEntry(key: name, value: idat) in badStreams.entries) {
+    test('$name: a bad zlib stream is a FormatException naming the file', () {
+      expect(
+        () => decodeIndexedPng(png(idat), name: name),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message', startsWith('$name: '))),
+      );
+      // The reader turns only a FormatException into its own, so web's
+      // inflater must throw one too.
+      expect(() => const ZLibDecoderWeb().decodeBytes(idat, verify: true), throwsFormatException);
+    });
+  }
 
   // Web inflates in pure Dart; tests run on the VM, where the app uses native
   // zlib. So check the web inflater against dart:io on every bundled picture.
