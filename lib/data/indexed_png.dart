@@ -1,5 +1,6 @@
-import 'dart:io' show ZLibDecoder;
 import 'dart:typed_data';
+
+import 'package:archive/archive.dart' show ZLibDecoder;
 
 /// A decoded palette PNG: a palette index per pixel, row by row, and the
 /// palette as 0xFFRRGGBB in the file's own order.
@@ -50,7 +51,14 @@ IndexedPng decodeIndexedPng(Uint8List bytes, {String name = 'PNG'}) {
   if (width == 0 || height == 0) fail('no IHDR');
   final colours = palette ?? fail('no palette');
 
-  final raw = ZLibDecoder().convert(data.takeBytes());
+  // Native zlib on Android and iPhone, pure Dart on web. verify checks the
+  // Adler-32, so a cut or damaged stream fails here instead of decoding.
+  final Uint8List raw;
+  try {
+    raw = const ZLibDecoder().decodeBytes(data.takeBytes(), verify: true);
+  } on FormatException catch (e) {
+    fail('bad image data (${e.message})');
+  }
   final stride = (width * depth + 7) >> 3;
   if (raw.length < height * (stride + 1)) fail('image data too short');
   final indexes = Uint8List(width * height);
