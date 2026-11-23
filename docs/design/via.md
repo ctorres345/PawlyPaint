@@ -219,8 +219,21 @@
       "fixed_in": "20261119T002037Z"
     },
     {
-      "id": "VIA-home-1cffbe82",
+      "id": "VIA-home-0f256219",
       "status": "new",
+      "first_seen": "2026-11-23T03:02:44",
+      "screen": "home",
+      "rule": "star-counter-format",
+      "severity": "low",
+      "file": "lib/ui/home_screen.dart",
+      "line": 833,
+      "issue": "Star counters mix '0/120' and '0 / 960' and one course has no star.",
+      "last_seen": "2026-11-23T03:02:44",
+      "run": "20261123T080123Z"
+    },
+    {
+      "id": "VIA-home-1cffbe82",
+      "status": "fixed",
       "first_seen": "2026-11-22T12:09:36",
       "screen": "home",
       "rule": "dismiss-motion",
@@ -230,7 +243,8 @@
       "issue": "Dismissing the card removes it in one frame, so the cards below jump up.",
       "last_seen": "2026-11-22T12:09:36",
       "run": "20261122T170918Z",
-      "ticket": "PAP-88"
+      "ticket": "PAP-88",
+      "fixed_in": "20261123T080123Z"
     },
     {
       "id": "VIA-home-50f280ae",
@@ -248,7 +262,7 @@
     },
     {
       "id": "VIA-home-709d46fe",
-      "status": "open",
+      "status": "fixed",
       "first_seen": "2026-11-22T11:37:04",
       "screen": "home",
       "rule": "text-clipped-largest-font",
@@ -258,7 +272,8 @@
       "issue": "At the largest font the locked Today's picture and Time Attack cards cut their hint text (fixed-height _LockedHero). It is the same on main without the new card; the course labels under the tip bar are only the list's scroll edge, since Home is a ListView.",
       "last_seen": "2026-11-22T12:09:36",
       "run": "20261122T170918Z",
-      "ticket": "PAP-88"
+      "ticket": "PAP-88",
+      "fixed_in": "20261123T080123Z"
     },
     {
       "id": "VIA-home-774c8889",
@@ -289,6 +304,32 @@
       "fixed_in": "20261118T234807Z"
     },
     {
+      "id": "VIA-home-8461cd8d",
+      "status": "new",
+      "first_seen": "2026-11-23T03:02:44",
+      "screen": "home",
+      "rule": "dark-progress-track-contrast",
+      "severity": "low",
+      "file": "lib/ui/home_screen.dart",
+      "line": 745,
+      "issue": "In dark mode the empty progress track is dark brown on a dark surface.",
+      "last_seen": "2026-11-23T03:02:44",
+      "run": "20261123T080123Z"
+    },
+    {
+      "id": "VIA-home-8d8818fd",
+      "status": "new",
+      "first_seen": "2026-11-23T03:02:44",
+      "screen": "home",
+      "rule": "milestone-label-truncates",
+      "severity": "low",
+      "file": "lib/ui/home_screen.dart",
+      "line": 1146,
+      "issue": "At the largest font the milestone banner cuts the reward name with an ellipsis.",
+      "last_seen": "2026-11-23T03:02:44",
+      "run": "20261123T080123Z"
+    },
+    {
       "id": "VIA-home-b40beffb",
       "status": "open",
       "first_seen": "2026-11-19T01:03:54",
@@ -298,8 +339,8 @@
       "file": "lib/ui/badges_screen.dart",
       "line": 130,
       "issue": "The badge summary note uses a fixed 164 pt bottom margin to clear the unlock strip and dock; at very large text, or with no strip, the gap may be off.",
-      "last_seen": "2026-11-22T12:09:36",
-      "run": "20261122T170918Z"
+      "last_seen": "2026-11-23T03:02:44",
+      "run": "20261123T080123Z"
     },
     {
       "id": "VIA-paint-1ff2fb53",
@@ -519,11 +560,14 @@
 | VIA-course-65d0d4fb | course | med | new | lib/ui/theme/tokens.dart\:81 | Light-theme star \#E0A21B on surface \#FFFDF9 is about 2.25\:1, under the 3\:1 non-text minimum. The value is the PAP-19 prototype's --star token. |
 | VIA-course-70c78701 | course | med | fixed | lib/ui/course\_screen.dart\:321 | Unearned stars used the outline color and almost vanished on dark tiles. |
 | VIA-gallery-fdbb613c | gallery | low | fixed | lib/ui/gallery\_screen.dart\:150 | Footer said gray tiles are unfinished pictures, but they are grouped in one ? tile. |
-| VIA-home-1cffbe82 | home | low | new | lib/ui/home\_screen.dart\:156 | Dismissing the card removes it in one frame, so the cards below jump up. |
+| VIA-home-0f256219 | home | low | new | lib/ui/home\_screen.dart\:833 | Star counters mix '0/120' and '0 / 960' and one course has no star. |
+| VIA-home-1cffbe82 | home | low | fixed | lib/ui/home\_screen.dart\:156 | Dismissing the card removes it in one frame, so the cards below jump up. |
 | VIA-home-50f280ae | home | low | fixed | lib/ui/home\_screen.dart\:300 | Level pills and mode bars on open course cards use Colors.white70 and white54, so they cannot follow a dark theme. Existing code, not added by PAP-41. |
-| VIA-home-709d46fe | home | med | open | lib/ui/home\_screen.dart\:607 | At the largest font the locked Today's picture and Time Attack cards cut their hint text (fixed-height \_LockedHero). It is the same on main without the new card; the course labels under the tip bar are only the list's scroll edge, since Home is a ListView. |
+| VIA-home-709d46fe | home | med | fixed | lib/ui/home\_screen.dart\:607 | At the largest font the locked Today's picture and Time Attack cards cut their hint text (fixed-height \_LockedHero). It is the same on main without the new card; the course labels under the tip bar are only the list's scroll edge, since Home is a ListView. |
 | VIA-home-774c8889 | home | low | fixed | lib/ui/home\_screen.dart\:683 | Course shelf titles like Animal Friends were cut with an ellipsis at 78 wide. |
 | VIA-home-7d19a298 | home | low | fixed | lib/ui/home\_screen.dart\:702 | Gallery/How to play pills, the Unlocks strip and the Time Attack bar each use a different treatment; the strip has no progress bar. |
+| VIA-home-8461cd8d | home | low | new | lib/ui/home\_screen.dart\:745 | In dark mode the empty progress track is dark brown on a dark surface. |
+| VIA-home-8d8818fd | home | low | new | lib/ui/home\_screen.dart\:1146 | At the largest font the milestone banner cuts the reward name with an ellipsis. |
 | VIA-home-b40beffb | home | low | open | lib/ui/badges\_screen.dart\:130 | The badge summary note uses a fixed 164 pt bottom margin to clear the unlock strip and dock; at very large text, or with no strip, the gap may be off. |
 | VIA-paint-1ff2fb53 | paint | low | open | lib/ui/star\_meter.dart\:96 | Lost-star outline \#d5c2c6 on \#fff8f8 is about 1.5\:1. The text line and the screen-reader label carry the same information, and the style matches the finish sheet. |
 | VIA-paint-3ba78c04 | paint | low | new | lib/ui/board.dart | Rings (and Sort spots) now draw as one path, so where two overlap at far zoom-out the alpha no longer doubles up. |

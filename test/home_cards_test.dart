@@ -62,13 +62,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
   }
 
-  // Dark only swaps colours, so it runs at the tightest size alone.
-  for (final (size, scale, brightness) in [
-    (const Size(320, 640), 2.0, Brightness.light),
-    (const Size(320, 640), 2.0, Brightness.dark),
-    (const Size(360, 740), 2.0, Brightness.light),
-    (const Size(412, 915), 2.0, Brightness.light),
-    (const Size(360, 740), 1.3, Brightness.light),
+  const tightest = (Size(320, 640), 2.0);
+  const others = [(Size(360, 740), 2.0), (Size(412, 915), 2.0), (Size(360, 740), 1.3)];
+  for (final ((size, scale), brightness) in [
+    for (final c in [tightest, ...others]) (c, Brightness.light),
+    (tightest, Brightness.dark),
   ]) {
     testWidgets('locked hero hints show in full at ${size.width.round()} pt, text ${scale}x ($brightness)',
         (tester) async {
@@ -76,8 +74,7 @@ void main() {
       expect(tester.takeException(), isNull);
       for (final hint in [dailyHint, raceHint]) {
         expect(find.text(hint), findsOneWidget, reason: 'a fresh install has both hero cards locked');
-        final p = tester.renderObject<RenderParagraph>(find.text(hint));
-        expect(p.didExceedMaxLines, isFalse, reason: '$hint is cut off');
+        _expectFullHeight(tester, hint);
         final text = tester.getRect(find.text(hint));
         final card = tester.getRect(_cardAround(hint));
         expect(text.bottom, lessThanOrEqualTo(card.bottom - 14 + 0.5), reason: '$hint runs out of its card');
@@ -93,8 +90,9 @@ void main() {
     await launch(tester, size: const Size(360, 740), scale: 2.0, painted: 1);
     expect(tester.takeException(), isNull);
     expect(find.text(dailyHint), findsNothing, reason: "one finished picture opens Today's picture");
-    final p = tester.renderObject<RenderParagraph>(find.text(raceHint));
-    expect(p.didExceedMaxLines, isFalse);
+    _expectFullHeight(tester, raceHint);
+    final text = tester.getRect(find.text(raceHint));
+    expect(text.bottom, lessThanOrEqualTo(tester.getRect(_cardAround(raceHint)).bottom - 14 + 0.5));
     final race = tester.getRect(_cardAround(raceHint));
     final row = tester.getRect(find.ancestor(of: find.text(raceHint), matching: find.byType(IntrinsicHeight)).first);
     expect(race.height, closeTo(row.height, 0.5), reason: 'the open card stretches to the same height');
@@ -132,6 +130,25 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('the Fresh paint tag above the card is not clipped', (tester) async {
+    SharedPreferences.setMockInitialValues(resetSave);
+    await launch(tester);
+    final tag = find.text('Fresh paint!');
+    final rect = tester.getRect(tag);
+    var clips = 0;
+    for (RenderObject? o = tester.renderObject(tag); o != null; o = o.parent) {
+      if (o is! RenderBox) continue;
+      final origin = o.localToGlobal(Offset.zero);
+      Rect? clip;
+      if (o is RenderClipRect) clip = (o.clipper?.getClip(o.size) ?? Offset.zero & o.size).shift(origin);
+      if (o is RenderStack && o.clipBehavior != Clip.none) clip = origin & o.size;
+      if (clip == null) continue;
+      clips++;
+      expect(clip.intersect(rect), rect, reason: '${o.runtimeType} cuts the tag');
+    }
+    expect(clips, greaterThan(0), reason: 'the walk reached the clips around the card');
+  });
+
   testWidgets('with reduce motion the Fresh paint card closes at once', (tester) async {
     SharedPreferences.setMockInitialValues(resetSave);
     await launch(tester, reduceMotion: true);
@@ -145,3 +162,12 @@ void main() {
 
 /// The visible locked hero card that holds [hint].
 Finder _cardAround(String hint) => find.ancestor(of: find.text(hint), matching: find.byType(LockedSurface)).first;
+
+/// Fails when [hint] is laid out shorter than its whole text needs, so it is cut or ellipsized.
+void _expectFullHeight(WidgetTester tester, String hint) {
+  final p = tester.renderObject<RenderParagraph>(find.text(hint));
+  final full = TextPainter(text: p.text, textDirection: p.textDirection, textScaler: p.textScaler)
+    ..layout(maxWidth: p.size.width);
+  addTearDown(full.dispose);
+  expect(p.size.height, greaterThanOrEqualTo(full.height - 0.5), reason: '$hint is cut off');
+}

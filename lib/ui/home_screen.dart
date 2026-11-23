@@ -385,16 +385,32 @@ class _Collapse extends StatelessWidget {
       switchOutCurve: Curves.easeOut,
       layoutBuilder: (current, previous) => Stack(
         alignment: Alignment.topCenter,
+        clipBehavior: Clip.none,
         children: [...previous, if (current != null) current],
       ),
-      transitionBuilder: (child, animation) => SizeTransition(
-        sizeFactor: animation,
-        alignment: Alignment.topCenter,
-        child: FadeTransition(opacity: animation, child: child),
+      transitionBuilder: (child, animation) => ClipRect(
+        clipper: const _OpenTopClipper(),
+        child: AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) =>
+              Align(alignment: Alignment.topCenter, heightFactor: animation.value, child: child),
+          child: FadeTransition(opacity: animation, child: child),
+        ),
       ),
       child: child,
     );
   }
+}
+
+/// Clips only the bottom edge, so a tag that pokes out above a card stays whole.
+class _OpenTopClipper extends CustomClipper<Rect> {
+  const _OpenTopClipper();
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(-size.width, -size.height - 100, size.width * 2, size.height);
+
+  @override
+  bool shouldReclip(_OpenTopClipper oldClipper) => false;
 }
 
 /// Says why her progress is empty after the Fresh paint reset, until she closes it (PAP-78).
@@ -618,10 +634,9 @@ class _TimeAttackCard extends StatelessWidget {
   }
 }
 
-/// The minimum height of Today's picture and Time Attack.
-const _heroHeight = 176.0;
+const _heroMinHeight = 176.0;
 
-/// Today's picture beside Time Attack, both the same height: [_heroHeight],
+/// Today's picture beside Time Attack, both the same height: [_heroMinHeight],
 /// or taller when a locked card needs room for its whole hint at large text.
 class _HeroRow extends StatelessWidget {
   const _HeroRow({
@@ -647,15 +662,15 @@ class _HeroRow extends StatelessWidget {
         Expanded(flex: 10, child: sized(timeAttack, timeAttackOpen)),
       ],
     );
-    if (dailyOpen && timeAttackOpen) return SizedBox(height: _heroHeight, child: row);
+    if (dailyOpen && timeAttackOpen) return SizedBox(height: _heroMinHeight, child: row);
     return IntrinsicHeight(
-      child: ConstrainedBox(constraints: const BoxConstraints(minHeight: _heroHeight), child: row),
+      child: ConstrainedBox(constraints: const BoxConstraints(minHeight: _heroMinHeight), child: row),
     );
   }
 }
 
 /// Answers intrinsic height queries for an open hero card with
-/// [_heroHeight]: its thumb uses a LayoutBuilder, which can't answer them,
+/// [_heroMinHeight]: its thumb uses a LayoutBuilder, which can't answer them,
 /// and only a locked card should make the row taller.
 class _OpenHeroHeight extends SingleChildRenderObjectWidget {
   const _OpenHeroHeight({required super.child});
@@ -666,10 +681,10 @@ class _OpenHeroHeight extends SingleChildRenderObjectWidget {
 
 class _RenderOpenHeroHeight extends RenderProxyBox {
   @override
-  double computeMinIntrinsicHeight(double width) => _heroHeight;
+  double computeMinIntrinsicHeight(double width) => _heroMinHeight;
 
   @override
-  double computeMaxIntrinsicHeight(double width) => _heroHeight;
+  double computeMaxIntrinsicHeight(double width) => _heroMinHeight;
 }
 
 /// A hero card that is not open yet: dashed, with what it needs.
@@ -677,22 +692,20 @@ class _LockedHero extends StatelessWidget {
   const _LockedHero.daily()
       : icon = Icons.calendar_today_rounded,
         title = "Today's picture",
-        mode = UnlockTables.modeDaily;
+        unlockMode = UnlockTables.modeDaily;
   const _LockedHero.timeAttack()
       : icon = Icons.bolt_rounded,
         title = 'Time Attack',
-        mode = UnlockTables.modeTimeAttack;
+        unlockMode = UnlockTables.modeTimeAttack;
 
   final IconData icon;
   final String title;
-
-  /// The unlock this card waits for, from [UnlockTables].
-  final String mode;
+  final String unlockMode;
 
   @override
   Widget build(BuildContext context) {
     final t = context.paw;
-    final condition = unlockCondition(mode);
+    final condition = unlockCondition(unlockMode);
     return Semantics(
       button: true,
       label: '$title, locked. $condition',
@@ -708,6 +721,8 @@ class _LockedHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
                   children: [
                     Icon(Icons.lock_rounded, size: 20, color: t.muted),
                     const SizedBox(width: 6),
