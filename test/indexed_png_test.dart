@@ -1,7 +1,7 @@
 import 'dart:io' as io;
 import 'dart:typed_data';
 
-import 'package:archive/archive.dart' show ZLibDecoderWeb;
+import 'package:archive/archive.dart' show ZLibDecoder, ZLibDecoderWeb;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pawlypaint/data/indexed_png.dart';
 import 'package:pawlypaint/data/pictures.dart' show picturesDir;
@@ -56,21 +56,26 @@ void main() {
         () => decodeIndexedPng(png(idat), name: name),
         throwsA(isA<FormatException>().having((e) => e.message, 'message', startsWith('$name: '))),
       );
-      // The reader turns only a FormatException into its own, so web's
-      // inflater must throw one too.
-      expect(() => const ZLibDecoderWeb().decodeBytes(idat, verify: true), throwsFormatException);
+      expect(
+        () => const ZLibDecoderWeb().decodeBytes(idat, verify: true),
+        throwsFormatException,
+        reason: 'the reader wraps only a FormatException, so the web inflater must throw one',
+      );
     });
   }
 
-  // Web inflates in pure Dart; tests run on the VM, where the app uses native
-  // zlib. So check the web inflater against dart:io on every bundled picture.
-  test('every bundled picture inflates the same on web as with dart:io', () {
+  // archive inflates natively on device and in pure Dart on web. Tests run
+  // only on the VM, so this checks the pure-Dart code there, not a browser
+  // build: the browser check is a manual run (PR).
+  test('every bundled picture inflates the same as with dart:io, native and pure-Dart', () {
     final files =
         io.Directory(picturesDir).listSync(recursive: true).whereType<io.File>().where((f) => f.path.endsWith('.png'));
     expect(files, isNotEmpty);
     for (final f in files) {
       final idat = idatOf(f.readAsBytesSync());
-      expect(const ZLibDecoderWeb().decodeBytes(idat, verify: true), io.ZLibDecoder().convert(idat), reason: f.path);
+      final before = io.ZLibDecoder().convert(idat);
+      expect(const ZLibDecoder().decodeBytes(idat, verify: true), before, reason: '${f.path} native');
+      expect(const ZLibDecoderWeb().decodeBytes(idat, verify: true), before, reason: '${f.path} pure-Dart');
     }
   });
 }
