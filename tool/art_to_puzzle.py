@@ -23,13 +23,22 @@ A source read at exactly the game grid keeps every block in place: crop keeps
 it whole and shrink gives each cell its own block, so only the palette cut may
 merge colours.
 
+Fit mode (PAP-95, `fit = "subject"` or `"scene"`, or --fit) places a source
+drawn near its grid 1:1 before that: a subject on a plain background whose box
+fits the grid is padded with the background, a scene drawn at grid to grid+4
+blocks is trimmed evenly. Anything else fails with its measured size. Sources
+drawn at their grid (`exact` or `fit`) also get the region-safe colour cut: two
+close colours that each fill a large region are pushed apart, not merged.
+tool/pixel_gen.py makes such sources on a local ComfyUI server.
+
 Needs Pillow. Run with a Python that has it, for example:
   python3 tool/art_to_puzzle.py in.png out.png --grid 16 --preview big.png
 Prints the detected block size and the picture's own grid size. --colors
 overrides the level's colour limit.
 
 The asset manifest (design/assets.toml) lists every picture source: a puzzle
-entry has `course`, `slug`, `grid` and optionally `exact = true`. --check
+entry has `course`, `slug`, `grid` and optionally `exact = true` or `fit`, and
+`prompt`, `seed` and `scale` from pixel_gen.py. --check
 prints each source's block count (whole frame and subject square), converts
 each at its own grid and exits non-zero if any fails (missing, no clean pixel
 grid, an `exact` source not drawn at grid blocks across, too few or too
@@ -74,6 +83,15 @@ RARITY = 0.5
 SUBJECT_KEPT = 0.5
 HINT_MIN_COHERENCE = 0.9
 HINT_MARGIN = 0.05
+FIT_SUBJECT_MIN_SHARE = 0.7
+FIT_SCENE_MAX_EXTRA_BLOCKS = 4
+FIT_MODES = ('subject', 'scene')
+CELL_PX_RANGE = (7, 16)
+LARGE_REGION_SHARE = 0.05
+SEPARATE_MAX_SHIFT = 2.0
+SEPARATE_MAX_MOVES = 3
+SEPARATE_STEP_LAB = 0.5
+SEPARATE_MAX_WALK = 3
 
 
 def edge_profiles(img):
@@ -220,12 +238,19 @@ def _ring_mode(grid):
     return colour, count, len(ring)
 
 
+def plain_ring(grid):
+    """The most common colour of the outer ring of blocks when it covers at
+    least PLAIN_BORDER of that ring, else None."""
+    colour, count, ring = _ring_mode(grid)
+    return colour if count >= PLAIN_BORDER * ring else None
+
+
 def border_colour(grid):
     """The plain background colour around the picture, or None for a full
     scene: the most common colour of the outer ring of blocks, when it covers
     at least PLAIN_BORDER of that ring and PLAIN_BACKGROUND of the picture."""
-    colour, count, ring = _ring_mode(grid)
-    if count < PLAIN_BORDER * ring:
+    colour = plain_ring(grid)
+    if colour is None:
         return None
     covered = sum(c == colour for row in grid for c in row)
     more_than_a_frame_line = covered >= PLAIN_BACKGROUND * len(grid) * len(grid[0])
@@ -285,6 +310,72 @@ def crop(grid, n, bg=None):
     sx, sy = _square_start(x0, x1, side, gw), _square_start(y0, y1, side, gh)
     return [[grid[y][x] if 0 <= x < gw and 0 <= y < gh else bg for x in range(sx, sx + side)]
             for y in range(sy, sy + side)]
+
+
+class FitError(ValueError):
+    """A source too far from its grid to place 1:1; the message gives its
+    measured size and `miss` how many blocks a side it is off (None when
+    nothing was measured)."""
+
+    def __init__(self, message, miss=None):
+        super().__init__(message)
+        self.miss = miss
+
+
+def _fit_start(lo, hi, n, size):
+    """Where an n-block window starts on one axis around a subject at lo..hi
+    in a frame of `size` blocks: on the edge the subject runs off, else
+    centred (any odd block to the right or bottom), inside the frame when it
+    fits."""
+    if lo == 0 and hi < size:
+        return 0
+    if hi == size and lo > 0:
+        return size - n
+    start = lo - (n - (hi - lo)) // 2
+    return min(max(start, 0), size - n) if n <= size else start
+
+
+def fit_subject(native):
+    """(background, subject box) for fit mode, or (None, None). Only the
+    outer ring must be plain (PLAIN_BORDER): unlike crop, a subject that
+    fills most of the frame still gets measured, so it fails with its size."""
+    colour = plain_ring(native)
+    return (None, None) if colour is None else (colour, subject_box(native, colour))
+
+
+def fit_native(native, n, mode):
+    """Places a picture read at its own grid onto the n x n puzzle grid block
+    for block, with no resampling. Returns (grid, note) or raises FitError.
+
+    'subject': a subject on a plain background whose box fits inside n x n
+    and is at least FIT_SUBJECT_MIN_SHARE of n across is framed by an n-block
+    window, padded with the background where the window runs past the frame.
+    'scene': a full scene of n to n + FIT_SCENE_MAX_EXTRA_BLOCKS blocks a side is
+    trimmed evenly at the edges (any odd block comes off the right or
+    bottom)."""
+    gw, gh = len(native[0]), len(native)
+    if mode == 'scene':
+        if not (n <= gw <= n + FIT_SCENE_MAX_EXTRA_BLOCKS and n <= gh <= n + FIT_SCENE_MAX_EXTRA_BLOCKS):
+            side = 'under' if min(gw, gh) < n else 'over'
+            raise FitError(f'scene {gw}x{gh} {side} grid {n} (needs {n} to {n + FIT_SCENE_MAX_EXTRA_BLOCKS} blocks)',
+                           max(abs(gw - n), abs(gh - n)))
+        ox, oy = (gw - n) // 2, (gh - n) // 2
+        return [row[ox:ox + n] for row in native[oy:oy + n]], f'scene {gw}x{gh} trimmed to {n}'
+    if mode != 'subject':
+        raise ValueError(f'fit mode {mode!r} is not subject or scene')
+    bg, box = fit_subject(native)
+    if not box:
+        raise FitError(f'no subject on a plain background ({blocks_text((gw, gh))})')
+    x0, y0, x1, y1 = box
+    w, h = x1 - x0, y1 - y0
+    if w > n or h > n:
+        raise FitError(f'subject {w}x{h} over grid {n}', max(abs(w - n), abs(h - n)))
+    least = math.ceil(FIT_SUBJECT_MIN_SHARE * n)
+    if max(w, h) < least:
+        raise FitError(f'subject {w}x{h} under grid {n} (needs {least} blocks across)', n - max(w, h))
+    sx, sy = _fit_start(x0, x1, n, gw), _fit_start(y0, y1, n, gh)
+    return ([[native[y][x] if 0 <= x < gw and 0 <= y < gh else bg for x in range(sx, sx + n)]
+             for y in range(sy, sy + n)], f'subject {w}x{h} padded to {n}')
 
 
 def _area_votes(grid, x0, x1, y0, y1):
@@ -427,6 +518,28 @@ def de2000(x, y):
     return math.sqrt(ql * ql + qc * qc + qh * qh + rt * qc * qh)
 
 
+def rgb_of_lab(colour):
+    """CIE Lab (D65) back to sRGB 0-255, clamped to the gamut: the inverse
+    of lab()."""
+    l, a, b = colour
+    fy = (l + 16) / 116
+    fx, fz = fy + a / 500, fy - b / 200
+
+    def finv(t):
+        return t ** 3 if t ** 3 > 0.008856 else (t - 16 / 116) / 7.787
+
+    x, y, z = finv(fx) * 0.95047, finv(fy), finv(fz) * 1.08883
+    linear = (3.2406 * x - 1.5372 * y - 0.4986 * z,
+              -0.9689 * x + 1.8758 * y + 0.0415 * z,
+              0.0557 * x - 0.2040 * y + 1.0570 * z)
+
+    def gamma(v):
+        v = min(max(v, 0.0), 1.0)
+        return 12.92 * v if v <= 0.0031308 else 1.055 * v ** (1 / 2.4) - 0.055
+
+    return tuple(round(gamma(v) * 255) for v in linear)
+
+
 def _de_gap(a, b):
     return de2000(lab(a), lab(b))
 
@@ -436,7 +549,55 @@ def min_de_gap(colours):
     return _closest(colours, _de_gap)[0]
 
 
-def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0):
+def largest_region(grid, colours):
+    """Cells in the largest 4-connected region of cells whose colour is in
+    `colours`."""
+    gh, gw = len(grid), len(grid[0])
+    seen = set()
+    best = 0
+    for sy in range(gh):
+        for sx in range(gw):
+            if (sx, sy) in seen or grid[sy][sx] not in colours:
+                continue
+            seen.add((sx, sy))
+            todo, size = [(sx, sy)], 0
+            while todo:
+                x, y = todo.pop()
+                size += 1
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= nx < gw and 0 <= ny < gh and (nx, ny) not in seen and grid[ny][nx] in colours:
+                        seen.add((nx, ny))
+                        todo.append((nx, ny))
+            best = max(best, size)
+    return best
+
+
+def separate(mover, anchor, gap, de_gap, origin=None):
+    """`mover` pushed along the Lab line away from `anchor` until the two are
+    `gap` apart in plain RGB and `de_gap` in CIEDE2000, or None when that
+    needs more than SEPARATE_MAX_SHIFT times the gap or the gamut stops it
+    (a white can't get any whiter). It walks in SEPARATE_STEP_LAB steps, at
+    most SEPARATE_MAX_WALK times that shift in Lab distance, since CIEDE2000
+    can grow slower than Lab distance. The shift is measured from `origin`
+    (default `mover`), so repeated moves of one colour share one cap."""
+    start, away = lab(mover), lab(anchor)
+    direction = [m - a for m, a in zip(start, away)]
+    length = math.hypot(*direction)
+    if not length:
+        return None
+    unit = [v / length for v in direction]
+    most = SEPARATE_MAX_SHIFT * max(de_gap, min(LEVEL_GAP.values()))
+    steps = math.ceil(SEPARATE_MAX_WALK * most / SEPARATE_STEP_LAB)
+    for i in range(1, steps + 1):
+        moved = rgb_of_lab(tuple(s + u * i * SEPARATE_STEP_LAB for s, u in zip(start, unit)))
+        if _de_gap(moved, origin or mover) > most:
+            return None
+        if _rgb_gap(moved, anchor) >= gap and _de_gap(moved, anchor) >= de_gap:
+            return moved
+    return None
+
+
+def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0, region_safe=False):
     """Merges the closest pair of colours until the palette fits.
 
     Merging stops early at `limit` colours, and always goes on while the
@@ -451,6 +612,15 @@ def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0):
     bigger group: a group of shades would otherwise pass a minor shade's colour
     over the picture's most common one (the Classics butterfly's pink flowers
     turned coral).
+
+    With `region_safe` (PAP-95, sources drawn at their grid), two colours
+    under the gap whose largest 4-connected regions each cover at least
+    LARGE_REGION_SHARE of the grid are pushed apart instead (see separate):
+    the smaller one moves, or the larger when the smaller can't, at most
+    SEPARATE_MAX_MOVES times per colour, else they merge as before. So a
+    white face on a cream background stays a face. Merges the `limit` forces
+    take a pair that is not two such regions while there is one. The Classics
+    leave it off: their built PNGs rely on the merge.
     """
     counts = Counter(c for row in grid for c in row)
     parent = {}  # colour -> the group it joined (followed to the root below)
@@ -470,10 +640,52 @@ def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0):
         return min((measure(biggest_member[a][1], biggest_member[b][1]), a, b)
                    for i, a in enumerate(keys) for b in keys[i + 1:])
 
+    def root(c):
+        while parent[c] != c:
+            c = parent[c]
+        return c
+
+    def region(group):
+        return largest_region(grid, {c for c in counts if root(c) == group})
+
+    big_region = LARGE_REGION_SHARE * len(grid) * len(grid[0])
+    moves, origin = Counter(), {}
+
+    def both_regions(a, b):
+        small, large = (a, b) if group_cells[a] < group_cells[b] else (b, a)
+        return group_cells[small] >= big_region and region(small) >= big_region and region(large) >= big_region
+
+    def closest_detail_pair():
+        """The closest pair by _dist that is not two large regions, or the
+        closest pair when every pair is."""
+        keys = list(group_cells)
+        pairs = sorted((_dist(biggest_member[a][1], biggest_member[b][1]), a, b)
+                       for i, a in enumerate(keys) for b in keys[i + 1:])
+        return next((p for p in pairs if not both_regions(p[1], p[2])), pairs[0])
+
+    def pushed_apart(a, b):
+        """Moves the smaller of two large regions away from the other, or the
+        larger one when the smaller can't move (a pure white); False when
+        they are not both regions or neither can move."""
+        small, large = (a, b) if group_cells[a] < group_cells[b] else (b, a)
+        if not both_regions(a, b):
+            return False
+        for mover, anchor in ((small, large), (large, small)):
+            if moves[mover] < SEPARATE_MAX_MOVES:
+                source = origin.setdefault(mover, biggest_member[mover][1])
+                moved = separate(biggest_member[mover][1], biggest_member[anchor][1], gap, de_gap, origin=source)
+                if moved is not None:
+                    biggest_member[mover] = (biggest_member[mover][0], moved)
+                    moves[mover] += 1
+                    return True
+        return False
+
     while len(group_cells) > 1:
         d, a, b = closest(_dist)
         palette_fits = d >= merge_below and (limit is None or len(group_cells) <= limit)
-        if palette_fits:
+        if not palette_fits and region_safe and d >= merge_below:
+            d, a, b = closest_detail_pair()
+        elif palette_fits:
             d, a, b = closest(_rgb_gap)
             if d >= gap:
                 if not de_gap:
@@ -481,14 +693,18 @@ def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0):
                 d, a, b = closest(_de_gap)
                 if d >= de_gap:
                     break
+            if region_safe and pushed_apart(a, b):
+                continue
         group_cells[a] += group_cells.pop(b)
+        kept_b = biggest_member[b] > biggest_member[a]
         biggest_member[a] = max(biggest_member[a], biggest_member.pop(b))
+        if kept_b:
+            origin.pop(a, None)
+            if b in origin:
+                origin[a] = origin.pop(b)
+        else:
+            origin.pop(b, None)
         parent[b] = a
-
-    def root(c):
-        while parent[c] != c:
-            c = parent[c]
-        return c
 
     return [[biggest_member[root(c)][1] for c in row] for row in grid]
 
@@ -510,6 +726,7 @@ class Analysis(NamedTuple):
     native: list  # rows of RGB tuples, one per source block
     period: float  # block size in source pixels
     clean: bool  # False: no clean grid, sampled evenly
+    placement: str = ''
 
     @property
     def frame(self):
@@ -554,7 +771,7 @@ def subject_share(grid, bg=None):
     return sum(c != bg for row in grid for c in row) / (len(grid) * len(grid[0]))
 
 
-def convert(analysis, n, colors, de_gap=0.0):
+def convert(analysis, n, colors, de_gap=0.0, region_safe=False):
     """The n x n indexed picture and its info. info['subject'] is the
     subject's share of the cropped native read (None for a full scene), which
     verify compares with the result.
@@ -564,12 +781,12 @@ def convert(analysis, n, colors, de_gap=0.0):
     leftover capture shades. A source read at exactly n x n blocks converts
     block for block: crop never goes under n blocks, so it keeps the grid
     whole, and shrink gives each cell its one block. Only the palette cut
-    changes it."""
-    native, period, clean = analysis
+    changes it. `region_safe` goes to reduce_palette."""
+    native, period, clean = analysis.native, analysis.period, analysis.clean
     bg = border_colour(native)
 
     def fit(grid):
-        return reduce_palette(grid, limit=colors, gap=MIN_RGB_GAP, de_gap=de_gap)
+        return reduce_palette(grid, limit=colors, gap=MIN_RGB_GAP, de_gap=de_gap, region_safe=region_safe)
 
     framed = crop(native, n, bg)
     out, used = to_indexed(fit(shrink(fit(framed), n)))
@@ -608,9 +825,25 @@ def puzzle_entries(manifest=MANIFEST):
         exact = a.get('exact', False)
         if not isinstance(exact, bool):
             raise ValueError(f'{name}: exact {exact!r} is not true or false')
+        fit = a.get('fit')
+        if fit is not None and fit not in FIT_MODES:
+            raise ValueError(f'{name}: fit {fit!r} is not one of {", ".join(FIT_MODES)}')
+        if fit and exact:
+            raise ValueError(f'{name}: use exact or fit, not both')
+        prompt, seed, scale = a.get('prompt'), a.get('seed'), a.get('scale')
+        if prompt is not None and not (isinstance(prompt, str) and prompt.strip()):
+            raise ValueError(f'{name}: prompt {prompt!r} is not text')
+        if seed is not None and (not isinstance(seed, int) or isinstance(seed, bool) or seed < 0):
+            raise ValueError(f'{name}: seed {seed!r} is not a whole number')
+        if scale is not None and (not isinstance(scale, int) or isinstance(scale, bool)
+                                  or not CELL_PX_RANGE[0] <= scale <= CELL_PX_RANGE[1]):
+            raise ValueError(f'{name}: scale {scale!r} is not {CELL_PX_RANGE[0]} to {CELL_PX_RANGE[1]} px a cell')
+        if (seed is None) != (scale is None):
+            raise ValueError(f'{name}: record seed and scale together')
         seen.add(key)
         out.append({'course': a['course'], 'slug': a['slug'], 'grid': a['grid'],
-                    'source': os.path.join(REPO, a['source']), 'exact': exact})
+                    'source': os.path.join(REPO, a['source']), 'exact': exact,
+                    'fit': fit, 'prompt': prompt, 'seed': seed, 'scale': scale})
     return out
 
 
@@ -646,6 +879,19 @@ def verify(img, n, subject=None):
     return problems
 
 
+def fit_analysis(analysis, n, mode):
+    """The analysis with its native read placed on the n x n grid by
+    fit_native, so convert keeps it block for block. Raises FitError."""
+    fitted, note = fit_native(analysis.native, n, mode)
+    return analysis._replace(native=fitted, placement=note)
+
+
+def drawn_at_grid(entry):
+    """True for a source drawn at its grid (`exact` or `fit`): its colours
+    get the region-safe cut."""
+    return bool(entry.get('exact') or entry.get('fit'))
+
+
 def exact_problem(entry, analysis):
     """Why an `exact` entry's source isn't drawn at its grid, or None. The
     whole frame must be grid x grid blocks: 1:1 needs every block of the
@@ -672,9 +918,16 @@ def convert_entry(entry, grids=None):
     if not analysis.clean:
         regenerate = f', needs {entry["grid"]}: regenerate' if entry.get('exact') else ''
         return [f'no clean grid (sampled evenly, check it by eye){regenerate}'], {}, analysis
+    placed = analysis
+    if entry.get('fit'):
+        try:
+            placed = fit_analysis(analysis, entry['grid'], entry['fit'])
+        except FitError as e:
+            return [f'{e}: regenerate'], {}, analysis
+        analysis = analysis._replace(placement=placed.placement)
     problems, outputs = list(filter(None, [exact_problem(entry, analysis)])), {}
     for n in grids or [entry['grid']]:
-        outputs[n] = convert(analysis, n, COLOR_LIMIT[n], LEVEL_GAP[n])
+        outputs[n] = convert(placed, n, COLOR_LIMIT[n], LEVEL_GAP[n], drawn_at_grid(entry))
         out, info = outputs[n]
         problems += [f'{n}x{n}: {p}' if grids else p for p in verify(out, n, info['subject'])]
     return problems, outputs, analysis
@@ -693,7 +946,12 @@ def source_text(entry, analysis, outputs):
     if analysis is None:
         return f'grid {n}{colours}'
     subject = analysis.subject
-    note = ' (no clean grid)' if not analysis.clean else f' (subject {subject})' if subject else ''
+    if not analysis.clean:
+        note = ' (no clean grid)'
+    elif analysis.placement:
+        note = f', {analysis.placement}'
+    else:
+        note = f' (subject {subject})' if subject else ''
     return f'source {blocks_text(analysis.frame)}{note}, grid {n}{colours}'
 
 
@@ -758,6 +1016,9 @@ def main(argv):
                     help="palette limit (default: the level's, 6/8/12/16)")
     ap.add_argument('--preview', help='also write an upscaled PNG here')
     ap.add_argument('--native', help='also write the picture at its own grid here')
+    ap.add_argument('--fit', choices=FIT_MODES,
+                    help='place a source drawn near its grid 1:1 (pad a subject, trim a scene); '
+                         'also turns on the region-safe colour cut')
     ap.add_argument('--check', action='store_true',
                     help='convert every puzzle picture in design/assets.toml '
                          'at its grid and verify the results')
@@ -774,15 +1035,21 @@ def main(argv):
         ap.error('src, out and --grid are required unless --check or --build is given')
     colors = args.colors or COLOR_LIMIT[args.grid]
     analysis = analyse(args.src, args.grid)
-    out, info = convert(analysis, args.grid, colors, LEVEL_GAP[args.grid])
+    placed = analysis
+    if args.fit:
+        try:
+            placed = fit_analysis(analysis, args.grid, args.fit)
+        except FitError as e:
+            sys.exit(f'{e}: regenerate')
+    out, info = convert(placed, args.grid, colors, LEVEL_GAP[args.grid], bool(args.fit))
     out.save(args.out)
     if args.preview:
         out.convert('RGB').resize((args.grid * 16,) * 2, Image.NEAREST).save(args.preview)
     if args.native:
         to_image(analysis[0]).save(args.native)
     print(f"block {info['block']} px, own grid "
-          f"{info['native'][0]}x{info['native'][1]}, out {args.grid}x{args.grid}, "
-          f"{info['colors']} colors"
+          f"{analysis.frame[0]}x{analysis.frame[1]}, out {args.grid}x{args.grid}, "
+          f"{info['colors']} colors" + (f", {placed.placement}" if placed.placement else '')
           + (" (no clean grid found: sampled evenly, check it by eye)" if info['fallback'] else ''))
 
 

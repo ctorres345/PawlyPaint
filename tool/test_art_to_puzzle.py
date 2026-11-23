@@ -10,7 +10,9 @@ import os
 import random
 import sys
 import tempfile
+import threading
 import unittest
+from collections import Counter
 from contextlib import redirect_stdout
 from unittest import mock
 
@@ -186,7 +188,7 @@ class SubjectLoss(unittest.TestCase):
         grid = paint(plain(80, 80, WHITE), 20, 20, 60, 60, RED)
         paint(grid, 30, 30, 34, 34, BLUE)
         paint(grid, 46, 30, 50, 34, GREEN)
-        out, info = a2p.convert((grid, 8.0, True), 16, a2p.COLOR_LIMIT[16], a2p.LEVEL_GAP[16])
+        out, info = a2p.convert(a2p.Analysis(grid, 8.0, True), 16, a2p.COLOR_LIMIT[16], a2p.LEVEL_GAP[16])
         self.assertAlmostEqual(info['subject'], 40 * 40 / info['crop'] ** 2)
         self.assertEqual(a2p.verify(out, 16, info['subject']), [])
 
@@ -515,3 +517,253 @@ class Manifest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class FitMode(Fixtures):
+    """PAP-95: a source drawn near its grid is placed 1:1, never resampled."""
+
+    def test_a_subject_that_fits_is_padded_with_its_background_block_for_block(self):
+        native = paint(plain(22, 22, WHITE), 1, 2, 21, 20, RED)
+        native[5][5] = BLUE
+        fitted, note = a2p.fit_native(native, 24, 'subject')
+        self.assertEqual((len(fitted), len(fitted[0])), (24, 24))
+        self.assertEqual([row[2:22] for row in fitted[3:21]], [row[1:21] for row in native[2:20]])
+        self.assertEqual(sum(c == WHITE for row in fitted for c in row), 24 * 24 - 20 * 18)
+        self.assertEqual(note, 'subject 20x18 padded to 24')
+
+    def test_a_scene_up_to_four_blocks_over_is_trimmed_evenly(self):
+        native = layout([RED, GREEN, BLUE, YELLOW, WHITE], 27)
+        fitted, note = a2p.fit_native(native, 24, 'scene')
+        self.assertEqual(fitted, [row[1:25] for row in native[1:25]], '3 over: 1 off the left and top, 2 off the right and bottom')
+        self.assertEqual(note, 'scene 27x27 trimmed to 24')
+
+    def test_a_scene_at_its_grid_is_kept_whole(self):
+        native = layout([RED, GREEN, BLUE, YELLOW], 24)
+        self.assertEqual(a2p.fit_native(native, 24, 'scene')[0], native)
+
+    def test_a_subject_running_off_one_edge_stays_on_it(self):
+        native = paint(plain(20, 20, WHITE), 0, 2, 18, 18, RED)
+        fitted, _ = a2p.fit_native(native, 24, 'subject')
+        self.assertEqual([row[:18] for row in fitted[4:20]], [row[:18] for row in native[2:18]])
+        self.assertTrue(all(c == WHITE for row in fitted for c in row[20:]))
+
+    def test_too_big_or_too_small_fails_with_the_measured_size(self):
+        cases = [
+            (paint(plain(30, 30, WHITE), 1, 4, 28, 26, RED), 'subject', 'subject 27x22 over grid 24', 3),
+            (paint(plain(24, 24, WHITE), 6, 6, 18, 16, RED), 'subject',
+             'subject 12x10 under grid 24 (needs 17 blocks across)', 12),
+            (layout([RED, GREEN, BLUE], 29), 'scene', 'scene 29x29 over grid 24 (needs 24 to 28 blocks)', 5),
+            (layout([RED, GREEN, BLUE], 23), 'scene', 'scene 23x23 under grid 24 (needs 24 to 28 blocks)', 1),
+        ]
+        for native, mode, message, miss in cases:
+            with self.subTest(message), self.assertRaises(a2p.FitError) as caught:
+                a2p.fit_native(native, 24, mode)
+            self.assertEqual((str(caught.exception), caught.exception.miss), (message, miss))
+
+    def fitted_entry(self, rows, mode, grid=24):
+        path = self.save(f'{mode}.png', draw(rows, block=12))
+        return {**self.entry(path, grid), 'fit': mode}
+
+    def test_a_fit_entry_converts_block_for_block(self):
+        rows = paint(plain(22, 22, BLUE), 2, 2, 20, 21, WHITE)
+        rows = paint(rows, 5, 6, 15, 14, RED)
+        rows[8][8] = GREEN
+        problems, outputs, _ = a2p.convert_entry(self.fitted_entry(rows, 'subject'))
+        self.assertEqual(problems, [])
+        out = pixels(outputs[24][0])
+        self.assertEqual([row[3:21] for row in out[2:21]], [row[2:20] for row in rows[2:21]], 'the 18x19 subject, centred')
+
+    def test_a_fit_entry_that_does_not_fit_fails_with_its_size(self):
+        rows = paint(plain(30, 30, BLUE), 1, 4, 28, 26, WHITE)
+        rows = paint(rows, 5, 6, 15, 14, RED)
+        problems = self.problems_of(self.fitted_entry(rows, 'subject'))
+        self.assertIn('subject 27x22 over grid 24: regenerate', problems)
+
+
+class GenerationFields(unittest.TestCase):
+    """PAP-95: puzzle entries record how pixel_gen.py made them."""
+
+    ENTRY = '[[asset]]\nname = "p"\nsource = "p.png"\ncourse = "animals"\nslug = "owl"\ngrid = 24\n'
+
+    def read(self, extra):
+        return Manifest.write(self, self.ENTRY + extra)
+
+    def test_reads_fit_prompt_seed_and_scale(self):
+        (e,) = a2p.puzzle_entries(self.read('fit = "subject"\nprompt = "a round owl"\nseed = 3012\nscale = 12\n'))
+        self.assertEqual((e['fit'], e['prompt'], e['seed'], e['scale']), ('subject', 'a round owl', 3012, 12))
+
+    def test_they_are_optional(self):
+        (e,) = a2p.puzzle_entries(self.read(''))
+        self.assertEqual((e['fit'], e['prompt'], e['seed'], e['scale']), (None, None, None, None))
+
+    def test_rejects_bad_values(self):
+        for extra in ['fit = "blob"\n', 'seed = "7"\nscale = 12\n', 'seed = 7\nscale = 6\n', 'seed = 7\nscale = 17\n',
+                      'prompt = 4\n', 'fit = "scene"\nexact = true\n', 'seed = 7\n', 'scale = 12\n']:
+            with self.subTest(extra), self.assertRaises(ValueError):
+                a2p.puzzle_entries(self.read(extra))
+
+
+class FitCheckLine(Fixtures):
+    def test_check_prints_how_a_fit_source_was_placed(self):
+        rows = paint(plain(22, 22, BLUE), 2, 2, 20, 21, WHITE)
+        rows = paint(rows, 5, 6, 15, 14, RED)
+        path = self.save('owl.png', draw(rows, block=12))
+        out = io.StringIO()
+        with redirect_stdout(out):
+            a2p.check([{**self.entry(path, 24), 'fit': 'subject'}])
+        self.assertRegex(out.getvalue().splitlines()[0],
+                         r'^ok   test/pic source 22 blocks, subject 18x19 padded to 24, grid 24, \d colours$')
+
+
+PANDA_WHITE, CREAM = (245, 245, 232), (249, 230, 185)
+BLACK, COCOA, BAMBOO = (30, 30, 34), (59, 42, 47), (70, 160, 60)
+
+
+def panda():
+    """The PAP-79 level-32 panda case: a 106-cell white face on a cream
+    background, ΔE 11.6 apart, under the level's gap of 14. A cocoa ring
+    outlines the 11x10 face, which has two 2-cell black eyes (110 - 4 = 106
+    white cells); black ears and a bamboo stalk sit around it."""
+    grid = plain(32, 32, CREAM)
+    paint(grid, 9, 7, 22, 19, COCOA)
+    paint(grid, 10, 8, 21, 18, PANDA_WHITE)
+    paint(grid, 12, 10, 14, 11, BLACK)
+    paint(grid, 17, 10, 19, 11, BLACK)
+    paint(grid, 9, 4, 12, 7, BLACK)
+    paint(grid, 19, 4, 22, 7, BLACK)
+    paint(grid, 25, 2, 28, 30, BAMBOO)
+    return grid
+
+
+def colours_of(grid):
+    return Counter(c for row in grid for c in row)
+
+
+class RegionSafeCut(unittest.TestCase):
+    """PAP-95: two close colours that each fill a large region are pushed
+    apart instead of merged; small features still merge (PAP-92)."""
+
+    def cut(self, grid, n=32):
+        return a2p.reduce_palette(grid, limit=a2p.COLOR_LIMIT[n], gap=a2p.MIN_RGB_GAP, de_gap=a2p.LEVEL_GAP[n],
+                                  region_safe=True)
+
+    def test_the_fixture_is_the_panda_case(self):
+        self.assertEqual(colours_of(panda())[PANDA_WHITE], 106)
+        self.assertAlmostEqual(a2p.min_de_gap([PANDA_WHITE, CREAM]), 11.6, places=1)
+
+    def test_a_white_face_on_cream_stays_two_colours_the_level_gap_apart(self):
+        out = self.cut(panda())
+        face, background = out[12][12], out[0][0]
+        self.assertEqual(background, CREAM, 'the bigger region keeps its colour')
+        self.assertNotEqual(face, background)
+        self.assertEqual(colours_of(out)[face], 106)
+        self.assertGreaterEqual(a2p.min_de_gap(colours_of(out)), a2p.LEVEL_GAP[32])
+        self.assertLessEqual(a2p.min_de_gap([face, PANDA_WHITE]), 2 * a2p.LEVEL_GAP[32], 'still a white')
+
+    def test_a_palette_over_the_limit_merges_details_before_the_face(self):
+        grid = panda()
+        extras = [(255, 0, 0), (0, 0, 255), (255, 0, 255), (0, 200, 200), (255, 128, 0), (128, 0, 255),
+                  (0, 100, 0), (128, 64, 0), (255, 105, 180), (100, 100, 255), (200, 200, 0), (0, 0, 120)]
+        for i, colour in enumerate(extras):
+            grid[1 + 2 * (i // 6)][1 + 2 * (i % 6)] = colour
+        self.assertGreater(len(colours_of(grid)), a2p.COLOR_LIMIT[32])
+        out = self.cut(grid)
+        self.assertLessEqual(len(colours_of(out)), a2p.COLOR_LIMIT[32])
+        self.assertNotEqual(out[12][12], out[0][0], 'the face stays apart from the cream')
+
+    def test_a_two_cell_eye_close_to_a_big_colour_still_merges_into_it(self):
+        grid = panda()
+        near_black = (52, 44, 52)
+        self.assertLess(a2p.min_de_gap([near_black, BLACK]), a2p.LEVEL_GAP[32])
+        paint(grid, 0, 20, 8, 28, BLACK)
+        paint(grid, 2, 22, 4, 23, near_black)
+        self.assertGreaterEqual(a2p.largest_region(grid, {BLACK}), a2p.LARGE_REGION_SHARE * 32 * 32,
+                                'only the eye is small, so its size alone decides')
+        out = self.cut(grid)
+        self.assertEqual(out[22][2], BLACK)
+        self.assertNotIn(near_black, colours_of(out))
+
+    def test_the_large_region_threshold(self):
+        def two_patches(cells):
+            grid = plain(32, 32, CREAM)
+            for i in range(cells):
+                grid[10 + i // 16][8 + i % 16] = PANDA_WHITE
+            paint(grid, 0, 28, 32, 32, BAMBOO)
+            paint(grid, 0, 24, 32, 28, BLACK)
+            return grid
+
+        small = math.floor(a2p.LARGE_REGION_SHARE * 32 * 32) - 1
+        self.assertNotIn(PANDA_WHITE, colours_of(self.cut(two_patches(small))))
+        self.assertEqual(len(colours_of(self.cut(two_patches(small + 2)))), 4)
+
+    def test_a_colour_pushed_onto_a_third_one_still_ends_the_gap_apart(self):
+        pushed_white = (226, 240, 255)
+        grid = panda()
+        paint(grid, 0, 20, 8, 32, pushed_white)
+        out = self.cut(grid)
+        face, background, third = out[12][12], out[0][0], out[25][2]
+        self.assertEqual(len({face, background, third}), 3, 'face, background and the third colour all stay')
+        self.assertGreaterEqual(a2p.min_de_gap(colours_of(out)), a2p.LEVEL_GAP[32])
+        self.assertGreaterEqual(a2p.min_gap(colours_of(out)), a2p.MIN_RGB_GAP)
+
+    def test_without_it_the_face_merges_as_the_classics_expect(self):
+        out = a2p.reduce_palette(panda(), limit=12, gap=a2p.MIN_RGB_GAP, de_gap=a2p.LEVEL_GAP[32])
+        self.assertEqual(out[12][12], CREAM)
+
+    def finishes(self, call):
+        """call() run with a 10 s limit; its result, or a failure if it hangs."""
+        result = []
+        worker = threading.Thread(target=lambda: result.append(call()), daemon=True)
+        worker.start()
+        worker.join(10)
+        self.assertFalse(worker.is_alive(), 'still running after 10 s')
+        return result[0]
+
+    def test_a_colour_at_the_edge_of_the_gamut_stops_instead_of_looping(self):
+        pairs = [(WHITE, (240, 240, 240)), (BLACK, (20, 20, 20)), ((255, 0, 0), (235, 20, 20)),
+                 ((0, 255, 0), (20, 235, 20)), ((0, 0, 255), (20, 20, 235)), ((255, 255, 0), (235, 235, 20))]
+        for mover, anchor in pairs:
+            with self.subTest(mover=mover):
+                moved = self.finishes(lambda: a2p.separate(mover, anchor, a2p.MIN_RGB_GAP, a2p.LEVEL_GAP[32]))
+                if moved is not None:
+                    self.assertGreaterEqual(a2p.min_de_gap([moved, anchor]), a2p.LEVEL_GAP[32])
+
+    def test_repeated_moves_stay_within_the_cap_of_the_source_colour(self):
+        gap, cap = a2p.LEVEL_GAP[32], a2p.SEPARATE_MAX_SHIFT * a2p.LEVEL_GAP[32]
+        origin, anchor = (200, 120, 80), (195, 125, 85)
+        already_moved = (150, 160, 120)
+        self.assertGreater(a2p.min_de_gap([already_moved, origin]), cap)
+        self.assertIsNone(a2p.separate(already_moved, anchor, a2p.MIN_RGB_GAP, gap, origin=origin))
+        self.assertIsNotNone(a2p.separate(origin, anchor, a2p.MIN_RGB_GAP, gap, origin=origin))
+
+    def test_a_pure_white_face_moves_its_background_instead(self):
+        for background in [(240, 240, 240), (245, 238, 220)]:
+            with self.subTest(background=background):
+                grid = plain(32, 32, background)
+                paint(grid, 10, 10, 22, 22, WHITE)
+                self.assertLess(a2p.min_de_gap([WHITE, background]), a2p.LEVEL_GAP[32])
+                out = self.finishes(lambda: self.cut(grid))
+                self.assertEqual(out[15][15], WHITE, 'white has nowhere to go, so it stays')
+                self.assertNotEqual(out[0][0], WHITE)
+                self.assertGreaterEqual(a2p.min_de_gap(colours_of(out)), a2p.LEVEL_GAP[32])
+
+    def test_rgb_of_lab_round_trips(self):
+        for c in [PANDA_WHITE, CREAM, BLACK, BAMBOO, (255, 0, 0), (0, 0, 255)]:
+            self.assertEqual(a2p.rgb_of_lab(a2p.lab(c)), c)
+
+
+class RegionSafeEntries(Fixtures):
+    def test_a_fit_entry_keeps_the_panda_face(self):
+        path = self.save('panda.png', draw(panda(), block=12))
+        for extra in ({'fit': 'scene'}, {'exact': True}):
+            with self.subTest(extra):
+                problems, outputs, _ = a2p.convert_entry({**self.entry(path, 32), **extra})
+                self.assertEqual(problems, [])
+                out = pixels(outputs[32][0])
+                self.assertNotEqual(out[12][12], out[0][0])
+
+    def test_a_plain_entry_still_merges_it(self):
+        path = self.save('panda.png', draw(panda(), block=12))
+        _, outputs, _ = a2p.convert_entry(self.entry(path, 32))
+        out = pixels(outputs[32][0])
+        self.assertEqual(out[12][12], out[0][0])
