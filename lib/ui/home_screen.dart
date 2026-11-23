@@ -133,6 +133,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final inProgress = keepPainting(store, courses, unlocks, dailyId: dailyId);
     final now = nowPainting(inProgress, store, courses, unlocks);
     final settings = SettingsScope.maybeOf(context);
+    final dailyOpen = unlocks.isModeOpen(UnlockTables.modeDaily);
+    final timeAttackOpen = unlocks.isModeOpen(UnlockTables.modeTimeAttack);
     const gap = SizedBox(height: 10);
     const sectionGap = SizedBox(height: 18);
     return Scaffold(
@@ -160,17 +162,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                 key: const ValueKey('freshPaint'),
                                 children: [_FreshPaintCard(onClose: store.dismissFreshPaint), _gapAboveTaggedCard],
                               )
-                            : const SizedBox(width: double.infinity),
+                            : const SizedBox.shrink(),
                       ),
                       _HeroRow(
                         daily: _DailyCard(courses: courses, store: store, unlocks: unlocks),
                         timeAttack: _TimeAttackCard(
                           store: store,
-                          open: unlocks.isModeOpen(UnlockTables.modeTimeAttack),
+                          open: timeAttackOpen,
                           onRace: () => _openTimeAttack(store),
                         ),
-                        dailyOpen: unlocks.isModeOpen(UnlockTables.modeDaily),
-                        timeAttackOpen: unlocks.isModeOpen(UnlockTables.modeTimeAttack),
+                        dailyOpen: dailyOpen,
+                        timeAttackOpen: timeAttackOpen,
                       ),
                       sectionGap,
                       StickerHeader(
@@ -368,8 +370,8 @@ class _ReadOnlyBanner extends StatelessWidget {
 const _gapAboveTaggedCard = SizedBox(height: 26);
 
 /// Shrinks and fades out a child that leaves, so the cards below glide up
-/// instead of jumping (PAP-88). Closes at once with reduce motion. Give each
-/// child its own key.
+/// instead of jumping. Closes at once with reduce motion. Each child
+/// needs its own key or type.
 class _Collapse extends StatelessWidget {
   const _Collapse({required this.child});
 
@@ -620,8 +622,7 @@ class _TimeAttackCard extends StatelessWidget {
 const _heroHeight = 176.0;
 
 /// Today's picture beside Time Attack, both the same height: [_heroHeight],
-/// or taller when a locked card needs room for its whole hint at large text
-/// (PAP-88).
+/// or taller when a locked card needs room for its whole hint at large text.
 class _HeroRow extends StatelessWidget {
   const _HeroRow({
     required this.daily,
@@ -701,7 +702,7 @@ class _LockedHero extends StatelessWidget {
           onTap: () => showLockedHint(context, condition),
           child: Padding(
             padding: const EdgeInsets.all(14),
-            // The hero row grows to fit this, so nothing here is cut (PAP-88).
+            // The hero row grows to fit this, so nothing here is cut.
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,

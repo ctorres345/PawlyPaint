@@ -26,7 +26,7 @@ void main() {
   });
   tearDown(() => music.dispose());
 
-  Future<ProgressStore> launch(
+  Future<void> launch(
     WidgetTester tester, {
     Size size = const Size(390, 844),
     double scale = 1.0,
@@ -60,46 +60,43 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 900));
-    return store;
   }
 
-  Finder shown(String text) => _shown(text);
-
-  for (final brightness in Brightness.values) {
-    for (final (size, scale) in [
-      (const Size(320, 640), 2.0),
-      (const Size(360, 740), 2.0),
-      (const Size(412, 915), 2.0),
-      (const Size(360, 740), 1.3),
-    ]) {
-      testWidgets('locked hero hints show in full at ${size.width.round()} pt, text ${scale}x ($brightness)',
-          (tester) async {
-        await launch(tester, size: size, scale: scale, brightness: brightness);
-        expect(tester.takeException(), isNull);
-        for (final hint in [dailyHint, raceHint]) {
-          expect(shown(hint), findsOneWidget, reason: 'a fresh install has both hero cards locked');
-          final p = tester.renderObject<RenderParagraph>(shown(hint));
-          expect(p.didExceedMaxLines, isFalse, reason: '$hint is cut off');
-          final text = tester.getRect(shown(hint));
-          final card = tester.getRect(_cardAround(hint));
-          expect(text.bottom, lessThanOrEqualTo(card.bottom - 14 + 0.5), reason: '$hint runs out of its card');
-        }
-        final daily = tester.getRect(_cardAround(dailyHint));
-        final race = tester.getRect(_cardAround(raceHint));
-        expect(daily.height, closeTo(race.height, 0.5), reason: 'both hero cards share the row height');
-        expect(daily.height, greaterThanOrEqualTo(176 - 0.5));
-      });
-    }
+  // Dark only swaps colours, so it runs at the tightest size alone.
+  for (final (size, scale, brightness) in [
+    (const Size(320, 640), 2.0, Brightness.light),
+    (const Size(320, 640), 2.0, Brightness.dark),
+    (const Size(360, 740), 2.0, Brightness.light),
+    (const Size(412, 915), 2.0, Brightness.light),
+    (const Size(360, 740), 1.3, Brightness.light),
+  ]) {
+    testWidgets('locked hero hints show in full at ${size.width.round()} pt, text ${scale}x ($brightness)',
+        (tester) async {
+      await launch(tester, size: size, scale: scale, brightness: brightness);
+      expect(tester.takeException(), isNull);
+      for (final hint in [dailyHint, raceHint]) {
+        expect(find.text(hint), findsOneWidget, reason: 'a fresh install has both hero cards locked');
+        final p = tester.renderObject<RenderParagraph>(find.text(hint));
+        expect(p.didExceedMaxLines, isFalse, reason: '$hint is cut off');
+        final text = tester.getRect(find.text(hint));
+        final card = tester.getRect(_cardAround(hint));
+        expect(text.bottom, lessThanOrEqualTo(card.bottom - 14 + 0.5), reason: '$hint runs out of its card');
+      }
+      final daily = tester.getRect(_cardAround(dailyHint));
+      final race = tester.getRect(_cardAround(raceHint));
+      expect(daily.height, closeTo(race.height, 0.5), reason: 'both hero cards share the row height');
+      expect(daily.height, greaterThanOrEqualTo(176 - 0.5));
+    });
   }
 
   testWidgets('an open Today\'s picture beside a locked Time Attack grows with it at text 2.0x', (tester) async {
     await launch(tester, size: const Size(360, 740), scale: 2.0, painted: 1);
     expect(tester.takeException(), isNull);
-    expect(_shown(dailyHint), findsNothing, reason: "one finished picture opens Today's picture");
-    final p = tester.renderObject<RenderParagraph>(_shown(raceHint));
+    expect(find.text(dailyHint), findsNothing, reason: "one finished picture opens Today's picture");
+    final p = tester.renderObject<RenderParagraph>(find.text(raceHint));
     expect(p.didExceedMaxLines, isFalse);
     final race = tester.getRect(_cardAround(raceHint));
-    final row = tester.getRect(find.ancestor(of: _shown(raceHint), matching: find.byType(IntrinsicHeight)).first);
+    final row = tester.getRect(find.ancestor(of: find.text(raceHint), matching: find.byType(IntrinsicHeight)).first);
     expect(race.height, closeTo(row.height, 0.5), reason: 'the open card stretches to the same height');
     expect(race.height, greaterThan(176));
   });
@@ -147,6 +144,4 @@ void main() {
 }
 
 /// The visible locked hero card that holds [hint].
-Finder _cardAround(String hint) => find.ancestor(of: _shown(hint), matching: find.byType(LockedSurface)).first;
-
-Finder _shown(String text) => find.text(text);
+Finder _cardAround(String hint) => find.ancestor(of: find.text(hint), matching: find.byType(LockedSurface)).first;
