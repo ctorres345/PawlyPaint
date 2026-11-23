@@ -68,9 +68,21 @@ jobs:
             echo "::error::The base branch '$BASE_REF' has no tier.py (.claude/skills/review-loop/scripts/), or its gate cannot check the review tier (no verify-tier). The PR that introduces them cannot be verified; merge it by hand as the repo owner."
             exit 1
           fi
+          # NFX-108: the base's tier.py loads git_refs.py from beside it (CI's copy is flat), and risk_paths come from
+          # origin/$BASE_REF, the PR's own base. A base that has neither yet runs as before, with a warning.
+          git show "origin/$BASE_REF:.claude/hooks/git_refs.py" > "$gate_dir/git_refs.py" 2>/dev/null || rm -f "$gate_dir/git_refs.py"
+          # NFX-252: the base's comment_check.py beside tier.py caps a proved comment-only diff at Tier 1 with `ui` false.
+          # Without it (a base from before NFX-252) tier.py caps nothing, so it is optional.
+          git show "origin/$BASE_REF:.claude/skills/review-loop/scripts/comment_check.py" > "$gate_dir/comment_check.py" 2>/dev/null || rm -f "$gate_dir/comment_check.py"
+          if grep -q -- '"--base-ref"' "$gate_dir/tier.py"; then
+            set -- --base-ref "$BASE_REF"
+          else
+            set --
+            echo "::warning::tier.py on '$BASE_REF' predates NFX-108: risk_paths come from origin/HEAD, not the PR base."
+          fi
           base=$(git merge-base "origin/$BASE_REF" HEAD) || { echo "::error::No merge base between origin/$BASE_REF and the PR head."; exit 1; }
           # The diff only, no labels: labels live in Jira, which CI does not read.
-          python3 -B "$gate_dir/tier.py" --base "$base" --cwd "$GITHUB_WORKSPACE" </dev/null > "$RUNNER_TEMP/tier.json" || {
+          python3 -B "$gate_dir/tier.py" --base "$base" "$@" --cwd "$GITHUB_WORKSPACE" </dev/null > "$RUNNER_TEMP/tier.json" || {
             echo "::error::tier.py from '$BASE_REF' failed on this PR's diff."
             exit 1
           }

@@ -30,6 +30,8 @@ Run `python3 -B <this skill's folder>/scripts/tier.py --base <base hash> --synce
 | 2 | `reviewer` | 5 |
 | 3 | `reviewer-high` | 5 |
 
+In budget mode (`budget-mode` skill, weekly limit past 50%), Tier 3 runs `reviewer` each round and the Neon high call there in place of `reviewer-high`; verify its findings as for Argon.
+
 The first time the tier is 3, whether Step 1 picks it or a later rise does, see Fable offers (plan check) before the next round, if a round remains.
 
 After each round's fixes, run `tier.py` again. The tier only goes up (keep the higher of old and new). On a rise, switch to the new reviewer and cap; rounds already used count. The loop below says "the cap" for this number. At Tier 0 or 1, when the cap's final round had fixes that no reviewer has seen, raise the tier by one and run another round.
@@ -68,7 +70,7 @@ Read `references/testfail.md` after Step 0 and in Record the review.
 Read `references/failure-modes.md` when planning a ticket's tests, after Step 0 and in Record the review: each ticket failure mode needs a test or a stated waiver.
 
 ## Comment check
-Read `references/comments.md` after Step 0: warn-only, and the reviewer judges each flag against the keep list.
+Read `references/comments.md` after Step 0: the reviewer judges each flag against the keep list, and a real one is a `med` finding at confidence 60.
 
 ## ADR step
 Read `references/adr.md` after Step 0 and again before Record the review; log each decision as you make it with `scripts/session_report.py decide`.
