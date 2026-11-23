@@ -36,6 +36,116 @@ def indexed(rows, palette):
     return img
 
 
+def plain(w, h, colour):
+    """A native grid (rows of RGB tuples) of one colour."""
+    return [[colour] * w for _ in range(h)]
+
+
+def paint(grid, x0, y0, x1, y1, colour):
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            grid[y][x] = colour
+    return grid
+
+
+class Crop(unittest.TestCase):
+    def test_crops_a_square_around_the_subject_with_one_cell_of_margin(self):
+        grid = paint(plain(100, 100, WHITE), 60, 50, 80, 90, RED)  # 20 wide, 40 tall
+        framed = a2p.crop(grid, 16)
+        side = 46  # ceil(40 * 16 / 14): one target cell of margin each side
+        self.assertEqual((len(framed), len(framed[0])), (side, side))
+        reds = [(x, y) for y, row in enumerate(framed) for x, c in enumerate(row) if c == RED]
+        self.assertEqual(len(reds), 20 * 40)
+        margin = side / 16
+        self.assertGreaterEqual(min(y for _, y in reds), margin - 1)
+        self.assertLessEqual(max(y for _, y in reds), side - margin)
+
+    def test_never_crops_below_the_target_grid(self):
+        grid = paint(plain(100, 100, WHITE), 50, 50, 53, 53, RED)
+        self.assertEqual(len(a2p.crop(grid, 40)), 40)
+
+    def test_a_full_scene_keeps_the_whole_frame(self):
+        grid = [[(x * 2, y * 2, 100) for x in range(60)] for y in range(60)]
+        self.assertIs(a2p.crop(grid, 16), grid)
+        self.assertIsNone(a2p.border_colour(grid))
+
+    def test_a_frame_line_around_a_full_scene_is_not_a_background(self):
+        grid = [[(x * 2, y * 2, 100) for x in range(60)] for y in range(60)]
+        for i in range(60):
+            grid[0][i] = grid[59][i] = grid[i][0] = grid[i][59] = BLUE
+        self.assertIsNone(a2p.border_colour(grid))
+        self.assertIs(a2p.crop(grid, 16), grid)
+
+    def test_a_stray_speck_does_not_widen_the_crop(self):
+        grid = paint(plain(100, 100, WHITE), 40, 40, 60, 60, RED)
+        grid[2][97] = BLUE  # a lone block near the corner
+        self.assertEqual(a2p.subject_box(grid, WHITE), (40, 40, 60, 60))
+
+    def test_a_subject_wider_than_a_short_frame_is_padded_not_cut(self):
+        grid = paint(plain(100, 40, WHITE), 5, 10, 95, 30, RED)
+        framed = a2p.crop(grid, 16)
+        self.assertEqual(len(framed), len(framed[0]))
+        self.assertEqual(sum(c == RED for row in framed for c in row), 90 * 20)
+
+
+class DominantMerge(unittest.TestCase):
+    def test_a_merged_group_keeps_its_biggest_members_colour(self):
+        pale_bg, pale_body = (200, 200, 235), (214, 214, 240)
+        grid = paint(plain(10, 10, pale_bg), 0, 0, 10, 3, pale_body)  # 70 bg, 30 body
+        out = a2p.reduce_palette(grid, gap=a2p.MIN_RGB_GAP)
+        self.assertEqual({c for row in out for c in row}, {pale_bg})
+
+    def test_shade_folding_keeps_the_main_shade(self):
+        grid = paint(plain(10, 10, RED), 0, 0, 10, 2, (226, 34, 44))
+        out = a2p.reduce_palette(grid, merge_below=a2p.SHADE_MERGE)
+        self.assertEqual({c for row in out for c in row}, {RED})
+
+
+class DetailVote(unittest.TestCase):
+    def face(self):
+        # 48 x 48 native blocks of yellow with a dark outline ring and a 2 x 2
+        # eye: at 16 cells each cell is 3 x 3 blocks, so the eye covers 4/9 of
+        # cell (3, 3) and yellow the rest.
+        grid = plain(48, 48, YELLOW)
+        for i in range(48):
+            grid[0][i] = grid[47][i] = grid[i][0] = grid[i][47] = BLUE
+        return paint(grid, 10, 10, 12, 12, BLUE)
+
+    def test_a_small_feature_wins_a_cell_it_covers_under_half_of(self):
+        self.assertEqual(a2p.shrink(self.face(), 16)[3][3], BLUE)
+
+    def test_the_plain_majority_vote_drops_it(self):
+        out = a2p.shrink(self.face(), 16, detail=False)
+        self.assertFalse(any(out[y][x] == BLUE for y in range(1, 15) for x in range(1, 15)))
+
+    def test_a_sliver_under_the_minimum_share_does_not_win(self):
+        grid = plain(64, 64, YELLOW)
+        grid[10][10] = BLUE  # 1 block of a 4 x 4 cell: 6%
+        self.assertEqual({c for row in a2p.shrink(grid, 16) for c in row}, {YELLOW})
+
+
+class SubjectLoss(unittest.TestCase):
+    def test_fails_a_subject_merged_into_the_background(self):
+        rows = [[0] * 16 for _ in range(16)]
+        rows[3][3], rows[3][4], rows[4][3] = 1, 2, 1  # only the eyes are left
+        img = indexed(rows, [WHITE, RED, BLUE])
+        self.assertTrue(any('subject' in p for p in a2p.verify(img, 16, subject=0.5)))
+
+    def test_passes_a_subject_that_kept_its_cells(self):
+        rows = [[1 if 3 <= x < 13 and 3 <= y < 13 else 0 for x in range(16)] for y in range(16)]
+        rows[5][5] = 2
+        img = indexed(rows, [WHITE, RED, BLUE])
+        self.assertEqual(a2p.verify(img, 16, subject=0.45), [])
+
+    def test_check_passes_a_framed_subject(self):
+        grid = paint(plain(80, 80, WHITE), 20, 20, 60, 60, RED)
+        paint(grid, 30, 30, 34, 34, BLUE)
+        paint(grid, 46, 30, 50, 34, GREEN)
+        out, info = a2p.convert((grid, 8.0, True), 16, a2p.COLOR_LIMIT[16], a2p.LEVEL_GAP[16])
+        self.assertAlmostEqual(info['subject'], 40 * 40 / info['crop'] ** 2)
+        self.assertEqual(a2p.verify(out, 16, info['subject']), [])
+
+
 class Fixtures(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()
