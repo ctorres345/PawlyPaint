@@ -3,15 +3,21 @@
 Image models draw pixel art on a block grid of their own, not the one the
 prompt asks for, and a screen capture rescales it further. Splitting the image
 evenly into the game's grid cuts across those blocks and breaks small details.
-So this tool works in three steps:
+So this tool works in four steps:
 
 1. Find the picture's own block grid (block size and offset): the largest
    block size on which the colour changes line up, on both axes.
 2. Read one colour per block (the most common colour in its middle), giving
    the picture at its own resolution.
-3. Shrink that to the game grid (16, 24, 32 or 40), picking for each cell the
-   colour covering most of it, then cut the palette to the level's colour
-   limit and its CIEDE2000 colour gap (the game's, lib/data/simplify.dart).
+3. Crop to the subject: the square around every block that differs from a
+   plain border colour, with one game cell of margin. Full scenes with no
+   plain border keep the whole frame.
+4. Cut the palette to the level's colour limit and its CIEDE2000 colour gap
+   (the game's, lib/data/simplify.dart), shrink to the game grid (16, 24, 32
+   or 40), then cut the palette again. A merge keeps the colour of its biggest
+   member, so a pale subject doesn't drift into the background. Each cell
+   takes the colour that covers most of it, except that a colour rare in the
+   cells around it (an eye, a spot) wins a cell it covers enough of.
 
 Needs Pillow. Run with a Python that has it, for example:
   python3 tool/art_to_puzzle.py in.png out.png --grid 16 --preview big.png
@@ -21,8 +27,10 @@ overrides the level's colour limit.
 The asset manifest (design/assets.toml) lists every picture source: a puzzle
 entry has `course`, `slug` and `grid`. --check converts each at its own grid
 and exits non-zero if any fails (missing, no clean pixel grid, too few or too
-many colours, one colour over 95% of cells, or two colours under the level's
-gap). --build writes each to assets/pictures/<course>/<slug>.png. --all-grids
+many colours, one colour over 95% of cells, two colours under the level's
+gap, a subject that lost most of its cells against the native read, or a
+built PNG in assets/pictures that is missing or out of date).
+--build writes each to assets/pictures/<course>/<slug>.png. --all-grids
 makes --check try every picture at all four grids (style spikes).
 Tests: python3 -m unittest tool/test_art_to_puzzle.py
 """
@@ -32,6 +40,7 @@ import os
 import sys
 import tomllib
 from collections import Counter
+from functools import lru_cache
 
 from PIL import Image
 
@@ -51,6 +60,11 @@ PICTURES = os.path.join(REPO, 'assets', 'pictures')
 # this in plain RGB look alike as drill colours.
 MIN_RGB_GAP = 24.0
 MAX_SHARE = 0.95  # --check: most of one colour means the subject vanished
+PLAIN_BORDER = 0.6
+PLAIN_BACKGROUND = 0.25
+DETAIL_SHARE = 0.18
+RARITY = 0.5
+SUBJECT_KEPT = 0.5
 
 
 def edge_profiles(img):
@@ -171,8 +185,104 @@ def box_area(box):
     return max(1, (box[2] - box[0]) * (box[3] - box[1]))
 
 
+def _ring_mode(grid):
+    """(colour, count, ring size) of the commonest block on the grid's edge."""
+    ring = grid[0] + grid[-1] + [row[0] for row in grid[1:-1]] + [row[-1] for row in grid[1:-1]]
+    colour, count = Counter(ring).most_common(1)[0]
+    return colour, count, len(ring)
+
+
+def border_colour(grid):
+    """The plain background colour around the picture, or None for a full
+    scene: the most common colour of the outer ring of blocks, when it covers
+    at least PLAIN_BORDER of that ring and PLAIN_BACKGROUND of the picture."""
+    colour, count, ring = _ring_mode(grid)
+    if count < PLAIN_BORDER * ring:
+        return None
+    covered = sum(c == colour for row in grid for c in row)
+    more_than_a_frame_line = covered >= PLAIN_BACKGROUND * len(grid) * len(grid[0])
+    return colour if more_than_a_frame_line else None
+
+
+def subject_box(grid, bg):
+    """(x0, y0, x1, y1) around every block that is not `bg`, ignoring lone
+    blocks with no non-background neighbour (stray specks), or None."""
+    gh, gw = len(grid), len(grid[0])
+
+    def solid(x, y):
+        return any(0 <= x + dx < gw and 0 <= y + dy < gh and grid[y + dy][x + dx] != bg
+                   for dx in (-1, 0, 1) for dy in (-1, 0, 1) if dx or dy)
+
+    pts = [(x, y) for y in range(gh) for x in range(gw) if grid[y][x] != bg and solid(x, y)]
+    if not pts:
+        return None
+    xs, ys = [x for x, _ in pts], [y for _, y in pts]
+    return min(xs), min(ys), max(xs) + 1, max(ys) + 1
+
+
+def _square_start(lo, hi, side, size):
+    """Where a square of `side` starts on one axis: centred on lo..hi, then
+    slid inside 0..size when it fits. A square bigger than the frame stays on
+    the edge the subject runs off, so the padding goes to the open side."""
+    if side > size and (lo == 0) != (hi == size):
+        return 0 if lo == 0 else size - side
+    start = round((lo + hi - side) / 2)
+    return min(max(start, 0), size - side) if side <= size else start
+
+
+def crop(grid, n, bg=None):
+    """The square of native blocks around the subject, with one target cell
+    of margin on each side the subject doesn't run off, and never under n
+    blocks across. Where the square runs past the frame it is padded with the
+    background colour. A picture with no plain border (a full scene) comes
+    back whole. `bg` is border_colour(grid), passed in when the caller has it
+    already."""
+    bg = border_colour(grid) if bg is None else bg
+    if bg is None:
+        return grid
+    box = subject_box(grid, bg)
+    if not box:
+        return grid
+    x0, y0, x1, y1 = box
+    gh, gw = len(grid), len(grid[0])
+
+    def span(lo, hi, size):
+        open_sides = (lo > 0) + (hi < size)
+        return math.ceil((hi - lo) * n / (n - open_sides))
+
+    side = max(n, span(x0, x1, gw), span(y0, y1, gh))
+    nothing_to_trim = gw == gh and side >= gw
+    if nothing_to_trim:
+        return grid
+    sx, sy = _square_start(x0, x1, side, gw), _square_start(y0, y1, side, gh)
+    return [[grid[y][x] if 0 <= x < gw and 0 <= y < gh else bg for x in range(sx, sx + side)]
+            for y in range(sy, sy + side)]
+
+
+def _area_votes(grid, x0, x1, y0, y1):
+    """Each colour's area (in blocks) inside the box, clipped to the grid."""
+    gh, gw = len(grid), len(grid[0])
+    votes = Counter()
+    for gy in range(max(0, int(y0)), min(gh, math.ceil(y1))):
+        hy = min(y1, gy + 1) - max(y0, gy)
+        for gx in range(max(0, int(x0)), min(gw, math.ceil(x1))):
+            hx = min(x1, gx + 1) - max(x0, gx)
+            if hx > 0 and hy > 0:
+                votes[grid[gy][gx]] += hx * hy
+    return votes
+
+
 def shrink(grid, n):
-    """Area-weighted majority colour of the native blocks under each cell."""
+    """One colour per target cell from the native blocks under it.
+
+    Votes are weighted by area. Every colour covering at least
+    DETAIL_SHARE of the cell scores its share of the cell divided by its share
+    of the cell and its eight neighbours ** RARITY, so a small feature (an
+    eye, a spot) beats the colour around it. Rarity is measured nearby rather
+    than over the whole picture because an eye is often the outline colour,
+    which is common overall. When no colour reaches DETAIL_SHARE, the
+    majority wins.
+    """
     gh, gw = len(grid), len(grid[0])
     side = min(gw, gh)
     ox, oy = (gw - side) / 2, (gh - side) / 2
@@ -183,16 +293,15 @@ def shrink(grid, n):
         for tx in range(n):
             x0, x1 = ox + tx * scale, ox + (tx + 1) * scale
             y0, y1 = oy + ty * scale, oy + (ty + 1) * scale
-            votes = Counter()
-            for gy in range(int(y0), min(gh, math.ceil(y1))):
-                hy = min(y1, gy + 1) - max(y0, gy)
-                for gx in range(int(x0), min(gw, math.ceil(x1))):
-                    hx = min(x1, gx + 1) - max(x0, gx)
-                    if hx > 0 and hy > 0:
-                        votes[grid[gy][gx]] += hx * hy
+            votes = _area_votes(grid, x0, x1, y0, y1)
             if not votes:  # rounding left no overlap: take the nearest block
                 votes[grid[min(gh - 1, int(y0))][min(gw - 1, int(x0))]] = 1
-            row.append(votes.most_common(1)[0][0])
+            area = sum(votes.values())
+            near = _area_votes(grid, x0 - scale, x1 + scale, y0 - scale, y1 + scale)
+            around = sum(near.values())
+            scores = {c: v / area / (near[c] / around) ** RARITY
+                      for c, v in votes.items() if v / area >= DETAIL_SHARE and near[c]}
+            row.append(max(scores, key=scores.get) if scores else votes.most_common(1)[0][0])
         out.append(row)
     return out
 
@@ -226,6 +335,7 @@ def min_gap(colours):
     return _closest(colours, _rgb_gap)[0]
 
 
+@lru_cache(maxsize=None)
 def lab(rgb):
     """sRGB (0-255) to CIE Lab (D65), as _lab in lib/data/simplify.dart."""
     def lin(v):
@@ -307,36 +417,34 @@ def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0):
     `gap` apart in plain RGB, or while any pair is under `de_gap` apart in
     CIEDE2000 (the game's drill colour gap), so no two drill colours look
     alike. Small but distinct colours (an eye, a shine) survive, unlike with a
-    median cut.
+    median cut. A merged group keeps the colour of its biggest single member
+    rather than the mean, so merging a pale subject with a pale background
+    doesn't drag both toward a colour neither had. The biggest member, not the
+    bigger group: a group of shades would otherwise pass a minor shade's colour
+    over the picture's most common one (the Classics butterfly's pink flowers
+    turned coral).
     """
     counts = Counter(c for row in grid for c in row)
     parent = {}  # colour -> the group it joined (followed to the root below)
-    pal = {}  # group key -> [count, r sum, g sum, b sum]
-    means = {}
-
-    def add(key, c, n):
-        t = pal.setdefault(key, [0, 0, 0, 0])
-        t[0] += n
-        t[1] += c[0] * n
-        t[2] += c[1] * n
-        t[3] += c[2] * n
-        means[key] = (round(t[1] / t[0]), round(t[2] / t[0]), round(t[3] / t[0]))
+    group_cells = {}
+    biggest_member = {}
 
     # One quick pass first: each colour, most common first, joins the first
     # group within `merge_below`, so the pairwise loop below starts small.
     for c, n in counts.most_common():
-        home = next((k for k in pal if _dist(c, means[k]) < merge_below), c)
+        home = next((k for k in group_cells if _dist(c, biggest_member[k][1]) < merge_below), c)
         parent[c] = home
-        add(home, c, n)
+        group_cells[home] = group_cells.get(home, 0) + n
+        biggest_member.setdefault(home, (n, c))
 
     def closest(measure):
-        keys = list(pal)
-        return min((measure(means[a], means[b]), a, b)
+        keys = list(group_cells)
+        return min((measure(biggest_member[a][1], biggest_member[b][1]), a, b)
                    for i, a in enumerate(keys) for b in keys[i + 1:])
 
-    while len(pal) > 1:
+    while len(group_cells) > 1:
         d, a, b = closest(_dist)
-        palette_fits = d >= merge_below and (limit is None or len(pal) <= limit)
+        palette_fits = d >= merge_below and (limit is None or len(group_cells) <= limit)
         if palette_fits:
             d, a, b = closest(_rgb_gap)
             if d >= gap:
@@ -345,11 +453,8 @@ def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0):
                 d, a, b = closest(_de_gap)
                 if d >= de_gap:
                     break
-        pb = pal.pop(b)
-        del means[b]
-        pal[a] = [x + y for x, y in zip(pal[a], pb)]
-        t = pal[a]
-        means[a] = (round(t[1] / t[0]), round(t[2] / t[0]), round(t[3] / t[0]))
+        group_cells[a] += group_cells.pop(b)
+        biggest_member[a] = max(biggest_member[a], biggest_member.pop(b))
         parent[b] = a
 
     def root(c):
@@ -357,7 +462,7 @@ def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0):
             c = parent[c]
         return c
 
-    return [[means[root(c)] for c in row] for row in grid]
+    return [[biggest_member[root(c)][1] for c in row] for row in grid]
 
 
 def to_indexed(grid):
@@ -387,15 +492,38 @@ def analyse(src):
     return reduce_palette(native, merge_below=SHADE_MERGE), period, found is not None
 
 
+def subject_share(grid, bg=None):
+    """The part of the grid that is not background: `bg`, or else the most
+    common colour of the outer ring."""
+    if bg is None:
+        bg = _ring_mode(grid)[0]
+    return sum(c != bg for row in grid for c in row) / (len(grid) * len(grid[0]))
+
+
 def convert(analysis, n, colors, de_gap=0.0):
+    """The n x n indexed picture and its info. info['subject'] is the
+    subject's share of the cropped native read (None for a full scene), which
+    verify compares with the result.
+
+    The palette is cut to the level's drill colours before the shrink as well
+    as after, so the rarity vote in shrink weighs drill colours rather than
+    leftover capture shades."""
     native, period, clean = analysis
-    out, used = to_indexed(reduce_palette(shrink(native, n), limit=colors,
-                                          gap=MIN_RGB_GAP, de_gap=de_gap))
+    bg = border_colour(native)
+    framed = crop(native, n, bg)
+
+    def fit(grid):
+        return reduce_palette(grid, limit=colors, gap=MIN_RGB_GAP, de_gap=de_gap)
+
+    drill_colours = fit(framed)
+    out, used = to_indexed(fit(shrink(drill_colours, n)))
     info = {
         'block': round(period, 2),
         'native': (len(native[0]), len(native)),
+        'crop': len(framed),
         'colors': used,
         'fallback': not clean,
+        'subject': None if bg is None else subject_share(framed, bg),
     }
     return out, info
 
@@ -427,8 +555,12 @@ def puzzle_entries(manifest=MANIFEST):
     return out
 
 
-def verify(img, n):
-    """What is wrong with a converted picture for a level of grid n (empty: ok)."""
+def verify(img, n, subject=None):
+    """What is wrong with a converted picture for a level of grid n (empty: ok).
+
+    `subject` is the subject's share of the native read (convert's
+    info['subject']); the picture fails when it keeps under SUBJECT_KEPT of
+    it, for example a pale body merged into the background."""
     problems = []
     if img.mode != 'P' or img.size != (n, n):
         problems.append(f'size {img.size[0]}x{img.size[1]} {img.mode}, want {n}x{n} P')
@@ -446,6 +578,12 @@ def verify(img, n):
     rgb = min_gap(used)
     if rgb < MIN_RGB_GAP:
         problems.append(f'plain RGB gap {rgb:.0f} under {MIN_RGB_GAP:.0f}')
+    if subject:
+        w, h = img.size
+        data = img.tobytes()
+        kept = subject_share([list(data[y * w:(y + 1) * w]) for y in range(h)])
+        if kept < SUBJECT_KEPT * subject:
+            problems.append(f'subject covers {kept:.0%} of the grid, {subject:.0%} in the native read')
     return problems
 
 
@@ -466,7 +604,8 @@ def convert_entry(entry, grids=None):
     problems, outputs = [], {}
     for n in grids or [entry['grid']]:
         outputs[n] = convert(analysis, n, COLOR_LIMIT[n], LEVEL_GAP[n])
-        problems += [f'{n}x{n}: {p}' if grids else p for p in verify(outputs[n][0], n)]
+        out, info = outputs[n]
+        problems += [f'{n}x{n}: {p}' if grids else p for p in verify(out, n, info['subject'])]
     return problems, outputs
 
 
@@ -475,14 +614,29 @@ def check_picture(entry, grids=None):
     return convert_entry(entry, grids)[0]
 
 
-def check(entries, all_grids=False):
-    """Checks every picture and prints one line each. Returns the failures."""
+def stale(entry, image, out_root):
+    """A problem when <out_root>/<course>/<slug>.png is missing or differs
+    from `image` (what --build would write now), else None."""
+    target = os.path.join(out_root, entry['course'], entry['slug'] + '.png')
+    if not os.path.exists(target):
+        return 'not built (run --build)'
+    with Image.open(target) as built:
+        if built.convert('RGB').tobytes() != image.convert('RGB').tobytes():
+            return 'built PNG differs from the converter output (run --build)'
+    return None
+
+
+def check(entries, all_grids=False, out_root=None):
+    """Checks every picture and prints one line each. With `out_root`, a
+    built PNG that is missing or out of date fails too. Returns the failures."""
     if not entries:
         print('the manifest lists no puzzle pictures')
         return 1
     failures = 0
     for e in entries:
-        problems = check_picture(e, sorted(COLOR_LIMIT) if all_grids else None)
+        problems, outputs = convert_entry(e, sorted(COLOR_LIMIT) if all_grids else None)
+        if out_root and e['grid'] in outputs:
+            problems += filter(None, [stale(e, outputs[e['grid']][0], out_root)])
         failures += bool(problems)
         print(f"{'FAIL' if problems else 'ok  '} {e['course']}/{e['slug']} {e['grid']}x{e['grid']}"
               + (': ' + '; '.join(problems) if problems else ''), flush=True)
@@ -529,7 +683,7 @@ def main(argv):
                     help='write every puzzle picture to assets/pictures/<course>/<slug>.png')
     args = ap.parse_args(argv)
     if args.check:
-        sys.exit(1 if check(puzzle_entries(), args.all_grids) else 0)
+        sys.exit(1 if check(puzzle_entries(), args.all_grids, PICTURES) else 0)
     if args.build:
         sys.exit(1 if build(puzzle_entries()) else 0)
     if not (args.src and args.out and args.grid):

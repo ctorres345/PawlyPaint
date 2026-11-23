@@ -48,6 +48,31 @@ const _classicsSignaturesOn946505c = {
   'classics-fireside': 765162672,
 };
 
+/// The PNGs `tool/art_to_puzzle.py --build` wrote for PAP-92. Rebuild and
+/// update these together; `--check` fails a PNG that no longer matches the build.
+const _classicsSignaturesPap92 = {
+  'classics-heart': 1392959249,
+  'classics-paw': 774850090,
+  'classics-sun': 414147457,
+  'classics-mushroom': 1747816330,
+  'classics-cherries': 1145861148,
+  'classics-cat': 1261436448,
+  'classics-daisy': 3297782836,
+  'classics-strawberry': 1227487107,
+  'classics-rainbow': 140702928,
+  'classics-cupcake': 562314079,
+  'classics-sunset': 3723501028,
+  'classics-butterfly': 1894858864,
+  'classics-puppy': 577535483,
+  'classics-tulips': 4090360064,
+  'classics-moonlight': 2715680916,
+  'classics-heart-balloons': 3953270025,
+  'classics-picnic': 1476646902,
+  'classics-yarn-kitten': 2333614417,
+  'classics-carousel': 743932023,
+  'classics-fireside': 3744921368,
+};
+
 const _shippedClassicsTitles = {
   Difficulty.easy: {
     'classics-heart': 'Sweetheart',
@@ -254,6 +279,11 @@ void main() {
         expect(store.savedFor(p), isNull, reason: p.id);
         expect(p.signature, isNot(old), reason: '${p.id}: Sort saves compare this signature too');
       }
+    });
+
+    test('the Classics PNGs are the converter build pinned for PAP-92', () {
+      final classics = buildCourses().firstWhere((c) => c.id == 'classics');
+      expect({for (final p in classics.puzzles) p.id: p.signature}, _classicsSignaturesPap92);
     });
 
     test('saved games and records survive a JSON round trip', () {

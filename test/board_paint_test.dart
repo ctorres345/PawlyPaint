@@ -45,9 +45,19 @@ void main() {
   test('BoardPainter paints an Extreme board from the cached bitmap', () {
     final puzzle = allCourses.first.puzzles.last;
     final game = GameController(puzzle);
-    for (var i = 0; i < 200; i++) {
+    final counts = <int, int>{};
+    for (final c in puzzle.cells) {
+      counts[c] = (counts[c] ?? 0) + 1;
+    }
+    final mostCommon = counts.keys.reduce((a, b) => counts[a]! >= counts[b]! ? a : b);
+    game.select(mostCommon);
+    for (final i in [
+      for (var i = 0; i < puzzle.cells.length; i++)
+        if (puzzle.cells[i] == mostCommon) i
+    ].take(200)) {
       game.place(i);
     }
+    expect(game.order.length, 200);
     final view = BoardView()..fit(const Size(400, 700), puzzle.width, puzzle.height);
     final cache = BoardCache();
     const shimmer = AlwaysStoppedAnimation<double>(0.3);
