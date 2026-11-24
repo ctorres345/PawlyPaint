@@ -587,15 +587,3 @@ fit = "scene"
 prompt = "a chubby grey baby elephant seen from the front, sitting, a big round grey face with two big square dark eyes far apart, two huge round floppy ears with pink insides, a short curled trunk, two pink cheeks, the animal is large in the foreground and fills half the picture, full scene filling the whole frame: green grass, a few trees and a pale blue sky"
 seed = 29016
 scale = 16
-
-# Animal Friends course card (PAP-79). Approve keys out the green; the bundled cover
-# assets/art/courses/animals.png is that cutout cropped to the subject and scaled to at most 512 px.
-
-[[asset]]
-name = "course_animals_cover"
-kind = "image"
-source = "design/assets/course_animals_cover.png"
-transparent = "#00FF00"
-platforms = ["web"]
-size = "1024x1024"
-usage = "PAP-79 Home course card for Animal Friends: pixel art group of cute animal friends (bunny, fox, chick, panda) side by side, wide composition, on a flat key-green background"
