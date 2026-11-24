@@ -438,6 +438,8 @@ slug = "panda"
 grid = 32
 fit = "scene"
 prompt = "a chubby panda with a big white face, small dark ear patches and small dark patches around its big eyes, sitting and holding a green bamboo stalk, the panda is large and fills half the picture, centred, plain flat pale green background"
+seed = 16008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_turtle"
