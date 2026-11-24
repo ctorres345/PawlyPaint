@@ -460,4 +460,4 @@ Run with the Via venv (the fit check needs Pillow) and keep the output outside t
 ```
 
 - Nothing kept: it prints the closest tries and exits non-zero. Try more `--seeds` or a simpler subject; the thresholds are in `tool/art_to_puzzle.py` (`ON_LATTICE_TOLERANCE`, `FEATURE_*`) and `tool/pixel_gen.py` (`ON_LATTICE_MIN`).
-- An approved source goes to `design/assets/`, with `fit`, `prompt`, `seed` and `scale` in its `design/assets.toml` entry; then `tool/art_to_puzzle.py --check` and `--build`.
+- An approved source goes to `design/assets/`, with `fit`, `prompt`, `seed` and `scale` in its `design/assets.toml` entry; then `tool/art_to_puzzle.py --check` and `--build`. An entry with `seed` and `scale` is read on its canvas lattice (grid x grid cells of `scale` px), the way `pixel_gen.py` judged it, so a kept try builds to the puzzle on its contact sheet; its source must be grid x scale px.
