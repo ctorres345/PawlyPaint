@@ -386,8 +386,8 @@ The task must start in the portable folder: `run_nvidia_gpu.bat` uses paths rela
 Then the script the key runs, writable by administrators only:
 
 ```powershell
-New-Item -ItemType Directory -Force C:\ProgramData\pawly | Out-Null
-Set-Content C:\ProgramData\pawly\comfy.ps1 @'
+New-Item -ItemType Directory -Force G:\pawly | Out-Null
+Set-Content G:\pawly\comfy.ps1 @'
 $procs = { Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*ComfyUI\main.py*' } }
 switch ("$env:SSH_ORIGINAL_COMMAND".Trim()) {
   'start'  { schtasks /run /tn ComfyUI }
@@ -396,7 +396,7 @@ switch ("$env:SSH_ORIGINAL_COMMAND".Trim()) {
   default  { 'usage: ssh pawly-pc start|stop|status'; exit 2 }
 }
 '@
-icacls C:\ProgramData\pawly /inheritance:r /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /grant "Users:(OI)(CI)RX"
+icacls G:\pawly /inheritance:r /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /grant "Users:(OI)(CI)RX"
 ```
 
 **On the Mac**, make a key for this alone (no passphrase, so overnight runs need no input; the forced command below is what limits it):
@@ -418,7 +418,7 @@ Host pawly-pc
 **Cesar, on the PC**: add one line to `C:\ProgramData\ssh\administrators_authorized_keys` if the Windows user is an administrator, else to `%USERPROFILE%\.ssh\authorized_keys`: the forced command, then the contents of the Mac's `~/.ssh/pawly_comfy.pub`:
 
 ```
-command="powershell -NoProfile -ExecutionPolicy Bypass -File C:\ProgramData\pawly\comfy.ps1",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty ssh-ed25519 AAAA... pawly-comfy
+command="powershell -NoProfile -ExecutionPolicy Bypass -File G:\pawly\comfy.ps1",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty ssh-ed25519 AAAA... pawly-comfy
 ```
 
 For `administrators_authorized_keys`, keep its access to administrators and SYSTEM only (`icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"`), or sshd ignores it.
