@@ -579,6 +579,24 @@ class FitMode(Fixtures):
         problems = self.problems_of(self.fitted_entry(rows, 'subject'))
         self.assertIn('subject 27x22 over grid 24: regenerate', problems)
 
+    def test_a_generated_entry_is_read_on_its_canvas_lattice_like_pixel_gen(self):
+        # PAP-79: the model drew 20 blocks of 12 px on a 240 px canvas for grid 24
+        # (10 px a cell). The block search finds a 16-block subject, under the grid;
+        # pixel_gen.py judged it on the canvas lattice, where it fits.
+        rows = paint(plain(20, 20, BLUE), 2, 2, 18, 18, WHITE)
+        rows = paint(rows, 6, 6, 14, 12, RED)
+        entry = self.fitted_entry(rows, 'subject')
+        (searched,) = self.problems_of(entry)
+        self.assertRegex(searched, r'^subject \d+x\d+ under grid 24 ')
+        problems, outputs, _ = a2p.convert_entry({**entry, 'seed': 1010, 'scale': 10})
+        self.assertEqual(problems, [])
+        self.assertEqual((outputs[24][0].size), (24, 24))
+
+    def test_a_generated_entry_whose_canvas_is_not_grid_times_scale_fails(self):
+        entry = self.fitted_entry(paint(plain(20, 20, BLUE), 2, 2, 18, 18, WHITE), 'subject')
+        problems = self.problems_of({**entry, 'seed': 1008, 'scale': 8})
+        self.assertEqual(problems, ['source is 240x240 px, not 192x192 (grid 24 at 8 px a cell): regenerate'])
+
 
 class GenerationFields(unittest.TestCase):
     """PAP-95: puzzle entries record how pixel_gen.py made them."""
