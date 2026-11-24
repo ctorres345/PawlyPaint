@@ -299,7 +299,9 @@ course = "animals"
 slug = "fish"
 grid = 16
 fit = "subject"
-prompt = "a round orange goldfish seen from the side, one big black eye with a white highlight, small fins and a wide flowing tail, centred, plain flat mint green background"
+prompt = "a round orange goldfish seen from the side, one big round dark eye with a white shine, small fins and a short wide tail, centred, plain flat pale blue background"
+seed = 21008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_bunny"
@@ -312,7 +314,9 @@ course = "animals"
 slug = "bunny"
 grid = 16
 fit = "subject"
-prompt = "a chubby white bunny sitting, seen from the front, full body, long upright ears with pink insides, big black eyes, small pink nose, centred, plain flat soft orange background"
+prompt = "a very simple white bunny head, a big round face with two short upright ears with pink insides, two big square dark eyes far apart, one small pink nose, two pink cheeks, centred, plain flat light green background"
+seed = 1008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_chick"
@@ -338,7 +342,7 @@ course = "animals"
 slug = "ladybug"
 grid = 16
 fit = "subject"
-prompt = "a round red ladybug seen from above, black head, six big black spots on its red shell, short black legs, centred, plain flat light green background"
+prompt = "a round red ladybug seen from above, very dark brown head, six big very dark brown spots on its red shell, short very dark brown legs, centred, plain flat light green background"
 
 [[asset]]
 name = "puzzle_animals_snail"
@@ -364,7 +368,9 @@ course = "animals"
 slug = "fox"
 grid = 24
 fit = "subject"
-prompt = "a sitting orange fox seen from the front, full body, white chest, pointy ears, black paws, a bushy white-tipped tail curled beside it, centred, plain flat light blue background"
+prompt = "a sitting orange fox seen from the front, full body, white chest and white muzzle, two identical big round dark eyes, pointy ears, a bushy white-tipped tail curled beside it, centred, plain flat light blue background"
+seed = 23008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_penguin"
@@ -377,7 +383,7 @@ course = "animals"
 slug = "penguin"
 grid = 24
 fit = "subject"
-prompt = "a chubby penguin standing, full body, black back and head, white belly and face, orange beak and orange feet, centred, plain flat pale yellow background"
+prompt = "a chubby penguin standing, full body, very dark grey back and head, white belly and face, orange beak and orange feet, centred, plain flat pale yellow background"
 
 [[asset]]
 name = "puzzle_animals_owl"
@@ -390,7 +396,9 @@ course = "animals"
 slug = "owl"
 grid = 24
 fit = "subject"
-prompt = "a round fluffy brown owl sitting on a short branch, two big yellow eyes with black pupils, cream belly with small feather marks, little orange beak, centred, plain flat dark navy background"
+prompt = "a round fluffy brown owl sitting on a short branch, two big yellow eyes with dark pupils, cream belly with small feather marks, little orange beak, centred, plain flat dark navy background"
+seed = 9008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_frog"
@@ -429,7 +437,7 @@ course = "animals"
 slug = "panda"
 grid = 32
 fit = "scene"
-prompt = "a chubby panda sitting and eating a green bamboo stalk, the panda is large and fills half the picture, simple light setting filling the whole frame: a soft green hill, a pale blue sky and one white cloud"
+prompt = "a chubby panda with a big white face, small dark ear patches and small dark patches around its big eyes, sitting and holding a green bamboo stalk, the panda is large and fills half the picture, centred, plain flat pale green background"
 
 [[asset]]
 name = "puzzle_animals_turtle"
@@ -455,7 +463,7 @@ course = "animals"
 slug = "hedgehog"
 grid = 32
 fit = "scene"
-prompt = "a chubby hedgehog sitting, soft brown spines, cream face and belly, tiny black nose, the hedgehog is large and fills half the picture, simple light setting filling the whole frame: green grass, a pale blue sky and one red mushroom"
+prompt = "a chubby hedgehog sitting, soft brown spines, cream face and belly, tiny dark brown nose, the hedgehog is large and fills half the picture, simple light setting filling the whole frame: green grass, a pale blue sky and one red mushroom"
 
 [[asset]]
 name = "puzzle_animals_parrot"
@@ -481,7 +489,7 @@ course = "animals"
 slug = "bee"
 grid = 32
 fit = "scene"
-prompt = "a fuzzy round bumblebee with yellow and black stripes and clear wings, flying, the bee is large and fills half the picture, simple light setting filling the whole frame: a pale blue sky, one pink flower and green leaves"
+prompt = "a fuzzy round bumblebee with yellow and very dark brown stripes and clear wings, flying, the bee is large and fills half the picture, simple light setting filling the whole frame: a pale blue sky, one pink flower and green leaves"
 
 [[asset]]
 name = "puzzle_animals_hamster"
