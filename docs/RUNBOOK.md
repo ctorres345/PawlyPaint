@@ -376,8 +376,12 @@ The Mac starts ComfyUI over SSH with a key that can do one thing only: run the W
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
 Set-Service sshd -StartupType Automatic; Start-Service sshd
 Set-NetFirewallRule -Name OpenSSH-Server-In-TCP -Profile Private -RemoteAddress <the Mac's address>
-schtasks /create /tn ComfyUI /tr "<ComfyUI portable folder>\run_nvidia_gpu.bat" /sc once /st 00:00 /it /f
+$dir = '<ComfyUI portable folder>'
+$a = New-ScheduledTaskAction -Execute "$dir\run_nvidia_gpu.bat" -WorkingDirectory $dir
+Register-ScheduledTask -TaskName ComfyUI -Action $a -User $env:USERNAME -RunLevel Limited -Force
 ```
+
+The task must start in the portable folder: `run_nvidia_gpu.bat` uses paths relative to it. Test it on the PC with `schtasks /run /tn ComfyUI`; the console prints `http://0.0.0.0:8188` once it listens.
 
 **On the Mac**, make a key for this alone (no passphrase, so overnight runs need no input; the forced command below is what limits it):
 
