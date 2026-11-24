@@ -366,6 +366,65 @@ Puzzle pictures are drawn by Z-Image Turbo with the PIXELART-REDMOND LoRA on Com
 3. Start it from the portable folder so it listens on the home network: add `--listen --port 8188` to the command line in `run_nvidia_gpu.bat`, then run it.
 4. **Cesar:** Windows shows a firewall prompt for Python. Allow it on Private networks only, never Public. `--listen` has no login, so anyone on the network can queue jobs: in the firewall rule's Scope, limit the remote address to the Mac, and don't install ComfyUI-Manager or custom nodes on this server.
 
+### One time: start and stop ComfyUI from the Mac
+
+The Mac starts and stops ComfyUI over SSH with a key that can do one thing only: run the PC's `comfy.ps1` with `start`, `stop` or `status`. The PC must be on and logged in; `start` opens ComfyUI's console window in that session.
+
+**Cesar, on the PC** (PowerShell as administrator; use the ComfyUI portable folder's real path):
+
+```powershell
+Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+Set-Service sshd -StartupType Automatic; Start-Service sshd
+Set-NetFirewallRule -Name OpenSSH-Server-In-TCP -Profile Private -RemoteAddress <the Mac's address>
+$dir = '<ComfyUI portable folder>'
+$a = New-ScheduledTaskAction -Execute "$dir\run_nvidia_gpu.bat" -WorkingDirectory $dir
+Register-ScheduledTask -TaskName ComfyUI -Action $a -User $env:USERNAME -RunLevel Limited -Force
+```
+
+The task must start in the portable folder: `run_nvidia_gpu.bat` uses paths relative to it. Test it on the PC with `schtasks /run /tn ComfyUI`; the console prints `http://0.0.0.0:8188` once it listens.
+
+Then the script the key runs, writable by administrators only:
+
+```powershell
+New-Item -ItemType Directory -Force G:\pawly | Out-Null
+Set-Content G:\pawly\comfy.ps1 @'
+$procs = { Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*ComfyUI\main.py*' } }
+switch ("$env:SSH_ORIGINAL_COMMAND".Trim()) {
+  'start'  { schtasks /run /tn ComfyUI }
+  'stop'   { & $procs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; schtasks /end /tn ComfyUI | Out-Null; 'ComfyUI stopped' }
+  'status' { if (& $procs) { 'ComfyUI running' } else { 'ComfyUI not running' } }
+  default  { 'usage: ssh pawly-pc start|stop|status'; exit 2 }
+}
+'@
+icacls G:\pawly /inheritance:r /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /grant "Users:(OI)(CI)RX"
+```
+
+**On the Mac**, make a key for this alone (no passphrase, so overnight runs need no input; the forced command below is what limits it):
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/pawly_comfy -N "" -C pawly-comfy
+```
+
+Add a host to `~/.ssh/config` (never the repo), with the PC's address and Windows user name:
+
+```
+Host pawly-pc
+  HostName <pc>
+  User <windows user>
+  IdentityFile ~/.ssh/pawly_comfy
+  IdentitiesOnly yes
+```
+
+**Cesar, on the PC**: add one line to `C:\ProgramData\ssh\administrators_authorized_keys` if the Windows user is an administrator, else to `%USERPROFILE%\.ssh\authorized_keys`: the forced command, then the contents of the Mac's `~/.ssh/pawly_comfy.pub`:
+
+```
+command="powershell -NoProfile -ExecutionPolicy Bypass -File G:\pawly\comfy.ps1",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty ssh-ed25519 AAAA... pawly-comfy
+```
+
+For `administrators_authorized_keys`, keep its access to administrators and SYSTEM only (`icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"`), or sshd ignores it.
+
+Use from the Mac: `ssh pawly-pc start`, `ssh pawly-pc stop`, `ssh pawly-pc status`. After `start`, `/system_stats` answers within a minute (below). To turn this off, delete the key line on the PC.
+
 ### Every session: check the server
 
 On the Mac, set the host for this shell (ask Cesar for the PC's name or address; never commit it):
@@ -401,4 +460,4 @@ Run with the Via venv (the fit check needs Pillow) and keep the output outside t
 ```
 
 - Nothing kept: it prints the closest tries and exits non-zero. Try more `--seeds` or a simpler subject; the thresholds are in `tool/art_to_puzzle.py` (`ON_LATTICE_TOLERANCE`, `FEATURE_*`) and `tool/pixel_gen.py` (`ON_LATTICE_MIN`).
-- An approved source goes to `design/assets/`, with `fit`, `prompt`, `seed` and `scale` in its `design/assets.toml` entry; then `tool/art_to_puzzle.py --check` and `--build`.
+- An approved source goes to `design/assets/`, with `fit`, `prompt`, `seed` and `scale` in its `design/assets.toml` entry; then `tool/art_to_puzzle.py --check` and `--build`. An entry with `seed` and `scale` is read on its canvas lattice (grid x grid cells of `scale` px), the way `pixel_gen.py` judged it, so a kept try builds to the puzzle on its contact sheet; its source must be grid x scale px.

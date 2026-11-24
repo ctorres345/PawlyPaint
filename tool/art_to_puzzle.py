@@ -920,6 +920,22 @@ def exact_problem(entry, analysis):
     return f'drawn at {blocks_text(analysis.frame)}, needs {n}: regenerate'
 
 
+def analyse_entry(entry):
+    """Reads a manifest picture. A source made by pixel_gen.py (it records
+    `seed` and `scale`) is read on its canvas lattice, grid x grid cells of
+    `scale` px, the way pixel_gen.py judged it: the block search can find
+    the model's own coarser blocks there and reject a try that was kept.
+    Raises FitError when the canvas isn't grid x scale px."""
+    n, scale = entry['grid'], entry.get('scale')
+    if scale is None:
+        return analyse(entry['source'], n)
+    img = Image.open(entry['source'])
+    if img.size != (n * scale,) * 2:
+        w, h = img.size
+        raise FitError(f'source is {w}x{h} px, not {n * scale}x{n * scale} (grid {n} at {scale} px a cell)')
+    return lattice_analysis(img, n)
+
+
 def convert_entry(entry, grids=None):
     """Converts one manifest picture at its grid (or at each of `grids`).
     Returns (problems, {grid: (image, info)}, analysis or None); each problem
@@ -929,7 +945,9 @@ def convert_entry(entry, grids=None):
         shown = os.path.relpath(path, REPO) if path.startswith(REPO + os.sep) else path
         return [f'missing source {shown}'], {}, None
     try:
-        analysis = analyse(path, entry['grid'])
+        analysis = analyse_entry(entry)
+    except FitError as e:
+        return [f'{e}: regenerate'], {}, None
     except (OSError, ValueError) as e:
         return [f'unreadable: {e}'], {}, None
     if not analysis.clean:

@@ -104,8 +104,92 @@ const _shippedClassicsTitles = {
   },
 };
 
-const _classicsGrid = {Difficulty.easy: 16, Difficulty.medium: 24, Difficulty.hard: 32, Difficulty.extreme: 40};
-const _classicsColorLimit = {Difficulty.easy: 6, Difficulty.medium: 8, Difficulty.hard: 12, Difficulty.extreme: 16};
+/// The Animal Friends PNGs as built for PAP-79 (`tool/art_to_puzzle.py --build`).
+const _animalsSignaturesPap79 = {
+  'animals-fish': 4243917694,
+  'animals-bunny': 3653349124,
+  'animals-chick': 1178981897,
+  'animals-ladybug': 3466588161,
+  'animals-snail': 2655977142,
+  'animals-fox': 1969434419,
+  'animals-penguin': 1395627635,
+  'animals-owl': 2883604531,
+  'animals-frog': 3779980455,
+  'animals-whale': 4180409177,
+  'animals-panda': 2623949840,
+  'animals-turtle': 1084777919,
+  'animals-hedgehog': 1587464250,
+  'animals-parrot': 212208763,
+  'animals-bee': 637629399,
+  'animals-hamster': 2159190793,
+  'animals-koala': 193548523,
+  'animals-otter': 1879983490,
+  'animals-lion': 48514716,
+  'animals-elephant': 4161769942,
+};
+
+const _animalsSignaturesOnC3d419c = {
+  'animals-fish': 1091662782,
+  'animals-bunny': 1790975287,
+  'animals-chick': 1616925488,
+  'animals-ladybug': 866513673,
+  'animals-snail': 339196326,
+  'animals-fox': 1846508386,
+  'animals-penguin': 2644783494,
+  'animals-owl': 3708319917,
+  'animals-frog': 874769652,
+  'animals-whale': 3977707737,
+  'animals-panda': 1965792974,
+  'animals-turtle': 882927525,
+  'animals-hedgehog': 3860074675,
+  'animals-parrot': 3395951870,
+  'animals-bee': 1171730085,
+  'animals-hamster': 1497062827,
+  'animals-koala': 1115337388,
+  'animals-otter': 2656259969,
+  'animals-lion': 4025904004,
+  // The fawn's shape-art signature: the elephant replaced the fawn in PAP-79.
+  'animals-elephant': 1160852052,
+};
+
+const _shippedAnimalsTitles = {
+  Difficulty.easy: {
+    'animals-fish': 'Goldie',
+    'animals-bunny': 'Bun Bun',
+    'animals-chick': 'Peep',
+    'animals-ladybug': 'Lucky Bug',
+    'animals-snail': 'Slowpoke',
+  },
+  Difficulty.medium: {
+    'animals-fox': 'Clever Fox',
+    'animals-penguin': 'Waddles',
+    'animals-owl': 'Night Owl',
+    'animals-frog': 'Lily Hopper',
+    'animals-whale': 'Big Blue',
+  },
+  Difficulty.hard: {
+    'animals-panda': 'Bamboo Bear',
+    'animals-turtle': 'Sea Wanderer',
+    'animals-hedgehog': 'Prickles',
+    'animals-parrot': 'Polly',
+    'animals-bee': 'Busy Bee',
+  },
+  Difficulty.extreme: {
+    'animals-hamster': 'Teacup Hamster',
+    'animals-koala': 'Sleepy Koala',
+    'animals-otter': 'Otter Float',
+    'animals-lion': 'Little Lion',
+    'animals-elephant': 'Little Trunk',
+  },
+};
+
+const _pngCourses = {
+  'classics': (_classicsSignaturesOn946505c, _shippedClassicsTitles),
+  'animals': (_animalsSignaturesOnC3d419c, _shippedAnimalsTitles),
+};
+
+const _pngGrid = {Difficulty.easy: 16, Difficulty.medium: 24, Difficulty.hard: 32, Difficulty.extreme: 40};
+const _pngColorLimit = {Difficulty.easy: 6, Difficulty.medium: 8, Difficulty.hard: 12, Difficulty.extreme: 16};
 
 /// The PNG's pixels as 0xAARRGGBB, read by the engine's own decoder.
 Future<List<int>> _pixels(String path) async {
@@ -269,21 +353,28 @@ void main() {
       expect(GameController(other, resume: g.snapshot()).placedCount, 0);
     });
 
-    test('a save made on the shape-art Classics picture is not resumed on its PNG', () {
-      final classics = buildCourses().firstWhere((c) => c.id == 'classics');
-      expect({for (final p in classics.puzzles) p.id}, _classicsSignaturesOn946505c.keys.toSet());
-      for (final p in classics.puzzles) {
-        final old = _classicsSignaturesOn946505c[p.id]!;
-        final json = GameController(p).snapshot().toJson()..['signature'] = old;
-        final store = ProgressStore.memory()..saveGame(p.id, SavedGame.fromJson(json));
-        expect(store.savedFor(p), isNull, reason: p.id);
-        expect(p.signature, isNot(old), reason: '${p.id}: Sort saves compare this signature too');
+    test('a save made on a shape-art picture is not resumed on its PNG', () {
+      for (final MapEntry(key: id, value: (signatures, _)) in _pngCourses.entries) {
+        final course = buildCourses().firstWhere((c) => c.id == id);
+        expect({for (final p in course.puzzles) p.id}, signatures.keys.toSet(), reason: id);
+        for (final p in course.puzzles) {
+          final old = signatures[p.id]!;
+          final json = GameController(p).snapshot().toJson()..['signature'] = old;
+          final store = ProgressStore.memory()..saveGame(p.id, SavedGame.fromJson(json));
+          expect(store.savedFor(p), isNull, reason: p.id);
+          expect(p.signature, isNot(old), reason: '${p.id}: Sort saves compare this signature too');
+        }
       }
     });
 
     test('the Classics PNGs are the converter build pinned for PAP-92', () {
       final classics = buildCourses().firstWhere((c) => c.id == 'classics');
       expect({for (final p in classics.puzzles) p.id: p.signature}, _classicsSignaturesPap92);
+    });
+
+    test('the Animal Friends PNGs are the converter build pinned for PAP-79', () {
+      final animals = buildCourses().firstWhere((c) => c.id == 'animals');
+      expect({for (final p in animals.puzzles) p.id: p.signature}, _animalsSignaturesPap79);
     });
 
     test('saved games and records survive a JSON round trip', () {
@@ -716,18 +807,20 @@ void main() {
     });
   });
 
-  test('Cozy Classics pictures come from their PNGs, with the same ids and titles', () async {
-    final classics = buildCourses().firstWhere((c) => c.id == 'classics');
-    expect(classics.levels.map((l) => l.difficulty), _shippedClassicsTitles.keys);
-    for (final level in classics.levels) {
-      final d = level.difficulty;
-      expect({for (final p in level.puzzles) p.id: p.title}, _shippedClassicsTitles[d], reason: '$d');
-      for (final p in level.puzzles) {
-        expect((p.width, p.height), (_classicsGrid[d], _classicsGrid[d]), reason: p.id);
-        expect(p.colorCount, inInclusiveRange(3, _classicsColorLimit[d]!), reason: p.id);
-        final slug = p.id.substring('classics-'.length);
-        final pixels = await _pixels('assets/pictures/classics/$slug.png');
-        expect([for (final c in p.cells) p.palette[c].toARGB32()], pixels, reason: '${p.id} cells match its PNG');
+  test('PNG course pictures come from their PNGs, with the same ids and titles', () async {
+    for (final MapEntry(key: id, value: (_, titles)) in _pngCourses.entries) {
+      final course = buildCourses().firstWhere((c) => c.id == id);
+      expect(course.levels.map((l) => l.difficulty), titles.keys, reason: id);
+      for (final level in course.levels) {
+        final d = level.difficulty;
+        expect({for (final p in level.puzzles) p.id: p.title}, titles[d], reason: '$id $d');
+        for (final p in level.puzzles) {
+          expect((p.width, p.height), (_pngGrid[d], _pngGrid[d]), reason: p.id);
+          expect(p.colorCount, inInclusiveRange(3, _pngColorLimit[d]!), reason: p.id);
+          final slug = p.id.substring('$id-'.length);
+          final pixels = await _pixels('assets/pictures/$id/$slug.png');
+          expect([for (final c in p.cells) p.palette[c].toARGB32()], pixels, reason: '${p.id} cells match its PNG');
+        }
       }
     }
   });

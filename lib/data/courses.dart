@@ -1,11 +1,9 @@
 import 'dart:ui' show Color;
 
 import '../models/puzzle.dart';
-import 'art/animals.dart';
 import 'art/catcafe.dart';
 import 'art/garden.dart';
 import 'art/sweets.dart';
-import 'art/extreme_animals.dart';
 import 'art/extreme_garden.dart';
 import 'art/extreme_sweets.dart';
 import 'build_flavor.dart';
@@ -72,15 +70,33 @@ List<Course> sharedCourses() => [
         'Pets, critters and wild friends',
         const Color(0xFFFFB74D),
         {
-          Difficulty.easy: {'fish': fish, 'bunny': bunny, 'chick': chick, 'ladybug': ladybug, 'snail': snail},
-          Difficulty.medium: {'fox': fox, 'penguin': penguin, 'owl': owl, 'frog': frog, 'whale': whale},
-          Difficulty.hard: {'panda': panda, 'turtle': turtle, 'hedgehog': hedgehog, 'parrot': parrot, 'bee': bee},
+          Difficulty.easy: {
+            'fish': pngArt('Goldie'),
+            'bunny': pngArt('Bun Bun'),
+            'chick': pngArt('Peep'),
+            'ladybug': pngArt('Lucky Bug'),
+            'snail': pngArt('Slowpoke'),
+          },
+          Difficulty.medium: {
+            'fox': pngArt('Clever Fox'),
+            'penguin': pngArt('Waddles'),
+            'owl': pngArt('Night Owl'),
+            'frog': pngArt('Lily Hopper'),
+            'whale': pngArt('Big Blue'),
+          },
+          Difficulty.hard: {
+            'panda': pngArt('Bamboo Bear'),
+            'turtle': pngArt('Sea Wanderer'),
+            'hedgehog': pngArt('Prickles'),
+            'parrot': pngArt('Polly'),
+            'bee': pngArt('Busy Bee'),
+          },
           Difficulty.extreme: {
-            'hamster': xHamster,
-            'koala': xKoala,
-            'otter': xOtter,
-            'lion': xLion,
-            'fawn': xFawn,
+            'hamster': pngArt('Teacup Hamster'),
+            'koala': pngArt('Sleepy Koala'),
+            'otter': pngArt('Otter Float'),
+            'lion': pngArt('Little Lion'),
+            'elephant': pngArt('Little Trunk'),
           },
         },
       ),
