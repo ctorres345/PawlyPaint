@@ -330,6 +330,8 @@ slug = "chick"
 grid = 16
 fit = "subject"
 prompt = "a very simple round yellow chick seen from the front, one round fluffy body, two big square dark eyes far apart, one small orange beak, two pink cheeks, tiny orange feet, centred, plain flat light purple background"
+seed = 24008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_ladybug"
@@ -343,6 +345,8 @@ slug = "ladybug"
 grid = 16
 fit = "subject"
 prompt = "a cute round ladybug character seen from the front, a big round red shell with four big dark brown spots, a round dark brown face at the bottom with two big white eyes with dark pupils and two pink cheeks, two short antennae, centred, plain flat light green background"
+seed = 5008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_snail"
@@ -416,6 +420,8 @@ slug = "frog"
 grid = 24
 fit = "subject"
 prompt = "a very simple round green frog seen from the front, sitting, two big round eyes on top of its head each with a big square dark pupil, a wide smile, two pink cheeks, pale yellow belly, centred, plain flat light pink background"
+seed = 16008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_whale"
@@ -459,6 +465,8 @@ slug = "turtle"
 grid = 32
 fit = "scene"
 prompt = "a chubby green turtle seen from the front, a big round head with two big square dark eyes far apart and two pink cheeks, a round green shell behind it, sitting on the sand, the turtle is large and fills half the picture, simple light setting filling the whole frame: light blue water and a sandy sea floor"
+seed = 24008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_hedgehog"
@@ -547,6 +555,8 @@ slug = "otter"
 grid = 40
 fit = "scene"
 prompt = "a chubby brown otter seen from the front, a big round face with a cream muzzle, two big square dark eyes far apart, a small dark nose, two pink cheeks, holding a pink shell, the otter is large in the foreground and fills half the picture, full scene filling the whole frame: blue water, green kelp and a pale sky"
+seed = 19008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_lion"
@@ -560,6 +570,8 @@ slug = "lion"
 grid = 40
 fit = "scene"
 prompt = "a chubby lion cub seen from the front, a big round golden face inside a fluffy orange mane, two big square dark eyes far apart, a small dark nose, two pink cheeks, sitting, the cub is large in the foreground and fills half the picture, full scene filling the whole frame: golden grass, one acacia tree and a warm orange sky"
+seed = 6016
+scale = 16
 
 [[asset]]
 name = "puzzle_animals_fawn"
@@ -572,7 +584,7 @@ course = "animals"
 slug = "fawn"
 grid = 40
 fit = "scene"
-prompt = "a baby deer fawn seen from the front, standing on long thin legs, two big pointed ears, light brown coat with white spots on its back, a big round face with two big square dark eyes far apart, a small dark nose and two pink cheeks, the fawn is large in the foreground and fills half the picture, full scene filling the whole frame: green forest trees, green grass, small flowers and a pale sky"
+prompt = "a chubby baby deer fawn seen from the front, sitting, a big round light brown face with two big square dark eyes far apart, two big ears, a small dark nose, two pink cheeks, white spots on its back, the fawn is large in the foreground and fills half the picture, full scene filling the whole frame: green forest trees, green grass and a pale sky"
 
 # Animal Friends course card (PAP-79). Approve keys out the green; the bundled cover
 # assets/art/courses/animals.png is that cutout cropped to the subject and scaled to at most 512 px.
