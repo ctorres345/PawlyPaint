@@ -932,7 +932,7 @@ def analyse_entry(entry):
     img = Image.open(entry['source'])
     if img.size != (n * scale,) * 2:
         w, h = img.size
-        raise FitError(f'source is {w}x{h} px, not {n * scale}x{n * scale} (grid {n} at {scale} px a cell)', None)
+        raise FitError(f'source is {w}x{h} px, not {n * scale}x{n * scale} (grid {n} at {scale} px a cell)')
     return lattice_analysis(img, n)
 
 

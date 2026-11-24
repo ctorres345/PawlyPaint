@@ -6,7 +6,7 @@
   "findings": [
     {
       "id": "VIA-assets-0addfe6b",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -15,11 +15,13 @@
       "line": null,
       "issue": "Head-only bunny, unlike the full-body animals in the set.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-375697c1",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -28,11 +30,13 @@
       "line": null,
       "issue": "Branch runs off the bottom edge.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-431b9d25",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -41,11 +45,13 @@
       "line": null,
       "issue": "Front legs share the lily pad green and blend into it.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-6199ca9f",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -54,11 +60,13 @@
       "line": null,
       "issue": "Wings are asymmetric and the branch tips have no outline.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-703e9f31",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -67,11 +75,13 @@
       "line": null,
       "issue": "Fawn stands on a grass tuft; the others float on a plain background.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-7bb07bc1",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -80,11 +90,13 @@
       "line": null,
       "issue": "Dark head with dark eyes and muted cheeks: the face is hard to read.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-c06783c7",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -93,11 +105,13 @@
       "line": null,
       "issue": "Possibly five limbs.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-c772960c",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "converter-fidelity",
@@ -106,11 +120,13 @@
       "line": null,
       "issue": "Easy 16x16 conversions lose key detail: bunny body merges into the background, ladybug spots and chick eye vanish, fish face is gone. Gemini drew them at about 32-40 px, so the shrink to 16 drops features.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-c951add8",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -119,11 +135,13 @@
       "line": null,
       "issue": "Eye-stalk tips float above the head with background between.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-cee73eee",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -132,11 +150,13 @@
       "line": null,
       "issue": "Green key patches stay inside the keyed cutout around the fox (enclosed areas and off-key greens survive the key-out); checked on a keyed preview.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-cee73eee-2",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -145,11 +165,13 @@
       "line": null,
       "issue": "Panda mouth reads as two nostrils or a frown.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-assets-e1874fa1",
-      "status": "new",
+      "status": "rejected",
       "first_seen": "2026-11-23T09:18:52",
       "screen": "assets",
       "rule": "asset-quality",
@@ -158,7 +180,9 @@
       "line": null,
       "issue": "Left foot lacks the top outline the other feet have.",
       "last_seen": "2026-11-23T09:18:52",
-      "run": "20261123T141110Z"
+      "run": "20261123T141110Z",
+      "reason": "Obsolete: the Gemini source was replaced by pixel_gen art in PAP-79 (fawn replaced by the elephant, cover kept as is)",
+      "rejected_at": "2026-11-24T14:45:20"
     },
     {
       "id": "VIA-badges-35bfaa7f",
@@ -700,18 +724,18 @@
 
 | ID | Screen | Severity | Status | Location | Issue |
 |---|---|---|---|---|---|
-| VIA-assets-0addfe6b | assets | med | new | design/assets/puzzle\_animals\_bunny.png | Head-only bunny, unlike the full-body animals in the set. |
-| VIA-assets-375697c1 | assets | low | new | design/assets/puzzle\_animals\_koala.png | Branch runs off the bottom edge. |
-| VIA-assets-431b9d25 | assets | low | new | design/assets/puzzle\_animals\_frog.png | Front legs share the lily pad green and blend into it. |
-| VIA-assets-6199ca9f | assets | low | new | design/assets/puzzle\_animals\_owl.png | Wings are asymmetric and the branch tips have no outline. |
-| VIA-assets-703e9f31 | assets | low | new | design/assets/puzzle\_animals\_fawn.png | Fawn stands on a grass tuft; the others float on a plain background. |
-| VIA-assets-7bb07bc1 | assets | med | new | design/assets/puzzle\_animals\_ladybug.png | Dark head with dark eyes and muted cheeks\: the face is hard to read. |
-| VIA-assets-c06783c7 | assets | med | new | design/assets/puzzle\_animals\_turtle.png | Possibly five limbs. |
-| VIA-assets-c772960c | assets | high | new | design/assets/puzzle\_animals\_bunny.png | Easy 16x16 conversions lose key detail\: bunny body merges into the background, ladybug spots and chick eye vanish, fish face is gone. Gemini drew them at about 32-40 px, so the shrink to 16 drops features. |
-| VIA-assets-c951add8 | assets | med | new | design/assets/puzzle\_animals\_snail.png | Eye-stalk tips float above the head with background between. |
-| VIA-assets-cee73eee | assets | high | new | design/assets/course\_animals\_cover.png | Green key patches stay inside the keyed cutout around the fox (enclosed areas and off-key greens survive the key-out); checked on a keyed preview. |
-| VIA-assets-cee73eee-2 | assets | low | new | design/assets/course\_animals\_cover.png | Panda mouth reads as two nostrils or a frown. |
-| VIA-assets-e1874fa1 | assets | low | new | design/assets/puzzle\_animals\_hedgehog.png | Left foot lacks the top outline the other feet have. |
+| VIA-assets-0addfe6b | assets | med | rejected | design/assets/puzzle\_animals\_bunny.png | Head-only bunny, unlike the full-body animals in the set. |
+| VIA-assets-375697c1 | assets | low | rejected | design/assets/puzzle\_animals\_koala.png | Branch runs off the bottom edge. |
+| VIA-assets-431b9d25 | assets | low | rejected | design/assets/puzzle\_animals\_frog.png | Front legs share the lily pad green and blend into it. |
+| VIA-assets-6199ca9f | assets | low | rejected | design/assets/puzzle\_animals\_owl.png | Wings are asymmetric and the branch tips have no outline. |
+| VIA-assets-703e9f31 | assets | low | rejected | design/assets/puzzle\_animals\_fawn.png | Fawn stands on a grass tuft; the others float on a plain background. |
+| VIA-assets-7bb07bc1 | assets | med | rejected | design/assets/puzzle\_animals\_ladybug.png | Dark head with dark eyes and muted cheeks\: the face is hard to read. |
+| VIA-assets-c06783c7 | assets | med | rejected | design/assets/puzzle\_animals\_turtle.png | Possibly five limbs. |
+| VIA-assets-c772960c | assets | high | rejected | design/assets/puzzle\_animals\_bunny.png | Easy 16x16 conversions lose key detail\: bunny body merges into the background, ladybug spots and chick eye vanish, fish face is gone. Gemini drew them at about 32-40 px, so the shrink to 16 drops features. |
+| VIA-assets-c951add8 | assets | med | rejected | design/assets/puzzle\_animals\_snail.png | Eye-stalk tips float above the head with background between. |
+| VIA-assets-cee73eee | assets | high | rejected | design/assets/course\_animals\_cover.png | Green key patches stay inside the keyed cutout around the fox (enclosed areas and off-key greens survive the key-out); checked on a keyed preview. |
+| VIA-assets-cee73eee-2 | assets | low | rejected | design/assets/course\_animals\_cover.png | Panda mouth reads as two nostrils or a frown. |
+| VIA-assets-e1874fa1 | assets | low | rejected | design/assets/puzzle\_animals\_hedgehog.png | Left foot lacks the top outline the other feet have. |
 | VIA-badges-35bfaa7f | badges | low | new | lib/ui/theme/paw\_widgets.dart\:375 | A chosen rainbow title would show a flat beige medal on the nameplate instead of the rainbow ring. |
 | VIA-badges-82d5e463 | badges | low | fixed | lib/ui/badges\_screen.dart\:227 | Locked badges show no progress counter and tier names are plain text. |
 | VIA-badges-a8faa03e | badges | low | new | lib/ui/badges\_screen.dart\:54 | Prototype caption mentions multiplayer; the app says "Your nameplate. It shows on Home." because multiplayer does not exist yet. |

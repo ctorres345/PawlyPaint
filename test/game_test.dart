@@ -183,7 +183,6 @@ const _shippedAnimalsTitles = {
   },
 };
 
-/// Shape-art signatures and shipped titles of each course that moved to PNG pictures.
 const _pngCourses = {
   'classics': (_classicsSignaturesOn946505c, _shippedClassicsTitles),
   'animals': (_animalsSignaturesOnC3d419c, _shippedAnimalsTitles),

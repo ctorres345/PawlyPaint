@@ -581,8 +581,8 @@ class FitMode(Fixtures):
 
     def test_a_generated_entry_is_read_on_its_canvas_lattice_like_pixel_gen(self):
         # PAP-79: the model drew 20 blocks of 12 px on a 240 px canvas for grid 24
-        # (10 px a cell). The block search finds a 16-block subject, under the grid;
-        # pixel_gen.py judged it on the canvas lattice, where it fits.
+        # (10 px a cell). The block search reads it at 12 px blocks, a subject under
+        # the grid; pixel_gen.py judged it on the canvas lattice, where it fits.
         rows = paint(plain(20, 20, BLUE), 2, 2, 18, 18, WHITE)
         rows = paint(rows, 6, 6, 14, 12, RED)
         entry = self.fitted_entry(rows, 'subject')
