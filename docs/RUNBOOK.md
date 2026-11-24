@@ -366,9 +366,9 @@ Puzzle pictures are drawn by Z-Image Turbo with the PIXELART-REDMOND LoRA on Com
 3. Start it from the portable folder so it listens on the home network: add `--listen --port 8188` to the command line in `run_nvidia_gpu.bat`, then run it.
 4. **Cesar:** Windows shows a firewall prompt for Python. Allow it on Private networks only, never Public. `--listen` has no login, so anyone on the network can queue jobs: in the firewall rule's Scope, limit the remote address to the Mac, and don't install ComfyUI-Manager or custom nodes on this server.
 
-### One time: start ComfyUI from the Mac
+### One time: start and stop ComfyUI from the Mac
 
-The Mac starts ComfyUI over SSH with a key that can do one thing only: run the Windows task `ComfyUI`. The PC must be on and logged in; the task opens ComfyUI's console window in that session.
+The Mac starts and stops ComfyUI over SSH with a key that can do one thing only: run the PC's `comfy.ps1` with `start`, `stop` or `status`. The PC must be on and logged in; `start` opens ComfyUI's console window in that session.
 
 **Cesar, on the PC** (PowerShell as administrator; use the ComfyUI portable folder's real path):
 
@@ -382,6 +382,22 @@ Register-ScheduledTask -TaskName ComfyUI -Action $a -User $env:USERNAME -RunLeve
 ```
 
 The task must start in the portable folder: `run_nvidia_gpu.bat` uses paths relative to it. Test it on the PC with `schtasks /run /tn ComfyUI`; the console prints `http://0.0.0.0:8188` once it listens.
+
+Then the script the key runs, writable by administrators only:
+
+```powershell
+New-Item -ItemType Directory -Force C:\ProgramData\pawly | Out-Null
+Set-Content C:\ProgramData\pawly\comfy.ps1 @'
+$procs = { Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*ComfyUI\main.py*' } }
+switch ("$env:SSH_ORIGINAL_COMMAND".Trim()) {
+  'start'  { schtasks /run /tn ComfyUI }
+  'stop'   { & $procs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; schtasks /end /tn ComfyUI | Out-Null; 'ComfyUI stopped' }
+  'status' { if (& $procs) { 'ComfyUI running' } else { 'ComfyUI not running' } }
+  default  { 'usage: ssh pawly-pc start|stop|status'; exit 2 }
+}
+'@
+icacls C:\ProgramData\pawly /inheritance:r /grant "Administrators:(OI)(CI)F" /grant "SYSTEM:(OI)(CI)F" /grant "Users:(OI)(CI)RX"
+```
 
 **On the Mac**, make a key for this alone (no passphrase, so overnight runs need no input; the forced command below is what limits it):
 
@@ -402,12 +418,12 @@ Host pawly-pc
 **Cesar, on the PC**: add one line to `C:\ProgramData\ssh\administrators_authorized_keys` if the Windows user is an administrator, else to `%USERPROFILE%\.ssh\authorized_keys`: the forced command, then the contents of the Mac's `~/.ssh/pawly_comfy.pub`:
 
 ```
-command="schtasks /run /tn ComfyUI",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty ssh-ed25519 AAAA... pawly-comfy
+command="powershell -NoProfile -ExecutionPolicy Bypass -File C:\ProgramData\pawly\comfy.ps1",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty ssh-ed25519 AAAA... pawly-comfy
 ```
 
 For `administrators_authorized_keys`, keep its access to administrators and SYSTEM only (`icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"`), or sshd ignores it.
 
-Check from the Mac: `ssh pawly-pc` prints `SUCCESS: Attempted to run the scheduled task "ComfyUI".`, and within a minute `/system_stats` answers (below). To turn this off, delete the key line on the PC.
+Use from the Mac: `ssh pawly-pc start`, `ssh pawly-pc stop`, `ssh pawly-pc status`. After `start`, `/system_stats` answers within a minute (below). To turn this off, delete the key line on the PC.
 
 ### Every session: check the server
 
