@@ -67,8 +67,8 @@ POLL_S = 0.5
 CLOSEST_SHOWN = 3
 # The four test pictures of the PAP-79 bake-off.
 TESTS = {
-    'fish': (16, 'a round orange goldfish seen from the side, one big dark eye, '
-                 'small fins and a wide flowing tail, centred, plain flat mint green background'),
+    'fish': (16, 'a round orange goldfish seen from the side, one big round dark eye with a white shine, '
+                 'small fins and a short wide tail, centred, plain flat pale blue background'),
     'owl': (24, 'a round fluffy brown owl sitting on a short branch, two big yellow eyes with dark pupils, '
                 'cream belly with small feather marks, little orange beak, centred, plain flat dark navy background'),
     'panda': (32, 'a chubby panda with a big white face, small dark ear patches and small dark patches around '

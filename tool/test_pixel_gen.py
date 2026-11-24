@@ -325,6 +325,15 @@ class SliceVerdicts(unittest.TestCase):
         self.assertGreaterEqual(near['on_lattice'], pg.ON_LATTICE_MIN)
         self.assertNotIn('off its grid', near['why'])
 
+    def test_the_fish_whose_eye_is_lost_at_grid_16_still_passes_the_checks(self):
+        # A known gap (tool/testdata/pap97/README.md): Cesar's pick catches it.
+        result = self.check('pap97/fish-c16-s16016.png', 16, 'subject')
+        self.assertEqual(result['features'], [],
+                         'the feature check now catches the fish eye: update this test and the README')
+        self.assertGreaterEqual(result['on_lattice'], pg.ON_LATTICE_MIN,
+                                'the on-lattice gate now rejects this fish (share 0.192): not about its eye')
+        self.assertTrue(result['ok'], result['why'])
+
     def test_both_fawns_clear_the_gate_and_the_fawn_drawn_on_its_grid_is_kept(self):
         on_grid = self.check('style1/fawn-c8-s2008.png', 40, 'scene')
         self.assertEqual((on_grid['ok'], on_grid['on_lattice']), (True, 0.714))
