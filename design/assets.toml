@@ -286,7 +286,7 @@ course = "classics"
 slug = "fireside"
 grid = 40
 
-# Animal Friends (PAP-79): Gemini pixel art, same pipeline as Classics. Titles and slugs from lib/data/courses.dart.
+# Animal Friends (PAP-79): local pixel art from tool/pixel_gen.py, placed 1:1 by `fit`. Titles and slugs from lib/data/courses.dart.
 
 [[asset]]
 name = "puzzle_animals_fish"
@@ -298,6 +298,8 @@ usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Goldie, a round orange go
 course = "animals"
 slug = "fish"
 grid = 16
+fit = "subject"
+prompt = "a round orange goldfish seen from the side, one big black eye with a white highlight, small fins and a wide flowing tail, centred, plain flat mint green background"
 
 [[asset]]
 name = "puzzle_animals_bunny"
@@ -305,10 +307,12 @@ kind = "image"
 source = "design/assets/puzzle_animals_bunny.png"
 platforms = ["web"]
 size = "1024x1024"
-usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Bun Bun, a white bunny face with long pink-lined ears"
+usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Bun Bun, a chubby white bunny with long pink-lined ears"
 course = "animals"
 slug = "bunny"
 grid = 16
+fit = "subject"
+prompt = "a chubby white bunny sitting, seen from the front, full body, long upright ears with pink insides, big black eyes, small pink nose, centred, plain flat soft orange background"
 
 [[asset]]
 name = "puzzle_animals_chick"
@@ -320,6 +324,8 @@ usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Peep, a round fluffy yell
 course = "animals"
 slug = "chick"
 grid = 16
+fit = "subject"
+prompt = "a round fluffy yellow chick standing, full body, small orange beak and orange feet, tiny wings, centred, plain flat light purple background"
 
 [[asset]]
 name = "puzzle_animals_ladybug"
@@ -331,6 +337,8 @@ usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Lucky Bug, a red ladybug 
 course = "animals"
 slug = "ladybug"
 grid = 16
+fit = "subject"
+prompt = "a round red ladybug seen from above, black head, six big black spots on its red shell, short black legs, centred, plain flat light green background"
 
 [[asset]]
 name = "puzzle_animals_snail"
@@ -342,6 +350,8 @@ usage = "PAP-79 Animal Friends Easy (16x16 pixel art): Slowpoke, a little snail 
 course = "animals"
 slug = "snail"
 grid = 16
+fit = "subject"
+prompt = "a little snail seen from the side, a big swirly brown shell on its back, soft tan body with two short eye stalks, centred, plain flat light blue background"
 
 [[asset]]
 name = "puzzle_animals_fox"
@@ -353,6 +363,8 @@ usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Clever Fox, a sitting o
 course = "animals"
 slug = "fox"
 grid = 24
+fit = "subject"
+prompt = "a sitting orange fox seen from the front, full body, white chest, pointy ears, black paws, a bushy white-tipped tail curled beside it, centred, plain flat light blue background"
 
 [[asset]]
 name = "puzzle_animals_penguin"
@@ -364,6 +376,8 @@ usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Waddles, a chubby pengu
 course = "animals"
 slug = "penguin"
 grid = 24
+fit = "subject"
+prompt = "a chubby penguin standing, full body, black back and head, white belly and face, orange beak and orange feet, centred, plain flat pale yellow background"
 
 [[asset]]
 name = "puzzle_animals_owl"
@@ -375,6 +389,8 @@ usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Night Owl, a round brow
 course = "animals"
 slug = "owl"
 grid = 24
+fit = "subject"
+prompt = "a round fluffy brown owl sitting on a short branch, two big yellow eyes with black pupils, cream belly with small feather marks, little orange beak, centred, plain flat dark navy background"
 
 [[asset]]
 name = "puzzle_animals_frog"
@@ -386,6 +402,8 @@ usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Lily Hopper, a happy gr
 course = "animals"
 slug = "frog"
 grid = 24
+fit = "subject"
+prompt = "a happy green frog sitting on a round green lily pad, full body, big eyes on top of its head, pale yellow belly, wide smile, centred, plain flat light pink background"
 
 [[asset]]
 name = "puzzle_animals_whale"
@@ -397,6 +415,8 @@ usage = "PAP-79 Animal Friends Medium (24x24 pixel art): Big Blue, a smiling blu
 course = "animals"
 slug = "whale"
 grid = 24
+fit = "subject"
+prompt = "a smiling chubby blue whale seen from the side, full body, pale belly, small tail fin, a little white water spout above its head, centred, plain flat pale yellow background"
 
 [[asset]]
 name = "puzzle_animals_panda"
@@ -408,6 +428,8 @@ usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Bamboo Bear, a panda sitt
 course = "animals"
 slug = "panda"
 grid = 32
+fit = "scene"
+prompt = "a chubby panda sitting and eating a green bamboo stalk, the panda is large and fills half the picture, simple light setting filling the whole frame: a soft green hill, a pale blue sky and one white cloud"
 
 [[asset]]
 name = "puzzle_animals_turtle"
@@ -419,6 +441,8 @@ usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Sea Wanderer, a sea turtl
 course = "animals"
 slug = "turtle"
 grid = 32
+fit = "scene"
+prompt = "a green sea turtle swimming, patterned green and brown shell, flippers spread, the turtle is large and fills half the picture, simple light setting filling the whole frame: light blue water, a sandy sea floor and two small bubbles"
 
 [[asset]]
 name = "puzzle_animals_hedgehog"
@@ -430,6 +454,8 @@ usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Prickles, a hedgehog with
 course = "animals"
 slug = "hedgehog"
 grid = 32
+fit = "scene"
+prompt = "a chubby hedgehog sitting, soft brown spines, cream face and belly, tiny black nose, the hedgehog is large and fills half the picture, simple light setting filling the whole frame: green grass, a pale blue sky and one red mushroom"
 
 [[asset]]
 name = "puzzle_animals_parrot"
@@ -441,6 +467,8 @@ usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Polly, a bright parrot wi
 course = "animals"
 slug = "parrot"
 grid = 32
+fit = "scene"
+prompt = "a bright parrot with a red body and blue and yellow wing feathers sitting on a wooden perch, the parrot is large and fills half the picture, simple light setting filling the whole frame: a pale green background, the brown perch and two green leaves"
 
 [[asset]]
 name = "puzzle_animals_bee"
@@ -452,6 +480,8 @@ usage = "PAP-79 Animal Friends Hard (32x32 pixel art): Busy Bee, a fuzzy striped
 course = "animals"
 slug = "bee"
 grid = 32
+fit = "scene"
+prompt = "a fuzzy round bumblebee with yellow and black stripes and clear wings, flying, the bee is large and fills half the picture, simple light setting filling the whole frame: a pale blue sky, one pink flower and green leaves"
 
 [[asset]]
 name = "puzzle_animals_hamster"
@@ -463,6 +493,8 @@ usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Teacup Hamster, a fluf
 course = "animals"
 slug = "hamster"
 grid = 40
+fit = "scene"
+prompt = "a fluffy orange and white hamster sitting inside a white teacup on a saucer, the hamster is large in the foreground and fills half the picture, full scene filling the whole frame: a wooden table, a pink wall, a small teapot and a cookie"
 
 [[asset]]
 name = "puzzle_animals_koala"
@@ -474,6 +506,8 @@ usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Sleepy Koala, a sleepy
 course = "animals"
 slug = "koala"
 grid = 40
+fit = "scene"
+prompt = "a sleepy grey koala with closed eyes hugging a eucalyptus branch with green leaves, the koala is large in the foreground and fills half the picture, full scene filling the whole frame: a tree trunk, green leaves and a soft evening sky"
 
 [[asset]]
 name = "puzzle_animals_otter"
@@ -485,6 +519,8 @@ usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Otter Float, an otter 
 course = "animals"
 slug = "otter"
 grid = 40
+fit = "scene"
+prompt = "a brown otter floating on its back in calm water, holding a pink shell on its belly, the otter is large in the foreground and fills half the picture, full scene filling the whole frame: blue water with small ripples, green kelp and a pale sky"
 
 [[asset]]
 name = "puzzle_animals_lion"
@@ -496,6 +532,8 @@ usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Little Lion, a lion cu
 course = "animals"
 slug = "lion"
 grid = 40
+fit = "scene"
+prompt = "a lion cub with a fluffy golden mane sitting in tall grass, the cub is large in the foreground and fills half the picture, full scene filling the whole frame: golden savanna grass, an acacia tree and a warm orange sky with a sun"
 
 [[asset]]
 name = "puzzle_animals_fawn"
@@ -507,6 +545,8 @@ usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Forest Fawn, a spotted
 course = "animals"
 slug = "fawn"
 grid = 40
+fit = "scene"
+prompt = "a little spotted fawn standing in a forest clearing, the fawn is large in the foreground and fills half the picture, full scene filling the whole frame: trees behind, green grass, small flowers, a pale sky"
 
 # Animal Friends course card (PAP-79). Approve keys out the green; the bundled cover
 # assets/art/courses/animals.png is that cutout cropped to the subject and scaled to at most 512 px.
