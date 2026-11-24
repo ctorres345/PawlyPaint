@@ -356,6 +356,8 @@ slug = "snail"
 grid = 16
 fit = "subject"
 prompt = "a little snail seen from the side, a big swirly brown shell on its back, soft tan body with two short eye stalks, centred, plain flat light blue background"
+seed = 13008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_fox"
@@ -384,6 +386,8 @@ slug = "penguin"
 grid = 24
 fit = "subject"
 prompt = "a chubby penguin standing, full body, very dark grey back and head, white belly and face, orange beak and orange feet, centred, plain flat pale yellow background"
+seed = 8008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_owl"
@@ -425,6 +429,8 @@ slug = "whale"
 grid = 24
 fit = "subject"
 prompt = "a smiling chubby blue whale seen from the side, full body, pale belly, small tail fin, a little white water spout above its head, centred, plain flat pale yellow background"
+seed = 18008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_panda"
@@ -466,6 +472,8 @@ slug = "hedgehog"
 grid = 32
 fit = "scene"
 prompt = "a chubby hedgehog sitting, soft brown spines, cream face and belly, tiny dark brown nose, the hedgehog is large and fills half the picture, simple light setting filling the whole frame: green grass, a pale blue sky and one red mushroom"
+seed = 17008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_parrot"
@@ -479,6 +487,8 @@ slug = "parrot"
 grid = 32
 fit = "scene"
 prompt = "a bright parrot with a red body and blue and yellow wing feathers sitting on a wooden perch, the parrot is large and fills half the picture, simple light setting filling the whole frame: a pale green background, the brown perch and two green leaves"
+seed = 13016
+scale = 16
 
 [[asset]]
 name = "puzzle_animals_bee"
@@ -492,6 +502,8 @@ slug = "bee"
 grid = 32
 fit = "scene"
 prompt = "a fuzzy round bumblebee with yellow and very dark brown stripes and clear wings, flying, the bee is large and fills half the picture, simple light setting filling the whole frame: a pale blue sky, one pink flower and green leaves"
+seed = 2016
+scale = 16
 
 [[asset]]
 name = "puzzle_animals_hamster"
@@ -505,6 +517,8 @@ slug = "hamster"
 grid = 40
 fit = "scene"
 prompt = "a fluffy orange and white hamster sitting inside a white teacup on a saucer, the hamster is large in the foreground and fills half the picture, full scene filling the whole frame: a wooden table, a pink wall, a small teapot and a cookie"
+seed = 1008
+scale = 8
 
 [[asset]]
 name = "puzzle_animals_koala"
@@ -518,6 +532,8 @@ slug = "koala"
 grid = 40
 fit = "scene"
 prompt = "a sleepy grey koala with closed eyes hugging a eucalyptus branch with green leaves, the koala is large in the foreground and fills half the picture, full scene filling the whole frame: a tree trunk, green leaves and a soft evening sky"
+seed = 20016
+scale = 16
 
 [[asset]]
 name = "puzzle_animals_otter"
