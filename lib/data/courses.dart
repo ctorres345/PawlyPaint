@@ -96,7 +96,7 @@ List<Course> sharedCourses() => [
             'koala': pngArt('Sleepy Koala'),
             'otter': pngArt('Otter Float'),
             'lion': pngArt('Little Lion'),
-            'fawn': pngArt('Forest Fawn'),
+            'elephant': pngArt('Little Trunk'),
           },
         },
       ),

@@ -124,7 +124,7 @@ const _animalsSignaturesOnC3d419c = {
   'animals-koala': 1115337388,
   'animals-otter': 2656259969,
   'animals-lion': 4025904004,
-  'animals-fawn': 1160852052,
+  'animals-elephant': 1160852052,
 };
 
 const _shippedAnimalsTitles = {
@@ -154,7 +154,7 @@ const _shippedAnimalsTitles = {
     'animals-koala': 'Sleepy Koala',
     'animals-otter': 'Otter Float',
     'animals-lion': 'Little Lion',
-    'animals-fawn': 'Forest Fawn',
+    'animals-elephant': 'Little Trunk',
   },
 };
 

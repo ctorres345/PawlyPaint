@@ -574,17 +574,19 @@ seed = 6016
 scale = 16
 
 [[asset]]
-name = "puzzle_animals_fawn"
+name = "puzzle_animals_elephant"
 kind = "image"
-source = "design/assets/puzzle_animals_fawn.png"
+source = "design/assets/puzzle_animals_elephant.png"
 platforms = ["web"]
 size = "1024x1024"
-usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Forest Fawn, a spotted fawn standing in soft grass"
+usage = "PAP-79 Animal Friends Extreme (40x40 pixel art): Little Trunk, a baby elephant sitting in the grass (replaced the fawn, which the model kept drawing as a bear)"
 course = "animals"
-slug = "fawn"
+slug = "elephant"
 grid = 40
 fit = "scene"
-prompt = "a chubby baby deer fawn seen from the front, sitting, a big round light brown face with two big square dark eyes far apart, two big ears, a small dark nose, two pink cheeks, white spots on its back, the fawn is large in the foreground and fills half the picture, full scene filling the whole frame: green forest trees, green grass and a pale sky"
+prompt = "a chubby grey baby elephant seen from the front, sitting, a big round grey face with two big square dark eyes far apart, two huge round floppy ears with pink insides, a short curled trunk, two pink cheeks, the animal is large in the foreground and fills half the picture, full scene filling the whole frame: green grass, a few trees and a pale blue sky"
+seed = 29016
+scale = 16
 
 # Animal Friends course card (PAP-79). Approve keys out the green; the bundled cover
 # assets/art/courses/animals.png is that cutout cropped to the subject and scaled to at most 512 px.
