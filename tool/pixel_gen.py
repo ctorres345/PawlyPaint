@@ -54,7 +54,7 @@ HOUSE_STYLE = ('cute kawaii game sprite, chubby rounded body, big round eyes wit
          'clean readable silhouette, large square pixels drawn on a {grid}x{grid} pixel grid, no anti-aliasing, no dithering, no gradients, '
          'at most {colors} colours')
 CELL_PX = (8, 16)
-ON_LATTICE_MIN = 0.40
+ON_LATTICE_MIN = 0.60
 MISS_BOX, OUTSIDE_BOX = (255, 0, 255), (255, 170, 0)
 FEATURES_SHOWN = 3
 FIT_BY_GRID = {16: 'subject', 24: 'subject', 32: 'scene', 40: 'scene'}

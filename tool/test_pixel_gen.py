@@ -137,7 +137,8 @@ class Workflow(unittest.TestCase):
         self.assertIn('drawn on a 40x40 pixel grid', pg.prompt_for('a fawn', 40))
 
     def test_every_grid_gets_canvases_of_8_and_16_px_a_cell(self):
-        for grid, sizes in ((16, [128, 128, 256, 256]), (40, [320, 320, 640, 640])):
+        for grid in sorted(pg.FIT_BY_GRID):
+            sizes = [grid * 8, grid * 8, grid * 16, grid * 16]
             stub = StubComfy(lambda size, seed: 'refuse')
             self.addCleanup(stub.close)
             with tempfile.TemporaryDirectory() as out:
@@ -206,7 +207,7 @@ class Search(unittest.TestCase):
         self.assertEqual(len(report['misses']), 2)
         for miss in report['misses']:
             self.assertLess(miss['on_lattice'], pg.ON_LATTICE_MIN)
-            self.assertIn(f"on-lattice share {miss['on_lattice']:.0%} under 40%", miss['why'])
+            self.assertIn(f"on-lattice share {miss['on_lattice']:.0%} under 60%", miss['why'])
         self.assertEqual(sorted(os.listdir(os.path.join(self.out, 'rejected'))), ['owl-c16-s1016.png', 'owl-c8-s1008.png'],
                          'a rejected source is kept for the contact sheet; it has no puzzle')
         self.assertTrue(lines[-1].startswith('no 1:1 fit in 2 tries; closest: off its grid'), lines[-1])
@@ -285,6 +286,31 @@ class Search(unittest.TestCase):
         with self.assertRaises(SystemExit) as caught:
             pg.Comfy('http://pc.lan:88a8').check()
         self.assertEqual(str(caught.exception), 'ComfyUI not reachable at http://pc.lan:88a8')
+
+
+TESTDATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'testdata')
+
+
+class OnLatticeGate(unittest.TestCase):
+    def check(self, path, grid, fit):
+        with open(os.path.join(TESTDATA, path), 'rb') as f:
+            return pg.fit_check(f.read(), grid, fit)
+
+    def test_the_slice_owl_cesar_rejected_is_off_its_grid(self):
+        result = self.check('pap97/owl-c8-s1008.png', 24, 'subject')
+        self.assertFalse(result['ok'])
+        self.assertEqual(result['why'], 'off its grid: on-lattice share 42% under 60%',
+                         'its eye rings are 1.5 cells wide: no 1:1 puzzle can copy them')
+
+    def test_the_fawn_drawn_on_its_grid_clears_the_gate(self):
+        result = self.check('style1/fawn-c8-s2008.png', 40, 'scene')
+        self.assertEqual(result['on_lattice'], 0.714)
+        self.assertNotIn('off its grid', result['why'])
+
+    def test_the_fawn_at_44_percent_is_rejected_on_purpose(self):
+        result = self.check('style1/fawn-c8-s3008.png', 40, 'scene')
+        self.assertEqual(result['why'], 'off its grid: on-lattice share 44% under 60%',
+                         'Cesar chose 60% knowing it costs this fawn: 42% passed an owl he rejected')
 
 
 class ContactSheet(unittest.TestCase):
