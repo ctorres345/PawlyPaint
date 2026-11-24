@@ -8,7 +8,8 @@ ON_LATTICE_MIN, else the model drew its own blocks and the try is rejected.
 A try on its grid is read with the plain fixed lattice, placed 1:1 by the
 fit mode, converted, verified, and then checked for lost features
 (art_to_puzzle.feature_check): a feature lost inside the subject rejects it.
-The search tries a few seeds at each canvas.
+The search tries 12 seeds (SEEDS) at each canvas. The checks are a prefilter:
+they drop tries that lost features, and a person picks from the kept ones.
 
 The ComfyUI host comes from --host or the PAWLY_COMFY_HOST environment
 variable, never from this repo. Setup: docs/RUNBOOK.md, "Local art
@@ -48,30 +49,31 @@ LORA = 'ZImageTurbo_PixelArt_Redmond.safetensors'
 LORA_STRENGTH = 1.0
 TRIGGER = 'Pixel Art, PixArFK'
 STEPS, SAMPLER, SCHEDULER, SHIFT = 9, 'res_multistep', 'simple', 3.0
-HOUSE_STYLE = ('cute kawaii game sprite, chubby rounded body, big round eyes with a white highlight, '
-         'a small soft pink blush on each cheek only, natural true-to-life animal colours, '
-         'soft two-tone shading with one lighter and one darker shade of each colour, dark brown outline, '
-         'clean readable silhouette, large square pixels drawn on a {grid}x{grid} pixel grid, no anti-aliasing, no dithering, no gradients, '
-         'at most {colors} colours')
+HOUSE_STYLE = ('cute kawaii pixel art icon, flat colours, oversized round head on a small chubby body, '
+               'big round dark brown eyes each at least 2x2 pixels with one white highlight pixel, a small pink blush on each cheek, '
+               'a small nose, no other face details, thick dark brown 1 pixel outline around the whole animal, no black, '
+               'one soft shadow shade on each colour, natural true-to-life animal colours, '
+               'large square pixels drawn on a {grid}x{grid} pixel grid, no anti-aliasing, no dithering, no gradients, '
+               'at most {colors} colours')
 CELL_PX = (8, 16)
-ON_LATTICE_MIN = 0.60
+ON_LATTICE_MIN = 0.15
 MISS_BOX, OUTSIDE_BOX = (255, 0, 255), (255, 170, 0)
 FEATURES_SHOWN = 3
 FIT_BY_GRID = {16: 'subject', 24: 'subject', 32: 'scene', 40: 'scene'}
-SEEDS = 6
+SEEDS = 12
 HTTP_TIMEOUT_S = 10
 JOB_TIMEOUT_S = 300
 POLL_S = 0.5
 CLOSEST_SHOWN = 3
 # The four test pictures of the PAP-79 bake-off.
 TESTS = {
-    'fish': (16, 'a round orange goldfish seen from the side, one big black eye with a white highlight, '
+    'fish': (16, 'a round orange goldfish seen from the side, one big dark eye, '
                  'small fins and a wide flowing tail, centred, plain flat mint green background'),
-    'owl': (24, 'a round fluffy brown owl sitting on a short branch, two big yellow eyes with black pupils, '
+    'owl': (24, 'a round fluffy brown owl sitting on a short branch, two big yellow eyes with dark pupils, '
                 'cream belly with small feather marks, little orange beak, centred, plain flat dark navy background'),
-    'panda': (32, 'a chubby panda sitting and eating a green bamboo stalk, the panda is large and fills half the '
-                  'picture, simple light setting filling the whole frame: a soft green hill, a pale blue sky and '
-                  'one white cloud'),
+    'panda': (32, 'a chubby panda with a big white face, small dark ear patches and small dark patches around '
+                  'its big eyes, sitting and holding a green bamboo stalk, the panda is large and fills half the '
+                  'picture, centred, plain flat pale green background'),
     'fawn': (40, 'a little spotted fawn standing in a forest clearing, the fawn is large in the foreground and '
                  'fills half the picture, full scene filling the whole frame: trees behind, green grass, '
                  'small flowers, a pale sky'),

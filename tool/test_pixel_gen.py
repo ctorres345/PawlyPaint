@@ -136,6 +136,13 @@ class Workflow(unittest.TestCase):
         self.assertIn('drawn on a 24x24 pixel grid', pg.prompt_for('a round owl', 24))
         self.assertIn('drawn on a 40x40 pixel grid', pg.prompt_for('a fawn', 40))
 
+    def test_the_house_style_asks_for_features_of_at_least_2x2_cells_and_no_black(self):
+        prompt = pg.prompt_for('a round owl', 24)
+        self.assertIn('eyes each at least 2x2 pixels', prompt)
+        self.assertIn('no black', prompt)
+        self.assertNotIn('black', ' '.join(subject for _, subject in pg.TESTS.values()),
+                         'a test subject asking for black fights the house style')
+
     def test_every_grid_gets_canvases_of_8_and_16_px_a_cell(self):
         for grid in sorted(pg.FIT_BY_GRID):
             sizes = [grid * 8, grid * 8, grid * 16, grid * 16]
@@ -173,10 +180,10 @@ class Search(unittest.TestCase):
         return stub
 
     def test_keeps_only_the_seeds_drawn_on_the_grid(self):
-        stub = self.serve(lambda size, seed: owl(24 if seed == 2008 else 30, size))
+        stub = self.serve(lambda size, seed: owl(24 if seed == 2008 else 37, size))
         result = pg.search(pg.Comfy(stub.host, poll=0.01), self.job, self.out, seeds=2, log=lambda *_: None)
         self.assertEqual([(h['seed'], h['scale']) for h in result['hits']], [(2008, 8)],
-                         'only seed 2008 draws 24 blocks; the rest draw 30')
+                         'only seed 2008 draws 24 blocks; the rest draw 37')
         self.assertEqual(sorted(job['7']['inputs']['width'] for job in stub.jobs.values()), [192, 192, 384, 384])
         self.assertEqual(sorted(os.listdir(self.out)), ['owl-c8-s2008.png', 'puzzle-owl-c8-s2008.png', 'rejected', 'report.json'])
         with Image.open(os.path.join(self.out, 'puzzle-owl-c8-s2008.png')) as puzzle:
@@ -189,7 +196,7 @@ class Search(unittest.TestCase):
 
     def test_a_rerun_leaves_no_stale_copy_of_a_try_in_the_other_folder(self):
         kept = {'now': True}
-        stub = self.serve(lambda size, seed: owl(24 if kept['now'] else 30, size))
+        stub = self.serve(lambda size, seed: owl(24 if kept['now'] else 37, size))
         pg.search(pg.Comfy(stub.host, poll=0.01), self.job, self.out, seeds=1, scales=[8], log=lambda *_: None)
         self.assertIn('owl-c8-s1008.png', os.listdir(self.out))
         kept['now'] = False
@@ -198,7 +205,7 @@ class Search(unittest.TestCase):
         self.assertEqual(os.listdir(os.path.join(self.out, 'rejected')), ['owl-c8-s1008.png'])
 
     def test_a_try_off_its_grid_is_rejected_with_its_share(self):
-        stub = self.serve(lambda size, seed: owl(30, size))
+        stub = self.serve(lambda size, seed: owl(37, size))
         lines = []
         result = pg.search(pg.Comfy(stub.host, poll=0.01), self.job, self.out, seeds=1, log=lines.append)
         self.assertEqual(result['hits'], [])
@@ -207,7 +214,7 @@ class Search(unittest.TestCase):
         self.assertEqual(len(report['misses']), 2)
         for miss in report['misses']:
             self.assertLess(miss['on_lattice'], pg.ON_LATTICE_MIN)
-            self.assertIn(f"on-lattice share {miss['on_lattice']:.0%} under 60%", miss['why'])
+            self.assertIn(f"on-lattice share {miss['on_lattice']:.0%} under {pg.ON_LATTICE_MIN:.0%}", miss['why'])
         self.assertEqual(sorted(os.listdir(os.path.join(self.out, 'rejected'))), ['owl-c16-s1016.png', 'owl-c8-s1008.png'],
                          'a rejected source is kept for the contact sheet; it has no puzzle')
         self.assertTrue(lines[-1].startswith('no 1:1 fit in 2 tries; closest: off its grid'), lines[-1])
@@ -291,32 +298,43 @@ class Search(unittest.TestCase):
 TESTDATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'testdata')
 
 
-class OnLatticeGate(unittest.TestCase):
+class SliceVerdicts(unittest.TestCase):
+    """Tries Cesar judged by eye, and the checks' verdict on each."""
     def check(self, path, grid, fit):
         with open(os.path.join(TESTDATA, path), 'rb') as f:
             return pg.fit_check(f.read(), grid, fit)
 
-    def test_the_slice_owl_cesar_rejected_is_off_its_grid(self):
+    def test_the_slice_owl_cesar_rejected_loses_its_eye_pair(self):
         result = self.check('pap97/owl-c8-s1008.png', 24, 'subject')
         self.assertFalse(result['ok'])
-        self.assertEqual(result['why'], 'off its grid: on-lattice share 42% under 60%',
-                         'its eye rings are 1.5 cells wide: no 1:1 puzzle can copy them')
+        self.assertEqual([f['why'] for f in result['features']],
+                         ['pair drawn unevenly: 3 cells in 1x3 here, 6 cells in 2x3 on the other side',
+                          'pair drawn unevenly: 6 cells in 2x3 here, 3 cells in 1x3 on the other side'],
+                         'Cesar saw a whole block column next to the right eye that the left one lacks')
 
-    def test_the_fawn_drawn_on_its_grid_clears_the_gate(self):
-        result = self.check('style1/fawn-c8-s2008.png', 40, 'scene')
-        self.assertEqual(result['on_lattice'], 0.714)
-        self.assertNotIn('off its grid', result['why'])
+    def test_the_gate_rejects_only_tries_that_ignored_the_grid(self):
+        def gate(blocks):
+            out = io.BytesIO()
+            owl(blocks, 192).save(out, 'PNG')
+            return pg.fit_check(out.getvalue(), 24, 'subject')
+        ignored, near = gate(37), gate(27)
+        self.assertLess(ignored['on_lattice'], pg.ON_LATTICE_MIN)
+        self.assertIn('off its grid', ignored['why'])
+        # 27 blocks on a 24 grid is off its lattice too, but scores over the
+        # gate: the gate is a prefilter, and the contact sheet judges the rest.
+        self.assertGreaterEqual(near['on_lattice'], pg.ON_LATTICE_MIN)
+        self.assertNotIn('off its grid', near['why'])
 
-    def test_the_fawn_at_44_percent_is_rejected_on_purpose(self):
-        result = self.check('style1/fawn-c8-s3008.png', 40, 'scene')
-        self.assertEqual(result['why'], 'off its grid: on-lattice share 44% under 60%',
-                         'Cesar chose 60% knowing it costs this fawn: 42% passed an owl he rejected')
+    def test_both_fawns_clear_the_gate_and_the_fawn_drawn_on_its_grid_is_kept(self):
+        on_grid = self.check('style1/fawn-c8-s2008.png', 40, 'scene')
+        self.assertEqual((on_grid['ok'], on_grid['on_lattice']), (True, 0.714))
+        self.assertNotIn('off its grid', self.check('style1/fawn-c8-s3008.png', 40, 'scene')['why'])
 
 
 class ContactSheet(unittest.TestCase):
     def test_lays_out_every_kept_and_rejected_try_with_its_numbers(self):
         import contact_sheet
-        stub = StubComfy(lambda size, seed: owl(24 if seed == 1008 else 30, size))
+        stub = StubComfy(lambda size, seed: owl(24 if seed == 1008 else 37, size))
         self.addCleanup(stub.close)
         d = tempfile.TemporaryDirectory()
         self.addCleanup(d.cleanup)
