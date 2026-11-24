@@ -388,6 +388,16 @@ Run with the Via venv (the fit check needs Pillow) and keep the output outside t
 ```
 
 - `--prompt "<subject and setting>" --grid <16|24|32|40> --name <slug>` for a new picture; `--entry <course>/<slug>` makes a recorded picture again.
-- It keeps only the seeds that fit the grid 1:1: `<name>-c<scale>-s<seed>.png` (the source), `puzzle-<...>.png` (the converted puzzle) and `report.json` (every try, with its time and why it missed).
-- No fit: it prints the closest sizes it saw and exits non-zero. Try more `--seeds`, other `--scales` (7 to 16), or change how much of the frame the prompt asks the subject to fill.
+- Canvases: every grid is tried at grid x 8 and grid x 16 px (`CELL_PX`), 6 seeds each, and the prompt says "drawn on a <grid>x<grid> pixel grid".
+- Check 1, before converting: the on-lattice share, the share of colour runs (across and down) that are a whole number of cells long, within 15%. Under 40% (`ON_LATTICE_MIN`) the model drew its own blocks and the try is rejected. A try over it is read with the plain fixed lattice: no block search, no snapping.
+- Check 2, after converting: every small source region (0.3 to 7 cells, a colour well apart from its surround: eyes, pupils, nose, cheeks) must keep a puzzle region on its side of the colours, within half a cell and at 0.5 to 2 times its area. Paired features (two eyes) must get the same cell shape on both sides. A miss inside the subject rejects the try.
+- Kept tries: `<name>-c<scale>-s<seed>.png` (the source) and `puzzle-<...>.png` (the converted puzzle, 16 px a cell). Rejected ones go to `rejected/`, the puzzle only when it got that far. Lost features are boxed: magenta inside the subject, amber outside.
+- `report.json` lists every try with its time, `on_lattice` share, lost `features` and why it was rejected.
+- Contact sheet of one or more runs, every try with its numbers:
+
+```bash
+~/.local/share/nousfx/via/venv/bin/python3 tool/contact_sheet.py ~/Releases/pawlypaint/<KEY>/owl ~/Releases/pawlypaint/<KEY>/fox --out ~/Releases/pawlypaint/<KEY>/sheet.png
+```
+
+- Nothing kept: it prints the closest tries and exits non-zero. Try more `--seeds` or a simpler subject; the thresholds are in `tool/art_to_puzzle.py` (`ON_LATTICE_TOLERANCE`, `FEATURE_*`) and `tool/pixel_gen.py` (`ON_LATTICE_MIN`).
 - An approved source goes to `design/assets/`, with `fit`, `prompt`, `seed` and `scale` in its `design/assets.toml` entry; then `tool/art_to_puzzle.py --check` and `--build`.

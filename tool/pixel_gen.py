@@ -1,11 +1,14 @@
-"""Makes puzzle picture sources on a local ComfyUI server (PAP-95).
+"""Makes puzzle picture sources on a local ComfyUI server (PAP-95, PAP-97).
 
-Z-Image Turbo with the PIXELART-REDMOND LoRA draws a picture on a small
-canvas (the puzzle grid times 7 to 16 px a cell), so it comes out near the
-puzzle grid. Each result is read at its own block grid and placed on the
-puzzle grid 1:1 by tool/art_to_puzzle.py's fit mode (pad a subject, trim a
-scene); only results that fit and pass the converter's checks are kept. The
-search tries a few seeds at each canvas scale.
+Z-Image Turbo with the PIXELART-REDMOND LoRA draws a picture on a canvas of
+the puzzle grid times 8 or 16 px a cell (CELL_PX; the VAE works in 8 px
+steps), and the prompt names the grid. Each try is judged before it is
+converted: its on-lattice share (art_to_puzzle.on_lattice_share) must reach
+ON_LATTICE_MIN, else the model drew its own blocks and the try is rejected.
+A try on its grid is read with the plain fixed lattice, placed 1:1 by the
+fit mode, converted, verified, and then checked for lost features
+(art_to_puzzle.feature_check): a feature lost inside the subject rejects it.
+The search tries a few seeds at each canvas.
 
 The ComfyUI host comes from --host or the PAWLY_COMFY_HOST environment
 variable, never from this repo. Setup: docs/RUNBOOK.md, "Local art
@@ -18,8 +21,10 @@ art_to_puzzle, which needs Pillow. Run with a Python that has it:
   ... tool/pixel_gen.py --prompt "a chubby frog on a lily pad, plain light blue background" \\
       --grid 24 --out <dir>
 Each kept seed writes <name>-c<scale>-s<seed>.png (the source) and
-puzzle-<name>-c<scale>-s<seed>.png (the converted puzzle, 16 px a cell);
-report.json lists every try. Record an approved one's prompt, seed and scale
+puzzle-<name>-c<scale>-s<seed>.png (the converted puzzle, 16 px a cell, lost
+features boxed); a rejected try writes the same into rejected/ (the puzzle
+only when it got that far). report.json lists every try with its on-lattice
+share and lost features; tool/contact_sheet.py lays them all out. Record an approved one's prompt, seed and scale
 in design/assets.toml so --entry can make it again.
 Tests: python3 -m unittest tool/test_pixel_gen.py
 """
@@ -46,9 +51,12 @@ STEPS, SAMPLER, SCHEDULER, SHIFT = 9, 'res_multistep', 'simple', 3.0
 HOUSE_STYLE = ('cute kawaii game sprite, chubby rounded body, big round eyes with a white highlight, '
          'a small soft pink blush on each cheek only, natural true-to-life animal colours, '
          'soft two-tone shading with one lighter and one darker shade of each colour, dark brown outline, '
-         'clean readable silhouette, large square pixels, no anti-aliasing, no dithering, no gradients, '
+         'clean readable silhouette, large square pixels drawn on a {grid}x{grid} pixel grid, no anti-aliasing, no dithering, no gradients, '
          'at most {colors} colours')
-CELL_PX_BY_GRID = {16: [9, 10], 24: [10, 12], 32: [12], 40: [8, 9]}
+CELL_PX = (8, 16)
+ON_LATTICE_MIN = 0.40
+MISS_BOX, OUTSIDE_BOX = (255, 0, 255), (255, 170, 0)
+FEATURES_SHOWN = 3
 FIT_BY_GRID = {16: 'subject', 24: 'subject', 32: 'scene', 40: 'scene'}
 SEEDS = 6
 HTTP_TIMEOUT_S = 10
@@ -80,8 +88,8 @@ def _import_art_to_puzzle():
 
 def prompt_for(subject, grid):
     """The full prompt: the LoRA trigger, the subject, then the house style
-    with the level's colour limit."""
-    return f'{TRIGGER}, {subject}. ' + HOUSE_STYLE.format(colors=_import_art_to_puzzle().COLOR_LIMIT[grid])
+    with the grid and the level's colour limit."""
+    return f'{TRIGGER}, {subject}. ' + HOUSE_STYLE.format(grid=grid, colors=_import_art_to_puzzle().COLOR_LIMIT[grid])
 
 
 def workflow(prompt, size, seed):
@@ -177,25 +185,51 @@ class Comfy:
 
 
 def fit_check(png, grid, mode):
-    """Converts one generated PNG at the grid in fit mode. Returns
-    {'ok', 'why', 'distance', 'image'}: image is the puzzle when it fits and
-    distance how many blocks a side it is off (None when not measured)."""
+    """Judges and converts one generated PNG at the grid in fit mode.
+    Returns {'ok', 'why', 'distance', 'image', 'on_lattice', 'features'}:
+    image is the puzzle when the try got that far, distance how many blocks
+    a side it is off (None when not measured), on_lattice its share and
+    features the ones the puzzle lost (art_to_puzzle.feature_check)."""
     a2p = _import_art_to_puzzle()
+    result = {'ok': False, 'why': None, 'distance': None, 'image': None, 'on_lattice': None, 'features': []}
     try:
-        analysis = a2p.analyse(io.BytesIO(png), grid)
+        src = a2p.Image.open(io.BytesIO(png))
+        src.load()
     except OSError as e:
-        return {'ok': False, 'why': f'unreadable image: {e}', 'distance': None, 'image': None}
-    if not analysis.clean:
-        return {'ok': False, 'why': 'no clean grid', 'distance': None, 'image': None}
+        return {**result, 'why': f'unreadable image: {e}'}
+    share = result['on_lattice'] = round(a2p.on_lattice_share(src, grid), 3)
+    if share < ON_LATTICE_MIN:
+        return {**result, 'why': f'off its grid: on-lattice share {share:.0%} under {ON_LATTICE_MIN:.0%}'}
+    analysis = a2p.lattice_analysis(src, grid)
     try:
         placed = a2p.fit_analysis(analysis, grid, mode)
     except a2p.FitError as e:
-        return {'ok': False, 'why': str(e), 'distance': e.miss, 'image': None}
+        return {**result, 'why': str(e), 'distance': e.miss}
     image, info = a2p.convert(placed, grid, a2p.COLOR_LIMIT[grid], a2p.LEVEL_GAP[grid], region_safe=True)
+    lost = a2p.feature_check(src, image, analysis.lines)
+    result.update(distance=0, image=image, features=lost)
     problems = a2p.verify(image, grid, info['subject'])
+    inside = [f for f in lost if f['subject']]
+    if inside:
+        shown = '; '.join(f"{f['why']} at cells {f['cells'][0]},{f['cells'][1]}" for f in inside[:FEATURES_SHOWN])
+        more = f' and {len(inside) - FEATURES_SHOWN} more' if len(inside) > FEATURES_SHOWN else ''
+        problems.append(f"lost {len(inside)} feature{'s' if len(inside) > 1 else ''}: {shown}{more}")
     if problems:
-        return {'ok': False, 'why': '; '.join(problems), 'distance': 0, 'image': None}
-    return {'ok': True, 'why': f"{placed.placement}, {info['colors']} colours", 'distance': 0, 'image': image}
+        return {**result, 'why': '; '.join(problems)}
+    return {**result, 'ok': True, 'why': f"{placed.placement}, {info['colors']} colours"}
+
+
+def preview(image, grid, lost):
+    """The puzzle at 16 px a cell with each lost feature boxed: MISS_BOX
+    inside the subject, OUTSIDE_BOX outside it."""
+    from PIL import Image, ImageDraw
+    big = image.convert('RGB').resize((grid * 16,) * 2, Image.NEAREST)
+    draw = ImageDraw.Draw(big)
+    for f in lost:
+        x0, y0, x1, y1 = f['cells']
+        draw.rectangle([x0 * 16, y0 * 16, (x1 + 1) * 16 - 1, (y1 + 1) * 16 - 1],
+                       outline=MISS_BOX if f['subject'] else OUTSIDE_BOX, width=2)
+    return big
 
 
 def generated(comfy, wf):
@@ -216,27 +250,37 @@ def search(comfy, job, out, seeds=SEEDS, scales=None, log=print):
     recorded seed and scale) and keeps the ones that fit 1:1 in `out`.
     Writes nothing when the server is not reachable at the start; when it
     stops answering mid-run, report.json keeps the tries so far. A job
-    ComfyUI fails is a miss. Returns the report."""
+    ComfyUI fails is a miss. Rejected tries go to out/rejected/. Returns
+    the report."""
     comfy.check()
     grid, mode = job['grid'], job['fit']
     if job.get('seed') is not None:
         tries = [(job['scale'], job['seed'])]
     else:
-        tries = [(scale, i * 1000 + scale) for scale in scales or CELL_PX_BY_GRID[grid] for i in range(1, seeds + 1)]
+        tries = [(scale, i * 1000 + scale) for scale in scales or CELL_PX for i in range(1, seeds + 1)]
     os.makedirs(out, exist_ok=True)
     report = {'name': job['name'], 'grid': grid, 'fit': mode, 'prompt': job['prompt'], 'hits': [], 'misses': []}
     try:
         for scale, seed in tries:
             start = time.time()
             png, failed = generated(comfy, workflow(job['prompt'], grid * scale, seed))
-            result = fit_check(png, grid, mode) if png else {'ok': False, 'why': failed, 'distance': None}
-            row = {'seed': seed, 'scale': scale, 'why': result['why'], 'seconds': round(time.time() - start, 1)}
+            result = fit_check(png, grid, mode) if png else {'ok': False, 'why': failed, 'distance': None,
+                                                             'image': None, 'on_lattice': None, 'features': []}
+            row = {'seed': seed, 'scale': scale, 'why': result['why'], 'seconds': round(time.time() - start, 1),
+                   'on_lattice': result['on_lattice'], 'features': result['features']}
             stem = f"{job['name']}-c{scale}-s{seed}"
-            if result['ok']:
-                with open(os.path.join(out, f'{stem}.png'), 'wb') as f:
+            where = out if result['ok'] else os.path.join(out, 'rejected')
+            for folder in (out, os.path.join(out, 'rejected')):
+                for name in (f'{stem}.png', f'puzzle-{stem}.png'):
+                    if os.path.exists(os.path.join(folder, name)):
+                        os.remove(os.path.join(folder, name))
+            if png:
+                os.makedirs(where, exist_ok=True)
+                with open(os.path.join(where, f'{stem}.png'), 'wb') as f:
                     f.write(png)
-                big = result['image'].convert('RGB').resize((grid * 16,) * 2, _import_art_to_puzzle().Image.NEAREST)
-                big.save(os.path.join(out, f'puzzle-{stem}.png'))
+            if result['image'] is not None:
+                preview(result['image'], grid, result['features']).save(os.path.join(where, f'puzzle-{stem}.png'))
+            if result['ok']:
                 report['hits'].append(row)
             else:
                 report['misses'].append({**row, 'distance': result['distance']})
@@ -247,7 +291,8 @@ def search(comfy, job, out, seeds=SEEDS, scales=None, log=print):
     if report['hits']:
         log(f"{len(report['hits'])}/{len(tries)} fit 1:1 in {out}")
     else:
-        near = sorted((m for m in report['misses'] if m['distance'] is not None), key=lambda m: m['distance'])
+        near = sorted((m for m in report['misses'] if m['on_lattice'] is not None),
+                      key=lambda m: (m['distance'] is None, m['distance'] or 0, -m['on_lattice']))
         shown = list(dict.fromkeys(m['why'] for m in near))[:CLOSEST_SHOWN]
         if not shown:
             whys = list(dict.fromkeys(m['why'] for m in report['misses']))[:CLOSEST_SHOWN]
@@ -283,12 +328,12 @@ def main(argv):
     what.add_argument('--test', choices=sorted(TESTS), help='one of the bake-off test pictures')
     what.add_argument('--entry', help='a puzzle entry with a recorded prompt: course/slug')
     what.add_argument('--prompt', help='the subject and setting (the house style is added)')
-    ap.add_argument('--grid', type=int, choices=sorted(CELL_PX_BY_GRID), help='with --prompt: the puzzle grid')
+    ap.add_argument('--grid', type=int, choices=sorted(FIT_BY_GRID), help='with --prompt: the puzzle grid')
     ap.add_argument('--fit', choices=_import_art_to_puzzle().FIT_MODES, help='how to place it (default: by level)')
     ap.add_argument('--name', default='picture', help='with --prompt: file name prefix')
     ap.add_argument('--out', required=True, help='folder for the kept pictures (keep it outside the repo)')
-    ap.add_argument('--seeds', type=int, default=SEEDS, help='seeds per canvas scale')
-    ap.add_argument('--scales', help='canvas px a cell to try, for example 10,12 (default: by level)')
+    ap.add_argument('--seeds', type=int, default=SEEDS, help='seeds per canvas')
+    ap.add_argument('--scales', help=f'canvas px a cell to try, for example 8 (default: {",".join(map(str, CELL_PX))})')
     ap.add_argument('--host', help=f'ComfyUI URL (default: ${ENV_HOST})')
     args = ap.parse_args(argv)
     if args.test:

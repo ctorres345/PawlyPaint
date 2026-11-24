@@ -767,3 +767,126 @@ class RegionSafeEntries(Fixtures):
         _, outputs, _ = a2p.convert_entry(self.entry(path, 32))
         out = pixels(outputs[32][0])
         self.assertEqual(out[12][12], out[0][0])
+
+
+STYLE1 = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'testdata', 'style1')
+
+
+def style1(name):
+    """A PAP-79 style set 1 source (tool/testdata/style1) and its grid."""
+    grid = {'bunny': 16, 'fish': 16, 'owl': 24, 'fox': 24, 'panda': 32, 'fawn': 40}[name.split('-')[0]]
+    return Image.open(os.path.join(STYLE1, f'{name}.png')), grid
+
+
+def pap96(name):
+    """A source with its PAP-96 conversion (the n x n puzzle) and the cell
+    lines that conversion read it with (tool/testdata/style1/pap96)."""
+    import json
+    with open(os.path.join(STYLE1, 'pap96', f'{name}.json')) as f:
+        lines = json.load(f)
+    return (Image.open(os.path.join(STYLE1, f'{name}.png')),
+            Image.open(os.path.join(STYLE1, 'pap96', f'{name}.png')), (lines['xs'], lines['ys']))
+
+
+class OnLatticeShare(unittest.TestCase):
+    def test_the_fawns_rank_above_every_other_style1_source(self):
+        names = sorted(f[:-4] for f in os.listdir(STYLE1) if f.endswith('.png'))
+        share = {name: a2p.on_lattice_share(*style1(name)) for name in names}
+        fawns = [s for name, s in share.items() if name.startswith('fawn')]
+        others = [s for name, s in share.items() if not name.startswith('fawn')]
+        self.assertEqual(len(fawns), 2)
+        self.assertGreater(min(fawns), max(others), share)
+
+    def test_a_picture_drawn_on_its_grid_scores_all_and_one_drawn_finer_scores_low(self):
+        on_grid = blocks([RED, GREEN, BLUE, YELLOW], cells=24, block=8)
+        self.assertEqual(a2p.on_lattice_share(on_grid, 24), 1.0)
+        finer = blocks([RED, GREEN, BLUE, YELLOW], cells=31, block=8).resize((24 * 8,) * 2, Image.NEAREST)
+        self.assertLess(a2p.on_lattice_share(finer, 24), 0.4)
+
+
+class LatticeRead(unittest.TestCase):
+    def test_reads_a_source_drawn_on_its_grid_block_for_block(self):
+        rows = paint(paint(plain(16, 16, BLUE), 3, 3, 13, 14, WHITE), 5, 6, 7, 7, RED)
+        buf = io.BytesIO()
+        draw(rows, block=8).save(buf, 'PNG')
+        analysis = a2p.lattice_analysis(Image.open(io.BytesIO(buf.getvalue())), 16)
+        self.assertEqual(analysis.native, rows)
+        self.assertEqual(analysis.lines, ([i * 8.0 for i in range(17)], [i * 8.0 for i in range(17)]))
+
+
+def face(left_eye, right_eye):
+    """A 16-cell face (white on blue) with a red eye on each side: each eye
+    is a list of (x, y) cells."""
+    rows = paint(plain(16, 16, BLUE), 2, 2, 14, 14, WHITE)
+    for x, y in left_eye + right_eye:
+        rows[y][x] = RED
+    return rows
+
+
+def as_puzzle(rows):
+    palette = sorted(colours_of(rows))
+    return indexed([[palette.index(c) for c in row] for row in rows], palette)
+
+
+class FeatureCheck(unittest.TestCase):
+    LINES = ([i * 10.0 for i in range(17)], [i * 10.0 for i in range(17)])
+
+    def test_a_puzzle_that_keeps_every_feature_passes(self):
+        rows = face([(5, 6)], [(10, 6)])
+        self.assertEqual(a2p.feature_check(draw(rows, block=10), as_puzzle(rows), self.LINES), [])
+
+    def test_a_pair_drawn_with_different_cell_shapes_on_each_side_is_reported(self):
+        source = face([(5, 6)], [(10, 6)])
+        puzzle = face([(5, 6)], [(10, 6), (11, 6)])
+        misses = a2p.feature_check(draw(source, block=10), as_puzzle(puzzle), self.LINES)
+        self.assertEqual(sorted(m['cells'] for m in misses), [(5, 6, 5, 6), (10, 6, 10, 6)])
+        self.assertTrue(all(m['subject'] and m['why'].startswith('pair drawn unevenly') for m in misses), misses)
+
+    def misses(self, source, puzzle):
+        return a2p.feature_check(draw(source, block=10), as_puzzle(puzzle), self.LINES)
+
+    def test_a_feature_with_no_cell_left_is_reported_gone(self):
+        misses = self.misses(face([(5, 6)], [(10, 6)]), face([(5, 6)], []))
+        self.assertEqual([m['cells'] for m in misses], [(10, 6, 10, 6)])
+        self.assertIn('gone', misses[0]['why'])
+
+    def test_a_feature_whose_colour_joins_its_surround_is_reported_merged(self):
+        grey = (170, 170, 170)
+        source = paint(face([], []), 7, 6, 9, 7, grey)
+        misses = self.misses(source, face([], []))
+        self.assertEqual([m['cells'] for m in misses], [(7, 6, 8, 6)])
+        self.assertTrue(misses[0]['why'].startswith('merged into its surround'), misses)
+
+    def test_a_feature_drawn_in_the_background_colour_is_reported(self):
+        navy = (30, 30, 90)
+        source = paint(face([], []), 7, 6, 9, 7, navy)
+        misses = self.misses(source, paint(face([], []), 7, 6, 9, 7, BLUE))
+        self.assertEqual([m['cells'] for m in misses], [(7, 6, 8, 6)])
+        self.assertTrue(misses[0]['why'].startswith('drawn in the background colour'), misses)
+
+    def test_a_symmetric_feature_drawn_lopsided_is_reported(self):
+        source = face([(6, 9), (7, 9), (8, 9)], [])
+        misses = self.misses(source, face([(6, 9), (7, 9), (6, 10)], []))
+        self.assertEqual([m['cells'] for m in misses], [(6, 9, 8, 9)])
+        self.assertTrue(misses[0]['why'].startswith('lopsided'), misses)
+
+
+class FeatureCheckOnPap96(unittest.TestCase):
+    """The PAP-96 conversions of style set 1: the details Cesar saw lost."""
+
+    def misses(self, name):
+        return [m for m in a2p.feature_check(*pap96(name)) if m['subject']]
+
+    def test_the_fox_eyes_are_missed(self):
+        cells = {m['cells'] for m in self.misses('fox-c12-s4012')}
+        self.assertLessEqual({(5, 6, 6, 7), (8, 6, 11, 7)}, cells)
+
+    def test_the_panda_nose_is_missed(self):
+        self.assertIn((14, 14, 19, 16), {m['cells'] for m in self.misses('panda-c12-s2012')})
+
+    def test_the_owl_eyes_are_missed(self):
+        cells = {m['cells'] for m in self.misses('owl-c10-s4010')}
+        self.assertLessEqual({(9, 7, 11, 9), (15, 7, 16, 9)}, cells)
+
+    def test_fawn_2008_passes(self):
+        self.assertEqual(self.misses('fawn-c8-s2008'), [])

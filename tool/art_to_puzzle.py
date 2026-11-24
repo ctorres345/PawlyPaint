@@ -50,6 +50,7 @@ makes --check try every picture at all four grids (style spikes).
 Tests: python3 -m unittest tool/test_art_to_puzzle.py
 """
 import argparse
+import bisect
 import math
 import os
 import sys
@@ -58,7 +59,7 @@ from collections import Counter
 from functools import lru_cache
 from typing import NamedTuple
 
-from PIL import Image
+from PIL import Image, ImageFilter
 
 # Two colour distances on purpose: edge finding wants a cheap test of "did
 # the colour change at all", palette merging wants how alike two colours look.
@@ -92,6 +93,21 @@ SEPARATE_MAX_SHIFT = 2.0
 SEPARATE_MAX_MOVES = 3
 SEPARATE_STEP_LAB = 0.5
 SEPARATE_MAX_WALK = 3
+ON_LATTICE_TOLERANCE = 0.15
+FEATURE_AREA_CELLS = (0.3, 7.0)
+FEATURE_DE = 20.0
+FEATURE_ENCLOSED = 0.8
+FEATURE_CLASSES = 24
+FEATURE_CLASS_DE = 6.0
+FEATURE_REACH_CELLS = 0.5
+FEATURE_AREA_RATIO = (0.5, 2.0)
+FEATURE_BG_DE = 5.0
+FEATURE_SYMMETRY = 0.8
+FEATURE_SHAPE_CELLS = 2.5
+FEATURE_PAIR_DE = 10.0
+FEATURE_PAIR_AREA = 2.0
+FEATURE_PAIR_CELLS = 3.0
+FEATURE_PAIR_SHAPE = 0.5
 
 
 def edge_profiles(img):
@@ -727,6 +743,7 @@ class Analysis(NamedTuple):
     period: float  # block size in source pixels
     clean: bool  # False: no clean grid, sampled evenly
     placement: str = ''
+    lines: tuple = None  # lattice_analysis: block lines (xs, ys) in source pixels
 
     @property
     def frame(self):
@@ -1006,6 +1023,324 @@ def build(entries, out_root=PICTURES):
         print(f"wrote {e['course']}/{e['slug']}.png {n}x{n}, {info['colors']} colours")
     return failures
 
+
+# tool/pixel_gen.py draws each picture on its puzzle grid (8 or 16 px a cell)
+# and runs these; --check and --build never do, so the Classics can't change.
+
+
+def on_lattice_share(img, grid):
+    """The share of colour runs, across and down, whose length is a whole
+    number of cells (within ON_LATTICE_TOLERANCE of a cell). A cell is the
+    picture's width over `grid`. A source drawn on its grid scores high; one
+    whose model drew its own, smaller or uneven blocks scores low. A run is
+    counted when a colour change (EDGE) ends it, so plain rows don't count."""
+    img = img.convert('RGB')
+    w, h = img.size
+    cell = w / grid
+    data = img.tobytes()
+    on = total = 0
+
+    def changed(i, j):
+        return abs(data[i] - data[j]) + abs(data[i + 1] - data[j + 1]) + abs(data[i + 2] - data[j + 2]) > EDGE
+
+    for a, b, step_a, step_b in ((h, w, w * 3, 3), (w, h, 3, w * 3)):
+        for line in range(a):
+            base, run = line * step_a, 1
+            for k in range(1, b):
+                i = base + k * step_b
+                if changed(i, i - step_b):
+                    cells = max(1, round(run / cell))
+                    on += abs(run - cells * cell) <= ON_LATTICE_TOLERANCE * cell
+                    total += 1
+                    run = 1
+                else:
+                    run += 1
+    return on / total if total else 0.0
+
+
+def lattice_analysis(img, grid):
+    """Reads a source drawn on its grid with the plain fixed lattice: grid x
+    grid blocks of the picture's width over grid, offset by the phase where
+    its colour changes line up. No block search, no snapping. `lines` are
+    the block lines in source pixels, for feature_check."""
+    img = img.convert('RGB')
+    period = img.size[0] / grid
+    cols, rows = edge_profiles(img)
+    phases = []
+    for profile in (cols, rows):
+        edges = [(x, v) for x, v in enumerate(profile) if v]
+        phase = _coherence(edges, sum(profile), period)[1]
+        phases.append(phase - period if phase > period / 2 else phase)
+    native = native_grid(img, period, *phases)
+    lines = tuple([round(p + i * period, 3) + 0.0 for i in range(len(axis) + 1)] for p, axis in zip(phases, (native[0], native)))
+    return Analysis(reduce_palette(native, merge_below=SHADE_MERGE), period, True, lines=lines)
+
+
+def _components(w, h, data):
+    """(value, [index]) of each 4-connected run of equal values in a w x h
+    row-major sequence."""
+    seen = bytearray(w * h)
+    out = []
+    for start in range(w * h):
+        if seen[start]:
+            continue
+        value, todo, members = data[start], [start], []
+        seen[start] = 1
+        while todo:
+            p = todo.pop()
+            members.append(p)
+            x = p % w
+            for q in (p - 1 if x else -1, p + 1 if x < w - 1 else -1, p - w, p + w):
+                if 0 <= q < w * h and not seen[q] and data[q] == value:
+                    seen[q] = 1
+                    todo.append(q)
+        out.append((value, members))
+    return out
+
+
+def _source_classes(img):
+    """The source as colour classes: a median-cut palette of
+    FEATURE_CLASSES colours, entries under FEATURE_CLASS_DE apart joined,
+    then a 3 x 3 mode filter that drops the soft 1 px seams the model draws
+    between two colours. Returns (class per pixel, colour per class)."""
+    q = img.quantize(FEATURE_CLASSES, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    pal = q.getpalette()
+    colours = [tuple(pal[i * 3:i * 3 + 3]) for i in range(len(pal) // 3)]
+    used = sorted(i for _, i in q.getcolors())
+    joined = {}
+    for i in used:
+        joined[i] = next((joined[j] for j in used if j < i and _de_gap(colours[i], colours[j]) < FEATURE_CLASS_DE), i)
+    q = Image.frombytes('L', q.size, bytes(joined.get(v, v) for v in q.tobytes()))
+    return q.filter(ImageFilter.ModeFilter(3)).tobytes(), colours
+
+
+def _cell_at(lines, v):
+    """Pixel position v on one axis as a fractional cell index."""
+    i = min(max(bisect.bisect_right(lines, v) - 1, 0), len(lines) - 2)
+    return i + (v - lines[i]) / (lines[i + 1] - lines[i])
+
+
+class Feature(NamedTuple):
+    """A small source region (an eye, a nose, a spot) in cell units."""
+    colour: tuple
+    around: tuple
+    area_cells: float
+    box: tuple  # (x0, y0, x1, y1) fractional cells, x1/y1 exclusive
+    mask: frozenset  # its source pixels, as (x, y)
+
+
+def features(img, lines, classes=None):
+    """Every small source region: a colour class region of FEATURE_AREA_CELLS
+    cells whose colour is at least FEATURE_DE (CIEDE2000) from its surround,
+    the class bordering it most. `lines` are the cell lines (xs, ys) in source
+    pixels; `classes` is _source_classes(img), when the caller has it."""
+    img = img.convert('RGB')
+    w, h = img.size
+    xs, ys = lines
+    cell = _cell_px(lines)
+    data, colours = classes or _source_classes(img)
+    low, high = FEATURE_AREA_CELLS
+    out = []
+    for value, members in _components(w, h, data):
+        area = len(members) / cell ** 2
+        if not low <= area <= high:
+            continue
+        inside = set(members)
+        ring = Counter()
+        for p in members:
+            x = p % w
+            for q in (p - 1 if x else -1, p + 1 if x < w - 1 else -1, p - w, p + w):
+                if 0 <= q < w * h and q not in inside:
+                    ring[data[q]] += 1
+        if not ring:
+            continue
+        around = colours[ring.most_common(1)[0][0]]
+        bounded = sum(c for k, c in ring.items() if _de_gap(colours[k], colours[value]) >= FEATURE_DE)
+        if _de_gap(colours[value], around) < FEATURE_DE or bounded < FEATURE_ENCLOSED * sum(ring.values()):
+            continue
+        px = [p % w for p in members]
+        py = [p // w for p in members]
+        if _cut_by_frame(px, py, w, h):
+            continue
+        box = (_cell_at(xs, min(px)), _cell_at(ys, min(py)), _cell_at(xs, max(px) + 1), _cell_at(ys, max(py) + 1))
+        out.append(Feature(colours[value], around, area, box, frozenset((p % w, p // w) for p in members)))
+    return out
+
+
+def _cut_by_frame(px, py, w, h):
+    """True for a region touching the picture's edge: its shape is unknown."""
+    return min(px) == 0 or min(py) == 0 or max(px) == w - 1 or max(py) == h - 1
+
+
+def _cell_px(lines):
+    xs, ys = lines
+    return ((xs[-1] - xs[0]) / (len(xs) - 1) + (ys[-1] - ys[0]) / (len(ys) - 1)) / 2
+
+
+def _mirror_overlap(points):
+    """How much a set of (x, y) points overlaps its own left-right mirror
+    image (intersection over union, 1.0: symmetric)."""
+    if not points:
+        return 0.0
+    xs = [x for x, _ in points]
+    axis = min(xs) + max(xs)
+    mirrored = {(axis - x, y) for x, y in points}
+    return len(mirrored & points) / len(mirrored | points)
+
+
+def _shape(cells):
+    """A cell set moved to the origin, and its left-right mirror image."""
+    if not cells:
+        return frozenset(), frozenset()
+    x0, y0 = min(x for x, _ in cells), min(y for _, y in cells)
+    x1 = max(x for x, _ in cells)
+    return (frozenset((x - x0, y - y0) for x, y in cells), frozenset((x1 - x, y - y0) for x, y in cells))
+
+
+def _shape_text(cells):
+    xs, ys = [x for x, _ in cells], [y for _, y in cells]
+    return f'{len(cells)} cells in {max(xs) - min(xs) + 1}x{max(ys) - min(ys) + 1}' if cells else 'none'
+
+
+def _hex(rgb):
+    return '#%02x%02x%02x' % tuple(rgb)
+
+
+def _ring_colour(img):
+    """The commonest colour of the picture's outer ring of pixels."""
+    w, h = img.size
+    px = img.load()
+    edges = [[px[x, 0] for x in range(w)]] + [[px[0, y], px[w - 1, y]] for y in range(1, h - 1)]
+    return _ring_mode(edges + [[px[x, h - 1] for x in range(w)]])[0]
+
+
+def feature_check(src, puzzle, lines):
+    """The source features (features) that the converted `puzzle` lost, as
+    dicts: 'cells' (x0, y0, x1, y1, inclusive), 'colour' and 'around'
+    (#rrggbb), 'area' (cells), 'subject' (inside the puzzle's subject box; a
+    scene's subject is the whole grid) and 'why'. `src` is the source image,
+    `lines` its cell lines (xs, ys) in source pixels: the block lines of the
+    read the puzzle was converted from.
+
+    A feature's cells are the puzzle cells within FEATURE_REACH_CELLS cells of it
+    whose colour is on its side (closer to its colour than to its
+    surround's), less those the source fills mostly with other shapes on
+    that side (an outline next to an eye is not the eye). It is missed when:
+    - its colour and its surround's map to the same puzzle colour (merged);
+    - it takes the background colour of a subject on a plain background,
+      though the source drew it at least FEATURE_BG_DE from that background;
+    - it has no cells: gone, or moved by more than FEATURE_REACH_CELLS;
+    - its cells cover under half or over twice its area (at least one cell);
+    - the source draws it mirror-symmetric (FEATURE_SYMMETRY) and its cells
+      are not;
+    - it is one of a pair (two eyes, two cheeks: like colour, size and
+      shape, side by side) and the two get different cell shapes, mirrored
+      or not.
+    """
+    img = src.convert('RGB')
+    final = puzzle.convert('RGB')
+    n = final.width
+    cell = final.load()
+    grid = [[cell[x, y] for x in range(n)] for y in range(n)]
+    palette = {c for row in grid for c in row}
+    bg = border_colour(grid)
+    box = subject_box(grid, bg) if bg is not None else None
+    subject = box or (0, 0, n, n)
+    source_bg = _ring_colour(img) if bg is not None else None
+    w, h = img.size
+    classes = _source_classes(img)
+    data, colours = classes
+    xs, ys = lines
+
+    def pixels(x, y):
+        x0, x1 = max(round(xs[x]), 0), min(round(xs[x + 1]), w)
+        y0, y1 = max(round(ys[y]), 0), min(round(ys[y + 1]), h)
+        return [(px, py) for py in range(y0, y1) for px in range(x0, x1)]
+
+    def nearest(colour):
+        return min(palette, key=lambda c: _de_gap(c, colour))
+
+    found, out = [], []
+    for f in features(img, lines, classes):
+        x0, y0, x1, y1 = f.box
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        if not (0 <= cx < n and 0 <= cy < n):
+            continue
+        side = {c for c in palette if _de_gap(c, f.colour) < _de_gap(c, f.around)}
+        side_class = {i for i, c in enumerate(colours) if _de_gap(c, f.colour) < _de_gap(c, f.around)}
+        r = FEATURE_REACH_CELLS
+        mine = set()
+        for y in range(max(math.floor(y0 - r), 0), min(math.ceil(y1 + r), n)):
+            for x in range(max(math.floor(x0 - r), 0), min(math.ceil(x1 + r), n)):
+                if grid[y][x] not in side or x + 1 <= x0 - r or x >= x1 + r or y + 1 <= y0 - r or y >= y1 + r:
+                    continue
+                inside = pixels(x, y)
+                others = sum(p not in f.mask and data[p[1] * w + p[0]] in side_class for p in inside)
+                if inside and others < 0.5 * len(inside):
+                    mine.add((x, y))
+        why = None
+        if nearest(f.colour) == nearest(f.around):
+            why = f'merged into its surround {_hex(nearest(f.around))}'
+        elif bg is not None and nearest(f.colour) == bg and _de_gap(f.colour, source_bg) >= FEATURE_BG_DE:
+            why = f'drawn in the background colour {_hex(bg)}'
+        elif not mine:
+            why = 'gone (no cell of its colour within half a cell)'
+        elif not FEATURE_AREA_RATIO[0] * max(f.area_cells, 1.0) <= len(mine) <= FEATURE_AREA_RATIO[1] * max(f.area_cells, 1.0):
+            why = f'{len(mine)} cells for {f.area_cells:.1f}'
+        elif (f.area_cells >= FEATURE_SHAPE_CELLS and _mirror_overlap(f.mask) >= FEATURE_SYMMETRY
+              and _mirror_overlap(mine) < FEATURE_SYMMETRY):
+            why = f'lopsided: symmetric in the source, {_shape_text(mine)} here'
+        inside = subject[0] <= cx < subject[2] and subject[1] <= cy < subject[3]
+        found.append((f, mine, inside))
+        if why:
+            out.append(_missed(f, inside, why))
+    missed = {o['cells'] for o in out}
+    for (a, cells_a), (b, cells_b) in _pairs([(f, mine) for f, mine, inside in found if inside and f.area_cells <= FEATURE_PAIR_CELLS], n / 2):
+        if cells_a and cells_b and _shape(cells_a)[0] not in _shape(cells_b):
+            for f, cells, other in ((a, cells_a, cells_b), (b, cells_b, cells_a)):
+                entry = _missed(f, True, f'pair drawn unevenly: {_shape_text(cells)} here, {_shape_text(other)} on '
+                                         'the other side')
+                if entry['cells'] not in missed:
+                    missed.add(entry['cells'])
+                    out.append(entry)
+    return out
+
+
+def _missed(f, inside, why):
+    x0, y0, x1, y1 = f.box
+    return {'cells': (math.floor(x0), math.floor(y0), math.ceil(x1) - 1, math.ceil(y1) - 1),
+            'colour': _hex(f.colour), 'around': _hex(f.around), 'area': round(f.area_cells, 2),
+            'subject': inside, 'why': why}
+
+
+def _pairs(found, reach):
+    """Mirror pairs among (feature, cells): like colour (FEATURE_PAIR_DE),
+    area within FEATURE_PAIR_AREA of each other, a like source shape
+    (FEATURE_PAIR_SHAPE, mirrored or not), centres within a cell of the same
+    height and one cell to `reach` cells apart across. Each feature joins its nearest
+    such partner when that one picks it back."""
+    def centre(f):
+        return (f.box[0] + f.box[2]) / 2, (f.box[1] + f.box[3]) / 2
+
+    shapes = [_shape(f.mask) for f, _ in found]
+
+    def alike(i, j):
+        shape_a = shapes[i][0]
+        return max(len(shape_a & s) / len(shape_a | s) for s in shapes[j]) >= FEATURE_PAIR_SHAPE
+
+    def partner(i):
+        a = found[i][0]
+        (ax, ay), best = centre(a), None
+        for j, (b, _) in enumerate(found):
+            bx, by = centre(b)
+            if (j != i and _de_gap(a.colour, b.colour) < FEATURE_PAIR_DE and abs(ay - by) <= 1
+                    and 1 <= abs(ax - bx) <= reach and max(a.area_cells, b.area_cells) <= FEATURE_PAIR_AREA * min(a.area_cells, b.area_cells)
+                    and (best is None or abs(ax - bx) < best[0]) and alike(i, j)):
+                best = (abs(ax - bx), j)
+        return best and best[1]
+
+    chosen = [partner(i) for i in range(len(found))]
+    return [(found[i], found[j]) for i, j in enumerate(chosen) if j is not None and j > i and chosen[j] == i]
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
