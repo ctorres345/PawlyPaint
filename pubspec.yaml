@@ -19,8 +19,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  audioplayers_platform_interface: ^7.2.0
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  shared_preferences_platform_interface: ^2.4.2
 
 flutter:
   uses-material-design: true
