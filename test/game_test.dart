@@ -48,12 +48,12 @@ const _classicsSignaturesOn946505c = {
   'classics-fireside': 765162672,
 };
 
-/// The PNGs `tool/art_to_puzzle.py --build` wrote for PAP-92. Rebuild and
+/// The PNGs `tool/art_to_puzzle.py --build` wrote for PAP-90. Rebuild and
 /// update these together; `--check` fails a PNG that no longer matches the build.
-const _classicsSignaturesPap92 = {
+const _classicsSignaturesPap90 = {
   'classics-heart': 1392959249,
   'classics-paw': 774850090,
-  'classics-sun': 414147457,
+  'classics-sun': 2265558262,
   'classics-mushroom': 1747816330,
   'classics-cherries': 1145861148,
   'classics-cat': 1261436448,
@@ -67,7 +67,7 @@ const _classicsSignaturesPap92 = {
   'classics-tulips': 4090360064,
   'classics-moonlight': 2715680916,
   'classics-heart-balloons': 3953270025,
-  'classics-picnic': 1476646902,
+  'classics-picnic': 825170365,
   'classics-yarn-kitten': 2333614417,
   'classics-carousel': 743932023,
   'classics-fireside': 3744921368,
@@ -104,8 +104,8 @@ const _shippedClassicsTitles = {
   },
 };
 
-/// The Animal Friends PNGs as built for PAP-79 (`tool/art_to_puzzle.py --build`).
-const _animalsSignaturesPap79 = {
+/// The Animal Friends PNGs as built for PAP-90 (`tool/art_to_puzzle.py --build`).
+const _animalsSignaturesPap90 = {
   'animals-fish': 4243917694,
   'animals-bunny': 3653349124,
   'animals-chick': 1178981897,
@@ -117,11 +117,11 @@ const _animalsSignaturesPap79 = {
   'animals-frog': 3779980455,
   'animals-whale': 4180409177,
   'animals-panda': 2623949840,
-  'animals-turtle': 1084777919,
+  'animals-turtle': 357202606,
   'animals-hedgehog': 1587464250,
   'animals-parrot': 212208763,
   'animals-bee': 637629399,
-  'animals-hamster': 2159190793,
+  'animals-hamster': 2383744505,
   'animals-koala': 193548523,
   'animals-otter': 1879983490,
   'animals-lion': 48514716,
@@ -367,14 +367,14 @@ void main() {
       }
     });
 
-    test('the Classics PNGs are the converter build pinned for PAP-92', () {
+    test('the Classics PNGs are the converter build pinned for PAP-90', () {
       final classics = buildCourses().firstWhere((c) => c.id == 'classics');
-      expect({for (final p in classics.puzzles) p.id: p.signature}, _classicsSignaturesPap92);
+      expect({for (final p in classics.puzzles) p.id: p.signature}, _classicsSignaturesPap90);
     });
 
-    test('the Animal Friends PNGs are the converter build pinned for PAP-79', () {
+    test('the Animal Friends PNGs are the converter build pinned for PAP-90', () {
       final animals = buildCourses().firstWhere((c) => c.id == 'animals');
-      expect({for (final p in animals.puzzles) p.id: p.signature}, _animalsSignaturesPap79);
+      expect({for (final p in animals.puzzles) p.id: p.signature}, _animalsSignaturesPap90);
     });
 
     test('saved games and records survive a JSON round trip', () {

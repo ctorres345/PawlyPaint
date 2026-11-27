@@ -42,10 +42,10 @@ entry has `course`, `slug`, `grid` and optionally `exact = true` or `fit`, and
 prints each source's block count (whole frame and subject square), converts
 each at its own grid and exits non-zero if any fails (missing, manifest `size`
 doesn't match the source PNG, no clean pixel grid, an `exact` source not drawn
-at grid blocks across, too few or too many colours, one colour over 95% of
-cells, two colours under the level's gap, a subject that lost most of its cells
-against the native read, or a built PNG in assets/pictures that is missing or
-out of date).
+at grid blocks across, too few or too many colours, a colour under the level's
+minimum cell count, one colour over 95% of cells, two colours under the level's
+gap, a subject that lost most of its cells against the native read, or a built
+PNG in assets/pictures that is missing or out of date).
 --build writes each to assets/pictures/<course>/<slug>.png. --all-grids
 makes --check try every picture at all four grids (style spikes).
 Tests: python3 -m unittest tool/test_art_to_puzzle.py
@@ -70,6 +70,10 @@ INSET = 0.25  # part of each block edge skipped when reading its colour
 # Game grid size per level -> the level's colour limit (design/brief.md).
 COLOR_LIMIT = {16: 6, 24: 8, 32: 12, 40: 16}
 LEVEL_GAP = {16: 18.0, 24: 16.0, 32: 14.0, 40: 12.0}
+# Minimum cells per colour per level. Stays at 2 on every grid: paired
+# 1-cell features (eye shines, cheeks, a 2-cell nose) need 2 cells even on
+# 32x32 and 40x40, while a 1-cell colour is a stray drill.
+MIN_CELLS = {16: 2, 24: 2, 32: 2, 40: 2}
 MIN_COLOURS = 3
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MANIFEST = os.path.join(REPO, 'design', 'assets.toml')
@@ -614,21 +618,22 @@ def separate(mover, anchor, gap, de_gap, origin=None):
     return None
 
 
-def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0, region_safe=False):
+def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0, region_safe=False, min_cells=0):
     """Merges the closest pair of colours until the palette fits.
 
     Merging stops early at `limit` colours, and always goes on while the
     closest pair is nearer than `merge_below`, which folds the many shades a
-    screen capture gives one flat colour back into one, while any pair is under
-    `gap` apart in plain RGB, or while any pair is under `de_gap` apart in
-    CIEDE2000 (the game's drill colour gap), so no two drill colours look
-    alike. Small but distinct colours (an eye, a shine) survive, unlike with a
-    median cut. A merged group keeps the colour of its biggest single member
-    rather than the mean, so merging a pale subject with a pale background
-    doesn't drag both toward a colour neither had. The biggest member, not the
-    bigger group: a group of shades would otherwise pass a minor shade's colour
-    over the picture's most common one (the Classics butterfly's pink flowers
-    turned coral).
+    screen capture gives one flat colour back into one, while any colour covers
+    fewer than `min_cells` cells (merged into its nearest colour in CIEDE2000),
+    while any pair is under `gap` apart in plain RGB, or while any pair is under
+    `de_gap` apart in CIEDE2000 (the game's drill colour gap), so no two drill
+    colours look alike. Small but distinct colours (an eye, a shine) survive,
+    unlike with a median cut. A merged group keeps the colour of its biggest
+    single member rather than the mean, so merging a pale subject with a pale
+    background doesn't drag both toward a colour neither had. The biggest
+    member, not the bigger group: a group of shades would otherwise pass a
+    minor shade's colour over the picture's most common one (the Classics
+    butterfly's pink flowers turned coral).
 
     With `region_safe` (PAP-95, sources drawn at their grid), two colours
     under the gap whose largest 4-connected regions each cover at least
@@ -705,12 +710,20 @@ def reduce_palette(grid, limit=None, merge_below=0, gap=0.0, de_gap=0.0, region_
         elif palette_fits:
             d, a, b = closest(_rgb_gap)
             if d >= gap:
-                if not de_gap:
-                    break
-                d, a, b = closest(_de_gap)
-                if d >= de_gap:
-                    break
-            if region_safe and pushed_apart(a, b):
+                if de_gap:
+                    d, a, b = closest(_de_gap)
+                if not de_gap or d >= de_gap:
+                    small = [k for k, n in group_cells.items() if n < min_cells] if min_cells else []
+                    if not small:
+                        break
+                    b = min(small, key=lambda k: (group_cells[k], biggest_member[k][1]))
+                    a = min(
+                        (k for k in group_cells if k != b),
+                        key=lambda k: (_de_gap(biggest_member[k][1], biggest_member[b][1]), -group_cells[k], biggest_member[k][1]),
+                    )
+                elif region_safe and pushed_apart(a, b):
+                    continue
+            elif region_safe and pushed_apart(a, b):
                 continue
         group_cells[a] += group_cells.pop(b)
         kept_b = biggest_member[b] > biggest_member[a]
@@ -789,7 +802,7 @@ def subject_share(grid, bg=None):
     return sum(c != bg for row in grid for c in row) / (len(grid) * len(grid[0]))
 
 
-def convert(analysis, n, colors, de_gap=0.0, region_safe=False):
+def convert(analysis, n, colors, de_gap=0.0, region_safe=False, min_cells=None):
     """The n x n indexed picture and its info. info['subject'] is the
     subject's share of the cropped native read (None for a full scene), which
     verify compares with the result.
@@ -799,15 +812,21 @@ def convert(analysis, n, colors, de_gap=0.0, region_safe=False):
     leftover capture shades. A source read at exactly n x n blocks converts
     block for block: crop never goes under n blocks, so it keeps the grid
     whole, and shrink gives each cell its one block. Only the palette cut
-    changes it. `region_safe` goes to reduce_palette."""
+    changes it. `region_safe` and `min_cells` (defaulting to MIN_CELLS[n]) go
+    to reduce_palette."""
     native, period, clean = analysis.native, analysis.period, analysis.clean
     bg = border_colour(native)
+    if min_cells is None:
+        min_cells = MIN_CELLS.get(n, 0)
 
-    def fit(grid):
-        return reduce_palette(grid, limit=colors, gap=MIN_RGB_GAP, de_gap=de_gap, region_safe=region_safe)
+    def fit(grid, floor=0):
+        return reduce_palette(
+            grid, limit=colors, gap=MIN_RGB_GAP, de_gap=de_gap,
+            region_safe=region_safe, min_cells=floor,
+        )
 
     framed = crop(native, n, bg)
-    out, used = to_indexed(fit(shrink(fit(framed), n)))
+    out, used = to_indexed(fit(shrink(fit(framed), n), min_cells))
     info = {
         'block': round(period, 2),
         'native': (len(native[0]), len(native)),
@@ -895,6 +914,9 @@ def verify(img, n, subject=None):
     used = [tuple(pal[i * 3:i * 3 + 3]) for _, i in counts]
     if not MIN_COLOURS <= len(used) <= COLOR_LIMIT[n]:
         problems.append(f'{len(used)} colours, want {MIN_COLOURS} to {COLOR_LIMIT[n]}')
+    low = min(c for c, _ in counts)
+    if low < MIN_CELLS[n]:
+        problems.append(f'smallest colour has {low} {"cell" if low == 1 else "cells"}, want at least {MIN_CELLS[n]}')
     share = max(c for c, _ in counts) / (img.size[0] * img.size[1])
     if share > MAX_SHARE:
         problems.append(f'top colour covers {share:.0%}')
