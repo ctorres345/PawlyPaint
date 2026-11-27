@@ -112,6 +112,14 @@ jobs:
       - name: Fetch packages
         run: flutter pub get
 
+      # The check command runs tool/*.py unit tests, which need Python 3.11+ and Pillow.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+
+      - name: Install Python test dependencies
+        run: python3 -m pip install --no-cache-dir 'pillow==12.3.0'
+
       # A skip attestation waives the review, never the tests: the check always runs.
       - name: Run the base branch's check command
         env:

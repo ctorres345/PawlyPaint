@@ -303,6 +303,10 @@ Run the verify again after switching the main checkout to another branch: the li
 
 Don't set `core.hooksPath`: it would switch off graphify's hooks. Bypass once with `git push --no-verify`.
 
+### Local Python for the review gate
+
+The `[check]` command in `.nousfx/project.toml` runs `tool/test_art_to_puzzle.py` and `tool/test_pixel_gen.py`, which need Python 3.11+ with Pillow. It uses `python3` when it can `import tomllib, PIL`, and otherwise falls back to the Via venv (`~/.local/share/nousfx/via/venv/bin/python3`). If `run-check` fails locally because `PIL`, Python 3.11+, or that interpreter is missing, put a Python 3.11+ with Pillow on `PATH` or restore the Via venv.
+
 ## Require the CI review gate on `main` (once, Cesar only)
 
 The `review-gate / check` job (`.github/workflows/review-gate.yml`) runs on every PR. It only blocks merges once `main` requires it. `main` already has a ruleset named `main` (no deletion, no force-push, PRs required). Turning this on is Cesar's call; an agent gives him these steps and waits.
