@@ -40,11 +40,12 @@ The asset manifest (design/assets.toml) lists every picture source: a puzzle
 entry has `course`, `slug`, `grid` and optionally `exact = true` or `fit`, and
 `prompt`, `seed` and `scale` from pixel_gen.py. --check
 prints each source's block count (whole frame and subject square), converts
-each at its own grid and exits non-zero if any fails (missing, no clean pixel
-grid, an `exact` source not drawn at grid blocks across, too few or too
-many colours, one colour over 95% of cells, two colours under the level's
-gap, a subject that lost most of its cells against the native read, or a
-built PNG in assets/pictures that is missing or out of date).
+each at its own grid and exits non-zero if any fails (missing, manifest `size`
+doesn't match the source PNG, no clean pixel grid, an `exact` source not drawn
+at grid blocks across, too few or too many colours, one colour over 95% of
+cells, two colours under the level's gap, a subject that lost most of its cells
+against the native read, or a built PNG in assets/pictures that is missing or
+out of date).
 --build writes each to assets/pictures/<course>/<slug>.png. --all-grids
 makes --check try every picture at all four grids (style spikes).
 Tests: python3 -m unittest tool/test_art_to_puzzle.py
@@ -818,6 +819,16 @@ def convert(analysis, n, colors, de_gap=0.0, region_safe=False):
     return out, info
 
 
+def _parse_size(value):
+    """'1024x1024' -> (1024, 1024), or None if not two positive integers."""
+    if not isinstance(value, str):
+        return None
+    parts = value.split('x')
+    if len(parts) != 2 or not all(p.isascii() and p.isdigit() and int(p) > 0 for p in parts):
+        return None
+    return int(parts[0]), int(parts[1])
+
+
 def puzzle_entries(manifest=MANIFEST):
     """Every puzzle picture the asset manifest lists: course, slug, grid and
     the source path. Raises ValueError on a bad grid or a repeated slug."""
@@ -857,9 +868,15 @@ def puzzle_entries(manifest=MANIFEST):
             raise ValueError(f'{name}: scale {scale!r} is not {CELL_PX_RANGE[0]} to {CELL_PX_RANGE[1]} px a cell')
         if (seed is None) != (scale is None):
             raise ValueError(f'{name}: record seed and scale together')
+        raw_size = a.get('size')
+        size = None
+        if raw_size is not None:
+            size = _parse_size(raw_size)
+            if size is None:
+                raise ValueError(f'{name}: size {raw_size!r} is not WxH')
         seen.add(key)
         out.append({'course': a['course'], 'slug': a['slug'], 'grid': a['grid'],
-                    'source': os.path.join(REPO, a['source']), 'exact': exact,
+                    'source': os.path.join(REPO, a['source']), 'size': size, 'exact': exact,
                     'fit': fit, 'prompt': prompt, 'seed': seed, 'scale': scale})
     return out
 
@@ -936,6 +953,22 @@ def analyse_entry(entry):
     return lattice_analysis(img, n)
 
 
+def size_problem(entry, actual):
+    """Why the manifest's `size` disagrees with the source PNG's pixel size,
+    or None when `size` is absent or matches."""
+    wanted = entry.get('size')
+    if wanted is None:
+        return None
+    if isinstance(wanted, str):
+        parsed = _parse_size(wanted)
+        if parsed is None:
+            return f'size {wanted!r} in the manifest is not WxH'
+        wanted = parsed
+    if wanted == actual:
+        return None
+    return f'size {wanted[0]}x{wanted[1]} in the manifest, source is {actual[0]}x{actual[1]}'
+
+
 def convert_entry(entry, grids=None):
     """Converts one manifest picture at its grid (or at each of `grids`).
     Returns (problems, {grid: (image, info)}, analysis or None); each problem
@@ -945,22 +978,25 @@ def convert_entry(entry, grids=None):
         shown = os.path.relpath(path, REPO) if path.startswith(REPO + os.sep) else path
         return [f'missing source {shown}'], {}, None
     try:
+        with Image.open(path) as img:
+            actual_size = img.size
         analysis = analyse_entry(entry)
     except FitError as e:
-        return [f'{e}: regenerate'], {}, None
+        return list(filter(None, [size_problem(entry, actual_size), f'{e}: regenerate'])), {}, None
     except (OSError, ValueError) as e:
         return [f'unreadable: {e}'], {}, None
+    size_err = size_problem(entry, actual_size)
     if not analysis.clean:
         regenerate = f', needs {entry["grid"]}: regenerate' if entry.get('exact') else ''
-        return [f'no clean grid (sampled evenly, check it by eye){regenerate}'], {}, analysis
+        return list(filter(None, [size_err, f'no clean grid (sampled evenly, check it by eye){regenerate}'])), {}, analysis
     placed = analysis
     if entry.get('fit'):
         try:
             placed = fit_analysis(analysis, entry['grid'], entry['fit'])
         except FitError as e:
-            return [f'{e}: regenerate'], {}, analysis
+            return list(filter(None, [size_err, f'{e}: regenerate'])), {}, analysis
         analysis = analysis._replace(placement=placed.placement)
-    problems, outputs = list(filter(None, [exact_problem(entry, analysis)])), {}
+    problems, outputs = list(filter(None, [size_err, exact_problem(entry, analysis)])), {}
     for n in grids or [entry['grid']]:
         outputs[n] = convert(placed, n, COLOR_LIMIT[n], LEVEL_GAP[n], drawn_at_grid(entry))
         out, info = outputs[n]
