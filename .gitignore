@@ -38,7 +38,6 @@ graphify-out/
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/review-loop/
-.claude/**/__pycache__/
 .claude/**/*.bak*
 .claude/**/.env*
 .claude/**/settings.local.json
@@ -46,6 +45,10 @@ graphify-out/
 .claude/worktrees/
 CLAUDE.local.md
 HANDOFF.md
+
+# Python
+__pycache__/
+*.pyc
 
 # Signing keys: never commit, anywhere in the repo
 *.keystore

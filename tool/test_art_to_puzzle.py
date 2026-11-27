@@ -263,6 +263,21 @@ class Check(Fixtures):
         entries = [self.entry(good, slug='a'), self.entry(os.path.join(self.dir.name, 'x.png'), slug='b')]
         self.assertEqual(a2p.check(entries), 1)
 
+    def test_wrong_manifest_size_fails_with_real_size(self):
+        path = self.save('small.png', blocks([RED, GREEN, BLUE, WHITE], cells=16, block=8))
+        self.assertEqual(self.problems_of({**self.entry(path), 'size': (1024, 1024)}),
+                         ['size 1024x1024 in the manifest, source is 128x128'])
+
+    def test_matching_manifest_size_passes(self):
+        path = self.save('small.png', blocks([RED, GREEN, BLUE, WHITE], cells=16, block=8))
+        self.assertEqual(self.problems_of({**self.entry(path), 'size': (128, 128)}), [])
+
+    def test_missing_source_with_manifest_size_only_reports_missing(self):
+        missing = os.path.join(self.dir.name, 'nope.png')
+        problems = self.problems_of({**self.entry(missing), 'size': (1024, 1024)})
+        self.assertEqual(len(problems), 1)
+        self.assertIn('missing', problems[0])
+
 
 def layout(colours, cells, seed=1):
     """cells x cells rows of colours picked at random: what blocks() draws."""
@@ -459,6 +474,16 @@ class Manifest(unittest.TestCase):
         self.assertTrue(e['exact'])
         with self.assertRaises(ValueError):
             a2p.puzzle_entries(self.write(entry + 'exact = "yes"\n'))
+
+    def test_reads_size_and_rejects_bad_values(self):
+        entry = '[[asset]]\nname = "p"\nsource = "p.png"\ncourse = "c"\nslug = "s"\ngrid = 16\n'
+        (without,) = a2p.puzzle_entries(self.write(entry))
+        self.assertIsNone(without['size'])
+        (with_size,) = a2p.puzzle_entries(self.write(entry + 'size = "128x128"\n'))
+        self.assertEqual(with_size['size'], (128, 128))
+        for bad in ['size = "1024"\n', 'size = "0x128"\n', 'size = "-1x128"\n', 'size = "big"\n', 'size = 1024\n']:
+            with self.subTest(bad), self.assertRaises(ValueError):
+                a2p.puzzle_entries(self.write(entry + bad))
 
     def test_rejects_a_missing_source_or_a_bad_course(self):
         no_source = self.write('[[asset]]\nname = "p"\ncourse = "c"\nslug = "s"\ngrid = 16\n')
