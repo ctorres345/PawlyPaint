@@ -6,6 +6,9 @@ analyzer:
     - web/**
 include: package:flutter_lints/flutter.yaml
 
+formatter:
+  page_width: 120
+
 linter:
   rules:
     prefer_const_constructors: true
