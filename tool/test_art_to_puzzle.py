@@ -180,7 +180,7 @@ class SubjectLoss(unittest.TestCase):
 
     def test_passes_a_subject_that_kept_its_cells(self):
         rows = [[1 if 3 <= x < 13 and 3 <= y < 13 else 0 for x in range(16)] for y in range(16)]
-        rows[5][5] = 2
+        rows[5][5] = rows[5][6] = 2
         img = indexed(rows, [WHITE, RED, BLUE])
         self.assertEqual(a2p.verify(img, 16, subject=0.45), [])
 
@@ -367,14 +367,14 @@ class OneToOne(Fixtures):
 
     def test_a_sparse_source_with_a_one_block_border_converts_block_for_block(self):
         rows = paint(plain(16, 16, WHITE), 5, 4, 10, 11, RED)
-        rows[6][7] = GREEN
+        rows[6][7] = rows[6][8] = GREEN
         for i in range(16):
             rows[0][i] = rows[-1][i] = rows[i][0] = rows[i][-1] = BLUE
         self.assertEqual(self.converted(rows), rows)
 
     def test_a_small_subject_is_not_cropped_or_shrunk(self):
         rows = paint(plain(16, 16, WHITE), 5, 5, 11, 11, RED)
-        rows[7][7] = BLUE
+        rows[7][7] = rows[7][8] = BLUE
         self.assertEqual(self.converted(rows), rows)
 
     def test_too_many_colours_are_merged_down_to_the_level(self):
@@ -445,9 +445,47 @@ class Verify(unittest.TestCase):
         img = indexed([[(x + y) % 3 for x in range(24)] for y in range(24)], [RED, GREEN, BLUE])
         self.assertTrue(any('size' in p for p in a2p.verify(img, 16)))
 
+    def test_colour_under_minimum_cells(self):
+        rows = [[(x + y) % 2 for x in range(16)] for y in range(16)]
+        rows[0][0] = 2
+        img = indexed(rows, [RED, GREEN, BLUE])
+        self.assertTrue(any('smallest colour' in p for p in a2p.verify(img, 16)))
+
     def test_a_good_result_has_no_problems(self):
         img = indexed([[(x + y) % 3 for x in range(16)] for y in range(16)], [RED, GREEN, BLUE])
         self.assertEqual(a2p.verify(img, 16), [])
+
+
+class MinCells(Fixtures):
+    def test_merges_single_cell_colour_into_nearest_ciede2000(self):
+        orange = (230, 120, 40)
+        grid = [[RED if x < 6 else (GREEN if x < 11 else BLUE) for x in range(16)] for _ in range(16)]
+        grid[0][15] = orange
+        to_red = a2p.de2000(a2p.lab(orange), a2p.lab(RED))
+        self.assertLess(to_red, a2p.de2000(a2p.lab(orange), a2p.lab(GREEN)))
+        self.assertLess(to_red, a2p.de2000(a2p.lab(orange), a2p.lab(BLUE)))
+        out = a2p.reduce_palette(grid, limit=6, gap=a2p.MIN_RGB_GAP, de_gap=a2p.LEVEL_GAP[16], min_cells=2)
+        self.assertNotIn(orange, colours_of(out))
+        self.assertEqual(out[0][15], RED)
+
+    def test_keeps_colour_at_minimum_cells(self):
+        yellow = (240, 220, 40)
+        grid = [[RED if x < 8 else BLUE for x in range(16)] for _ in range(16)]
+        grid[0][0] = yellow
+        grid[0][1] = yellow
+        out = a2p.reduce_palette(grid, limit=6, gap=a2p.MIN_RGB_GAP, de_gap=a2p.LEVEL_GAP[16], min_cells=2)
+        self.assertIn(yellow, colours_of(out))
+
+    def test_merge_dropping_below_three_colours_fails_check_and_build(self):
+        grid = [[RED if x < 8 else BLUE for x in range(16)] for _ in range(16)]
+        grid[0][0] = GREEN
+        path = self.save('one_cell_third.png', draw(grid, block=8))
+        entry = self.entry(path)
+        problems = self.problems_of(entry)
+        self.assertTrue(any('colours' in p for p in problems), problems)
+        out_root = os.path.join(self.dir.name, 'out')
+        self.assertEqual(a2p.build([entry], out_root=out_root), 1)
+        self.assertFalse(os.path.exists(os.path.join(out_root, 'test', 'pic.png')))
 
 
 class Manifest(unittest.TestCase):
@@ -592,7 +630,7 @@ class FitMode(Fixtures):
     def test_a_fit_entry_converts_block_for_block(self):
         rows = paint(plain(22, 22, BLUE), 2, 2, 20, 21, WHITE)
         rows = paint(rows, 5, 6, 15, 14, RED)
-        rows[8][8] = GREEN
+        rows[8][8] = rows[8][9] = GREEN
         problems, outputs, _ = a2p.convert_entry(self.fitted_entry(rows, 'subject'))
         self.assertEqual(problems, [])
         out = pixels(outputs[24][0])
