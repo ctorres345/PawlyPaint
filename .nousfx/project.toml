@@ -1,4 +1,4 @@
 # Check command the review gate runs before it records a review (NousFX docs/review-gate.md).
 [check]
-command = "dart format --output=none --set-exit-if-changed lib test tool && flutter analyze && flutter test"
+command = "dart format --output=none --set-exit-if-changed lib test tool && flutter analyze && flutter test && (python3 -c 'import tomllib, PIL' 2>/dev/null && py=python3 || py=\"$HOME/.local/share/nousfx/via/venv/bin/python3\"; \"$py\" -B -m unittest tool/test_art_to_puzzle.py tool/test_pixel_gen.py)"
 timeout = 600
