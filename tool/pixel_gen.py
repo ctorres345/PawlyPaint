@@ -112,7 +112,7 @@ def workflow(prompt, size, seed):
                          'seed': seed, 'steps': STEPS, 'cfg': 1.0, 'sampler_name': SAMPLER,
                          'scheduler': SCHEDULER, 'denoise': 1.0}},
         '9': {'class_type': 'VAEDecode', 'inputs': {'samples': ['8', 0], 'vae': ['3', 0]}},
-        '10': {'class_type': 'SaveImage', 'inputs': {'images': ['9', 0], 'filename_prefix': 'pawlypaint'}},
+        '10': {'class_type': 'PreviewImage', 'inputs': {'images': ['9', 0]}},
     }
 
 
@@ -162,7 +162,7 @@ class Comfy:
                 pass
 
     def generate(self, wf):
-        """Runs one workflow; returns the PNG bytes of its SaveImage node. A
+        """Runs one workflow; returns the PNG bytes of its PreviewImage node. A
         poll that answers late is retried; past the job deadline the job is
         cancelled and JobTimeout raised."""
         pid = json.loads(self._call('/prompt', {'prompt': wf, 'client_id': self.client}))['prompt_id']

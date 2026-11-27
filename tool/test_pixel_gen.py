@@ -37,12 +37,14 @@ class StubComfy:
     """A ComfyUI stand-in: /system_stats, /prompt, /history/<id> (empty on the
     first poll) and /view. `picture(size, seed)` draws each result, or
     returns 'refuse' (a 400 from /prompt), 'empty' (a job with no image),
-    'garbage' (an image that does not decode), 'hang' (a job that never
-    finishes), 'slow' (the first history poll answers late, then the image
-    of picture(240, 0)) or 'die' (the server stops)."""
+    'garbage' (an image that does not decode), 'evicted' (404 from /view),
+    'hang' (a job that never finishes), 'slow' (the first history poll
+    answers late, then the image of picture(240, 0)) or 'die' (the server
+    stops)."""
 
-    def __init__(self, picture):
-        self.picture, self.jobs, self.polls, self.results, self.cancels = picture, {}, {}, {}, []
+    def __init__(self, picture, image_type='temp', subfolder=''):
+        self.picture, self.image_type, self.subfolder = picture, image_type, subfolder
+        self.jobs, self.polls, self.results, self.cancels, self.views = {}, {}, {}, [], []
         stub = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -66,11 +68,17 @@ class StubComfy:
                         time.sleep(0.3)
                     if stub.polls[pid] < 2 or stub.results[pid] == 'hang':
                         return self.reply(b'{}')
-                    image = {'filename': f'{pid}.png', 'subfolder': '', 'type': 'output'}
+                    image = {'filename': f'{pid}.png', 'subfolder': stub.subfolder, 'type': stub.image_type}
                     images = [] if stub.results[pid] == 'empty' else [image]
                     return self.reply(json.dumps({pid: {'outputs': {'10': {'images': images}}}}).encode())
                 if url.path == '/view':
-                    pid = urllib.parse.parse_qs(url.query)['filename'][0][:-4]
+                    qs = {k: v[0] for k, v in urllib.parse.parse_qs(url.query, keep_blank_values=True).items()}
+                    stub.views.append(qs)
+                    if qs.get('type') != stub.image_type or qs.get('subfolder') != stub.subfolder:
+                        return self.send_error(404)
+                    pid = qs['filename'][:-4]
+                    if stub.results[pid] == 'evicted':
+                        return self.send_error(404)
                     if stub.results[pid] == 'slow':
                         stub.results[pid] = stub.picture(240, 0)
                     if stub.results[pid] == 'garbage':
@@ -126,6 +134,10 @@ class Workflow(unittest.TestCase):
         self.assertEqual(by_class['CLIPTextEncode']['text'], 'Pixel Art, PixArFK, an owl')
         self.assertEqual(wf[lora_id(wf)]['inputs']['model'], ['1', 0], 'the LoRA takes the model')
         self.assertEqual(by_class['ModelSamplingAuraFlow']['model'], [lora_id(wf), 0], 'the sampler takes the LoRA')
+        self.assertNotIn('SaveImage', by_class, 'nothing should be written to ComfyUI output')
+        self.assertEqual(wf['10'], {'class_type': 'PreviewImage', 'inputs': {'images': ['9', 0]}})
+        self.assertEqual(wf['9']['class_type'], 'VAEDecode')
+        self.assertEqual(wf['9']['inputs']['samples'], ['8', 0])
 
     def test_the_prompt_starts_with_the_trigger_and_names_the_level_colours(self):
         prompt = pg.prompt_for('a round owl', 24)
@@ -293,6 +305,22 @@ class Search(unittest.TestCase):
         with self.assertRaises(SystemExit) as caught:
             pg.Comfy('http://pc.lan:88a8').check()
         self.assertEqual(str(caught.exception), 'ComfyUI not reachable at http://pc.lan:88a8')
+
+    def test_generate_fetches_filename_subfolder_and_type_from_history(self):
+        for image_type, subfolder in (('temp', ''), ('temp', 'sub'), ('preview', 'nested')):
+            stub = StubComfy(lambda size, seed: owl(24, size), image_type=image_type, subfolder=subfolder)
+            self.addCleanup(stub.close)
+            png = pg.Comfy(stub.host, poll=0.01).generate(pg.workflow('p', 192, 1))
+            with Image.open(io.BytesIO(png)) as img:
+                self.assertEqual(img.size, (192, 192))
+            self.assertEqual(stub.views, [{'filename': 'job0.png', 'subfolder': subfolder, 'type': image_type}])
+
+    def test_an_evicted_temp_image_is_a_miss_and_the_search_goes_on(self):
+        stub = self.serve(lambda size, seed: 'evicted' if seed == 1010 else owl(24, size))
+        result = pg.search(pg.Comfy(stub.host, poll=0.01), self.job, self.out, seeds=2, scales=[10], log=lambda *_: None)
+        self.assertEqual([h['seed'] for h in result['hits']], [2010])
+        self.assertEqual([m['seed'] for m in result['misses']], [1010])
+        self.assertIn('HTTP 404', result['misses'][0]['why'])
 
 
 TESTDATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'testdata')
