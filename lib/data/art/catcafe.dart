@@ -24,8 +24,12 @@ void catHead(
 }) {
   for (final m in const [false, true]) {
     double fx(double x) => m ? cx - (x - cx) : x;
-    c.polygon([(fx(cx - r * 0.82), cy - r * 0.2), (fx(cx - r * 0.7), cy - r * 1.05), (fx(cx - r * 0.25), cy - r * 0.62)], fur);
-    c.polygon([(fx(cx - r * 0.66), cy - r * 0.32), (fx(cx - r * 0.6), cy - r * 0.82), (fx(cx - r * 0.34), cy - r * 0.55)], ear);
+    c.polygon(
+        [(fx(cx - r * 0.82), cy - r * 0.2), (fx(cx - r * 0.7), cy - r * 1.05), (fx(cx - r * 0.25), cy - r * 0.62)],
+        fur);
+    c.polygon(
+        [(fx(cx - r * 0.66), cy - r * 0.32), (fx(cx - r * 0.6), cy - r * 0.82), (fx(cx - r * 0.34), cy - r * 0.55)],
+        ear);
   }
   c.ellipse(cx, cy, r, r * 0.78, fur);
   if (stripe != null) {
@@ -41,7 +45,9 @@ void catHead(
     } else {
       c.ellipse(x, cy - r * 0.02, math.max(r * 0.08, 0.6 / c.width), math.max(r * 0.11, 0.8 / c.width), eye);
     }
-    if (blush != null) c.circle(x + (x < cx ? -r * 0.22 : r * 0.22), cy + r * 0.2, math.max(r * 0.1, cell * 0.75), blush);
+    if (blush != null) {
+      c.circle(x + (x < cx ? -r * 0.22 : r * 0.22), cy + r * 0.2, math.max(r * 0.1, cell * 0.75), blush);
+    }
   }
   c.ellipse(cx, cy + r * 0.24, math.max(r * 0.07, cell * 0.6), math.max(r * 0.05, cell * 0.6), nose);
   if (whisker != null) {
@@ -304,7 +310,17 @@ Puzzle boxCat(String id, int n) {
 }
 
 Puzzle calico(String id, int n) {
-  const bg = 0, bgDot = 1, white = 2, orange = 3, black = 4, ear = 5, eye = 6, nose = 7, blush = 8, collar = 9, bell = 10;
+  const bg = 0,
+      bgDot = 1,
+      white = 2,
+      orange = 3,
+      black = 4,
+      ear = 5,
+      eye = 6,
+      nose = 7,
+      blush = 8,
+      collar = 9,
+      bell = 10;
   final c = ArtCanvas(n, n, background: bg);
   c.fill((x, y) => (c.col(x) * 3 + c.row(y) * 5) % 11 == 0, bgDot);
   c.ellipse(0.5, 1.0, 0.4, 0.26, white);
@@ -386,7 +402,14 @@ Puzzle xCafeCounter(String id, int n) {
   final c = ArtCanvas(n, n, background: wall);
   c.fill((x, y) => c.col(x) % 5 == 2 && c.row(y) % 5 == 2 && y < 0.5, wallDot);
   c.rect(0.08, 0.06, 0.92, 0.3, board);
-  for (final (x1, x2, y) in const [(0.14, 0.4, 0.12), (0.14, 0.55, 0.18), (0.14, 0.34, 0.24), (0.6, 0.86, 0.12), (0.66, 0.86, 0.18), (0.6, 0.8, 0.24)]) {
+  for (final (x1, x2, y) in const [
+    (0.14, 0.4, 0.12),
+    (0.14, 0.55, 0.18),
+    (0.14, 0.34, 0.24),
+    (0.6, 0.86, 0.12),
+    (0.66, 0.86, 0.18),
+    (0.6, 0.8, 0.24)
+  ]) {
     c.line(x1, y, x2, y, 0.025, chalk);
   }
   c.rect(0, 0.6, 1, 1, counter);
@@ -416,7 +439,17 @@ Puzzle xCafeCounter(String id, int n) {
 
 Puzzle xRainyDay(String id, int n) {
   const wall = 0, frame = 1, sky = 2, skyDark = 3, rain = 4, cloud = 5, sill = 6;
-  const fur = 7, furDark = 8, ear = 9, eye = 10, nose = 11, blush = 12, mug = 13, cocoa = 14, steam = 15, plant = 16, pot = 17;
+  const fur = 7,
+      furDark = 8,
+      ear = 9,
+      eye = 10,
+      nose = 11,
+      blush = 12,
+      mug = 13,
+      cocoa = 14,
+      steam = 15,
+      plant = 16,
+      pot = 17;
   final c = ArtCanvas(n, n, background: wall);
   c.fill((x, y) => (c.col(x) + c.row(y)) % 8 == 0, frame);
   c.rect(0.06, 0.04, 0.94, 0.7, frame);
@@ -492,7 +525,8 @@ Puzzle xTeaParty(String id, int n) {
   c.fill((x, y) => (c.col(x) + c.row(y) * 3) % 9 == 0, bgDot);
   c.ellipse(0.5, 0.72, 0.46, 0.12, table);
   c.ellipse(0.5, 0.68, 0.46, 0.12, cloth);
-  c.fill((x, y) => ArtCanvas.inEllipse(0.5, 0.68, 0.46, 0.12)(x, y) && (c.col(x) ~/ 3 + c.row(y) ~/ 3).isEven, clothDark);
+  c.fill(
+      (x, y) => ArtCanvas.inEllipse(0.5, 0.68, 0.46, 0.12)(x, y) && (c.col(x) ~/ 3 + c.row(y) ~/ 3).isEven, clothDark);
   c.rect(0.12, 0.72, 0.18, 0.95, table);
   c.rect(0.82, 0.72, 0.88, 0.95, table);
   // Two cats seated at the table.
@@ -529,7 +563,10 @@ Puzzle xNightCafe(String id, int n) {
   c.circle(0.84, 0.12, 0.07, moon);
   c.circle(0.87, 0.1, 0.05, sky);
   c.rect(0.08, 0.36, 0.92, 0.84, wall);
-  c.fill((x, y) => x > 0.08 && x < 0.92 && y > 0.36 && y < 0.84 && c.row(y) % 4 == 0 && (c.col(x) + c.row(y) ~/ 4 * 2) % 5 == 0, wallDark);
+  c.fill(
+      (x, y) =>
+          x > 0.08 && x < 0.92 && y > 0.36 && y < 0.84 && c.row(y) % 4 == 0 && (c.col(x) + c.row(y) ~/ 4 * 2) % 5 == 0,
+      wallDark);
   c.polygon(const [(0.04, 0.38), (0.5, 0.18), (0.96, 0.38)], roof);
   c.polygon(const [(0.04, 0.38), (0.96, 0.38), (0.96, 0.42), (0.04, 0.42)], roofDark);
   // Awning stripes.
@@ -564,6 +601,7 @@ Puzzle xNightCafe(String id, int n) {
   }
   return c.toPuzzle(id: id, title: 'Night Café', palette: const [
     0xFF2B2A4C, 0xFFFFF59D, 0xFFFFF9C4, 0xFFF3DDC3, 0xFFC9A27F, 0xFFE57373, 0xFFB94A4A, 0xFFFFE082, 0xFF6D4C41, //
-    0xFF8D6E63, 0xFFFFFFFF, 0xFFE91E63, 0xFFFFC107, 0xFF8D8F94, 0xFFFFF8F0, 0xFFFFC1D3, 0xFF37293E, 0xFFF2709A, 0xFF66BB6A,
+    0xFF8D6E63, 0xFFFFFFFF, 0xFFE91E63, 0xFFFFC107, 0xFF8D8F94, 0xFFFFF8F0, 0xFFFFC1D3, 0xFF37293E, 0xFFF2709A,
+    0xFF66BB6A,
   ]);
 }
