@@ -10,7 +10,8 @@ const _skin = 0xFFFFE0C8;
 
 /// Colours of a chibi idol.
 class _Idol {
-  const _Idol({required this.hair, required this.hairDark, required this.eye, required this.blush, required this.outfit});
+  const _Idol(
+      {required this.hair, required this.hairDark, required this.eye, required this.blush, required this.outfit});
 
   final int hair, hairDark, eye, blush, outfit;
 }
@@ -34,7 +35,9 @@ void _idolHead(ArtCanvas c, double cx, double cy, double r, _Idol k, {int style 
   // Bangs.
   c.fill((x, y) => ArtCanvas.inEllipse(cx, cy - r * 0.25, r * 0.95, r * 0.6)(x, y) && y < cy - r * 0.1, k.hair);
   for (final dx in const [-0.5, -0.17, 0.17, 0.5]) {
-    c.polygon([(cx + (dx - 0.2) * r, cy - r * 0.15), (cx + (dx + 0.2) * r, cy - r * 0.15), (cx + dx * r, cy + r * 0.12)], k.hair);
+    c.polygon(
+        [(cx + (dx - 0.2) * r, cy - r * 0.15), (cx + (dx + 0.2) * r, cy - r * 0.15), (cx + dx * r, cy + r * 0.12)],
+        k.hair);
   }
   if (style == 3 && cap != null) {
     c.ellipse(cx, cy - r * 0.45, r * 0.95, r * 0.5, cap);
@@ -54,7 +57,8 @@ void _idolBody(ArtCanvas c, double cx, double neckY, double r, double bottom, in
 }
 
 /// A glowing lightstick: handle, grip and a round head with a halo.
-void _lightstick(ArtCanvas c, double cx, double cy, double s, {required int handle, required int grip, required int glow, required int core, int? halo}) {
+void _lightstick(ArtCanvas c, double cx, double cy, double s,
+    {required int handle, required int grip, required int glow, required int core, int? halo}) {
   if (halo != null) c.circle(cx, cy - s * 0.35, s * 0.4, halo);
   c.rect(cx - s * 0.07, cy - s * 0.2, cx + s * 0.07, cy + s * 0.55, handle);
   c.rect(cx - s * 0.1, cy + 0.15 * s, cx + s * 0.1, cy + s * 0.3, grip);
@@ -117,7 +121,8 @@ Puzzle photocard(String id, int n) {
   c.rect(0.16, 0.04, 0.84, 0.96, border);
   c.rect(0.22, 0.1, 0.78, 0.9, card);
   _idolBody(c, 0.5, 0.66, 0.24, 0.9, border);
-  _idolHead(c, 0.5, 0.46, 0.24, const _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: border), skin: skin);
+  _idolHead(c, 0.5, 0.46, 0.24, const _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: border),
+      skin: skin);
   _sparkle(c, 0.08, 0.2, 0.06, spark);
   _sparkle(c, 0.92, 0.7, 0.06, spark);
   c.heart(0.7, 0.2, 0.04, blush);
@@ -160,7 +165,8 @@ Puzzle mainVocal(String id, int n) {
   final c = ArtCanvas(n, n, background: bg);
   c.fill((x, y) => (c.col(x) + c.row(y) * 2) % 7 == 0, bgDot);
   _idolBody(c, 0.5, 0.66, 0.3, 1, outfit, trim: blush);
-  _idolHead(c, 0.5, 0.42, 0.3, const _Idol(hair: hair, hairDark: hairDark, eye: eye, blush: blush, outfit: outfit), style: 2, skin: skin);
+  _idolHead(c, 0.5, 0.42, 0.3, const _Idol(hair: hair, hairDark: hairDark, eye: eye, blush: blush, outfit: outfit),
+      style: 2, skin: skin);
   c.line(0.78, 0.56, 0.84, 0.78, 0.05, mic);
   c.circle(0.77, 0.54, 0.06, hairDark);
   _sparkle(c, 0.12, 0.2, 0.05, spark);
@@ -178,7 +184,8 @@ Puzzle rapper(String id, int n) {
   _idolBody(c, 0.5, 0.66, 0.3, 1, outfit);
   c.line(0.38, 0.7, 0.5, 0.82, 0.03, chain);
   c.line(0.62, 0.7, 0.5, 0.82, 0.03, chain);
-  _idolHead(c, 0.5, 0.42, 0.3, const _Idol(hair: hair, hairDark: hairDark, eye: eye, blush: blush, outfit: outfit), style: 3, skin: skin, cap: cap);
+  _idolHead(c, 0.5, 0.42, 0.3, const _Idol(hair: hair, hairDark: hairDark, eye: eye, blush: blush, outfit: outfit),
+      style: 3, skin: skin, cap: cap);
   return c.toPuzzle(id: id, title: 'Main Rapper', palette: const [
     0xFFE8EAF6, 0xFFC5CAE9, 0xFF37474F, 0xFF263238, _skin, 0xFF1A1A2E, 0xFFFF8A80, 0xFF212121, 0xFFE53935, //
     0xFFFFD54F,
@@ -196,7 +203,8 @@ Puzzle photocardBinder(String id, int n) {
     c.rect(cx - 0.17, 0.2, cx + 0.17, 0.8, pocket);
     c.rect(cx - 0.15, 0.22, cx + 0.15, 0.78, card);
     _idolBody(c, cx, 0.58, 0.14, 0.78, pocket);
-    _idolHead(c, cx, 0.45, 0.14, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: pocket), style: style, skin: skin);
+    _idolHead(c, cx, 0.45, 0.14, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: pocket),
+        style: style, skin: skin);
   }
   return c.toPuzzle(id: id, title: 'Photocard Binder', palette: const [
     0xFFB39DDB, 0xFFFFFFFF, 0xFFCE93D8, 0xFFB3E5FC, _skin, 0xFF2E2233, 0xFFFF8A80, 0xFF90A4AE, //
@@ -255,7 +263,8 @@ Puzzle dancePractice(String id, int n) {
     c.line(cx + 0.12, 0.66, cx + 0.24, 0.5, 0.06, outfit);
     c.circle(cx - 0.24, 0.5, 0.035, skin);
     c.circle(cx + 0.24, 0.5, 0.035, skin);
-    _idolHead(c, cx, 0.5, 0.16, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit), style: style, skin: skin);
+    _idolHead(c, cx, 0.5, 0.16, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit),
+        style: style, skin: skin);
   }
   return c.toPuzzle(id: id, title: 'Dance Practice', palette: const [
     0xFFEDE7F6, 0xFFB3E5FC, 0xFFE1F5FE, 0xFFD7CCC8, 0xFFBCAAA4, _skin, 0xFF2E2233, 0xFFFF8A80, //
@@ -297,7 +306,8 @@ Puzzle comebackStage(String id, int n) {
   c.circle(0.71, 0.45, 0.035, skin);
   c.line(0.71, 0.45, 0.74, 0.38, 0.03, mic);
   c.circle(0.75, 0.36, 0.035, eye);
-  _idolHead(c, 0.5, 0.36, 0.17, const _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit), style: 2, skin: skin);
+  _idolHead(c, 0.5, 0.36, 0.17, const _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit),
+      style: 2, skin: skin);
   return c.toPuzzle(id: id, title: 'Comeback Stage', palette: const [
     0xFF1A0F33, 0xFF3D2A6E, 0xFF5E4A9E, 0xFF9C8CD0, _skin, 0xFF2E2233, 0xFFFF8A80, 0xFFFF80AB, 0xFFFFFFFF, //
     0xFFFFD54F, 0xFF80DEEA, 0xFF90A4AE,
@@ -305,7 +315,17 @@ Puzzle comebackStage(String id, int n) {
 }
 
 Puzzle photoBooth(String id, int n) {
-  const bg = 0, strip = 1, frame = 2, skin = 3, eye = 4, blush = 5, hairA = 6, hairB = 7, outfit = 8, heart = 9, spark = 10;
+  const bg = 0,
+      strip = 1,
+      frame = 2,
+      skin = 3,
+      eye = 4,
+      blush = 5,
+      hairA = 6,
+      hairB = 7,
+      outfit = 8,
+      heart = 9,
+      spark = 10;
   final c = ArtCanvas(n, n, background: bg);
   c.fill((x, y) => c.noise(x, y, 7) < 0.04, spark);
   c.rect(0.28, 0.02, 0.72, 0.98, strip);
@@ -314,7 +334,8 @@ Puzzle photoBooth(String id, int n) {
     c.rect(0.31, top, 0.69, top + 0.28, frame);
     for (final (cx, hair, style) in [(0.42, hairA, 1), (0.58, hairB, 0)]) {
       _idolBody(c, cx, cy + 0.07, 0.08, top + 0.28, outfit);
-      _idolHead(c, cx, cy, 0.08, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit), style: style, skin: skin);
+      _idolHead(c, cx, cy, 0.08, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit),
+          style: style, skin: skin);
     }
     c.heart(i == 1 ? 0.36 : 0.64, top + 0.05, 0.025, heart);
   }
@@ -333,7 +354,8 @@ Puzzle idolGroup(String id, int n) {
   for (var i = 0; i < 4; i++) {
     final cx = 0.17 + i * 0.22, cy = 0.5 + (i == 1 || i == 2 ? -0.04 : 0.0);
     _idolBody(c, cx, cy + 0.12, 0.11, 0.88, outfit, trim: trim);
-    _idolHead(c, cx, cy, 0.11, _Idol(hair: hairs[i], hairDark: hairs[i], eye: eye, blush: blush, outfit: outfit), style: i % 3, skin: skin);
+    _idolHead(c, cx, cy, 0.11, _Idol(hair: hairs[i], hairDark: hairs[i], eye: eye, blush: blush, outfit: outfit),
+        style: i % 3, skin: skin);
   }
   return c.toPuzzle(id: id, title: 'The Group', palette: const [
     0xFFE1BEE7, 0xFFF3E5F5, 0xFFCE93D8, _skin, 0xFF2E2233, 0xFFFF8A80, 0xFFFFFFFF, 0xFFF48FB1, //
@@ -382,7 +404,8 @@ Puzzle xMusicShow(String id, int n) {
   c.fill((x, y) => y > 0.73 && c.noise(x, y, 2) < 0.05, spark);
   for (final (cx, hair, style, dy) in [(0.25, hairA, 1, 0.0), (0.5, hairB, 2, -0.05), (0.75, hairC, 0, 0.0)]) {
     _idolBody(c, cx, 0.55 + dy, 0.12, 0.74, outfit, trim: trim);
-    _idolHead(c, cx, 0.42 + dy, 0.12, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit), style: style, skin: skin);
+    _idolHead(c, cx, 0.42 + dy, 0.12, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit),
+        style: style, skin: skin);
   }
   return c.toPuzzle(id: id, title: 'Music Show', palette: const [
     0xFF120C2E, 0xFF5E35B1, 0xFFB388FF, 0xFF26203F, 0xFF7E57C2, _skin, 0xFF2E2233, 0xFFFF8A80, 0xFFFFFFFF, //
@@ -403,7 +426,8 @@ Puzzle xFanCafe(String id, int n) {
   c.heart(0.18, 0.4, 0.07, albumDark);
   c.rect(0.4, 0.3, 0.64, 0.56, albumDark);
   c.rect(0.4, 0.3, 0.61, 0.53, card);
-  _idolHead(c, 0.5, 0.42, 0.07, const _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: album), skin: skin);
+  _idolHead(c, 0.5, 0.42, 0.07, const _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: album),
+      skin: skin);
   // Lightstick lying on the table.
   _lightstick(c, 0.76, 0.42, 0.34, handle: handle, grip: albumDark, glow: glow, core: core, halo: null);
   // Photocards fanned on the table.
@@ -411,7 +435,8 @@ Puzzle xFanCafe(String id, int n) {
     final x = 0.12 + i * 0.1;
     c.rect(x, 0.66, x + 0.12, 0.84, albumDark);
     c.rect(x + 0.01, 0.67, x + 0.11, 0.83, card);
-    _idolHead(c, x + 0.06, 0.74, 0.035, const _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: album), skin: skin, style: i);
+    _idolHead(c, x + 0.06, 0.74, 0.035, const _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: album),
+        skin: skin, style: i);
   }
   // Boba tea.
   c.polygon(const [(0.62, 0.62), (0.84, 0.62), (0.81, 0.92), (0.65, 0.92)], cup);
@@ -444,7 +469,8 @@ Puzzle xAwardNight(String id, int n) {
   c.star(0.5, 0.4, 0.045, 0.02, 5, base);
   for (final (cx, hair, style) in [(0.2, hairA, 2), (0.8, hairB, 3)]) {
     _idolBody(c, cx, 0.62, 0.13, 0.9, outfit, trim: trim);
-    _idolHead(c, cx, 0.48, 0.13, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit), style: style, skin: skin, cap: trim);
+    _idolHead(c, cx, 0.48, 0.13, _Idol(hair: hair, hairDark: hair, eye: eye, blush: blush, outfit: outfit),
+        style: style, skin: skin, cap: trim);
   }
   return c.toPuzzle(id: id, title: 'Award Night', palette: const [
     0xFF1A1033, 0xFFC62828, 0xFFE57373, 0xFFFFD54F, 0xFFF9A825, 0xFF5D4037, _skin, 0xFF2E2233, 0xFFFF8A80, //
@@ -457,16 +483,27 @@ Puzzle xEncoreFireworks(String id, int n) {
   const idol = 10, beam = 11;
   final c = ArtCanvas(n, n, background: sky);
   c.fill((x, y) => y < 0.6 && c.noise(x, y, 23) < 0.025, star);
-  for (final (cx, cy, r, col) in const [(0.25, 0.22, 0.16, fwA), (0.68, 0.16, 0.2, fwB), (0.5, 0.4, 0.12, fwC), (0.88, 0.4, 0.1, fwA)]) {
+  for (final (cx, cy, r, col) in const [
+    (0.25, 0.22, 0.16, fwA),
+    (0.68, 0.16, 0.2, fwB),
+    (0.5, 0.4, 0.12, fwC),
+    (0.88, 0.4, 0.1, fwA)
+  ]) {
     for (var i = 0; i < 12; i++) {
       final a = i * math.pi / 6;
-      c.line(cx + math.cos(a) * r * 0.3, cy + math.sin(a) * r * 0.3, cx + math.cos(a) * r, cy + math.sin(a) * r, r * 0.12, col);
+      c.line(cx + math.cos(a) * r * 0.3, cy + math.sin(a) * r * 0.3, cx + math.cos(a) * r, cy + math.sin(a) * r,
+          r * 0.12, col);
       c.circle(cx + math.cos(a) * r, cy + math.sin(a) * r, r * 0.1, star);
     }
     c.circle(cx, cy, r * 0.12, star);
   }
   for (final x0 in const [0.35, 0.65]) {
-    c.polygon([(x0 - 0.03, 0.72), (x0 + 0.03, 0.72), (x0 + 0.1 * (x0 < 0.5 ? -1 : 1), 0.45), (x0 + 0.18 * (x0 < 0.5 ? -1 : 1), 0.45)], beam);
+    c.polygon([
+      (x0 - 0.03, 0.72),
+      (x0 + 0.03, 0.72),
+      (x0 + 0.1 * (x0 < 0.5 ? -1 : 1), 0.45),
+      (x0 + 0.18 * (x0 < 0.5 ? -1 : 1), 0.45)
+    ], beam);
   }
   c.rect(0.1, 0.7, 0.9, 0.76, stage);
   c.rect(0.1, 0.7, 0.9, 0.72, stageEdge);
