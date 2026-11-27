@@ -458,11 +458,12 @@ class Verify(unittest.TestCase):
 
 class MinCells(Fixtures):
     def test_merges_single_cell_colour_into_nearest_ciede2000(self):
-        # A 1-cell orange speck is closer in CIEDE2000 to red than to blue or green.
         orange = (230, 120, 40)
         grid = [[RED if x < 6 else (GREEN if x < 11 else BLUE) for x in range(16)] for _ in range(16)]
         grid[0][15] = orange
-        self.assertLess(a2p.de2000(a2p.lab(orange), a2p.lab(RED)), a2p.de2000(a2p.lab(orange), a2p.lab(GREEN)))
+        to_red = a2p.de2000(a2p.lab(orange), a2p.lab(RED))
+        self.assertLess(to_red, a2p.de2000(a2p.lab(orange), a2p.lab(GREEN)))
+        self.assertLess(to_red, a2p.de2000(a2p.lab(orange), a2p.lab(BLUE)))
         out = a2p.reduce_palette(grid, limit=6, gap=a2p.MIN_RGB_GAP, de_gap=a2p.LEVEL_GAP[16], min_cells=2)
         self.assertNotIn(orange, colours_of(out))
         self.assertEqual(out[0][15], RED)
