@@ -6,6 +6,10 @@ palette = ["#E5739F", "#FCE4EC", "#FFFBF7", "#8D5A3B", "#3B2A2F"]
 flutter = "assets/art/frames"
 web = "build/via-puzzle-art"
 
+[makers]
+# Shown by /via assets as the local route for rows with maker = "local"; Via never runs it.
+local = "tool/pixel_gen.py on Cesar's PC (ComfyUI); docs/RUNBOOK.md, Local art generation"
+
 # PAP-43 photo frames. Nine-slice PNGs with a transparent center, drawn around
 # the saved picture (~1600 px). 1x is 341 so the 3.0x variant is 1023 px, under
 # the 1024 px cap in test/art_assets_test.dart; the export uses the 3.0x file.
@@ -13,6 +17,7 @@ web = "build/via-puzzle-art"
 [[asset]]
 name = "frame_photo_wood"
 kind = "image"
+maker = "gemini"
 source = "design/assets/frame_photo_wood.png"
 transparent = "#00FF00"
 platforms = ["flutter"]
@@ -22,6 +27,7 @@ usage = "PAP-43 free Wood frame around the saved picture; picker swatch"
 [[asset]]
 name = "frame_photo_polaroid"
 kind = "image"
+maker = "gemini"
 source = "design/assets/frame_photo_polaroid.png"
 transparent = "#00FF00"
 platforms = ["flutter"]
@@ -31,6 +37,7 @@ usage = "PAP-43 Polaroid frame (reward.frame.polaroid, 15 pictures); picker swat
 [[asset]]
 name = "frame_photo_lace"
 kind = "image"
+maker = "gemini"
 source = "design/assets/frame_photo_lace.png"
 transparent = "#00FF00"
 platforms = ["flutter"]
@@ -40,6 +47,7 @@ usage = "PAP-43 Lace frame (reward.frame.lace, 45 pictures); picker swatch"
 [[asset]]
 name = "frame_photo_paw"
 kind = "image"
+maker = "gemini"
 source = "design/assets/frame_photo_paw.png"
 transparent = "#00FF00"
 platforms = ["flutter"]
@@ -49,6 +57,7 @@ usage = "PAP-43 Paw-print frame (reward.frame.paw, 75 pictures); picker swatch"
 [[asset]]
 name = "frame_photo_secret"
 kind = "image"
+maker = "gemini"
 source = "design/assets/frame_photo_secret.png"
 transparent = "#00FF00"
 platforms = ["flutter"]
@@ -69,6 +78,7 @@ usage = "PAP-43 hidden gallery frame, shown after the PAP-45 secret; picker swat
 [[asset]]
 name = "puzzle_classics_heart"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_heart.png"
 platforms = ["web"]
 size = "705x711"
@@ -80,6 +90,7 @@ grid = 16
 [[asset]]
 name = "puzzle_classics_paw"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_paw.png"
 platforms = ["web"]
 size = "282x284"
@@ -91,6 +102,7 @@ grid = 16
 [[asset]]
 name = "puzzle_classics_sun"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_sun.png"
 platforms = ["web"]
 size = "423x427"
@@ -102,6 +114,7 @@ grid = 16
 [[asset]]
 name = "puzzle_classics_mushroom"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_mushroom.png"
 platforms = ["web"]
 size = "423x427"
@@ -113,6 +126,7 @@ grid = 16
 [[asset]]
 name = "puzzle_classics_cherries"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_cherries.png"
 platforms = ["web"]
 size = "423x427"
@@ -124,6 +138,7 @@ grid = 16
 [[asset]]
 name = "puzzle_classics_cat"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_cat.png"
 platforms = ["web"]
 size = "423x427"
@@ -135,6 +150,7 @@ grid = 24
 [[asset]]
 name = "puzzle_classics_daisy"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_daisy.png"
 platforms = ["web"]
 size = "423x427"
@@ -146,6 +162,7 @@ grid = 24
 [[asset]]
 name = "puzzle_classics_strawberry"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_strawberry.png"
 platforms = ["web"]
 size = "423x427"
@@ -157,6 +174,7 @@ grid = 24
 [[asset]]
 name = "puzzle_classics_rainbow"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_rainbow.png"
 platforms = ["web"]
 size = "423x427"
@@ -168,6 +186,7 @@ grid = 24
 [[asset]]
 name = "puzzle_classics_cupcake"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_cupcake.png"
 platforms = ["web"]
 size = "423x427"
@@ -179,6 +198,7 @@ grid = 24
 [[asset]]
 name = "puzzle_classics_sunset"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_sunset.png"
 platforms = ["web"]
 size = "705x711"
@@ -190,6 +210,7 @@ grid = 32
 [[asset]]
 name = "puzzle_classics_butterfly"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_butterfly.png"
 platforms = ["web"]
 size = "705x711"
@@ -201,6 +222,7 @@ grid = 32
 [[asset]]
 name = "puzzle_classics_puppy"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_puppy.png"
 platforms = ["web"]
 size = "705x711"
@@ -212,6 +234,7 @@ grid = 32
 [[asset]]
 name = "puzzle_classics_tulips"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_tulips.png"
 platforms = ["web"]
 size = "705x711"
@@ -223,6 +246,7 @@ grid = 32
 [[asset]]
 name = "puzzle_classics_moonlight"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_moonlight.png"
 platforms = ["web"]
 size = "705x711"
@@ -234,6 +258,7 @@ grid = 32
 [[asset]]
 name = "puzzle_classics_heart_balloons"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_heart_balloons.png"
 platforms = ["web"]
 size = "705x711"
@@ -245,6 +270,7 @@ grid = 40
 [[asset]]
 name = "puzzle_classics_picnic"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_picnic.png"
 platforms = ["web"]
 size = "705x711"
@@ -256,6 +282,7 @@ grid = 40
 [[asset]]
 name = "puzzle_classics_yarn_kitten"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_yarn_kitten.png"
 platforms = ["web"]
 size = "705x711"
@@ -267,6 +294,7 @@ grid = 40
 [[asset]]
 name = "puzzle_classics_carousel"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_carousel.png"
 platforms = ["web"]
 size = "705x711"
@@ -278,6 +306,7 @@ grid = 40
 [[asset]]
 name = "puzzle_classics_fireside"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_classics_fireside.png"
 platforms = ["web"]
 size = "705x711"
@@ -291,6 +320,7 @@ grid = 40
 [[asset]]
 name = "puzzle_animals_fish"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_fish.png"
 platforms = ["web"]
 size = "128x128"
@@ -306,6 +336,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_bunny"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_bunny.png"
 platforms = ["web"]
 size = "128x128"
@@ -321,6 +352,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_chick"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_chick.png"
 platforms = ["web"]
 size = "128x128"
@@ -336,6 +368,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_ladybug"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_ladybug.png"
 platforms = ["web"]
 size = "128x128"
@@ -351,6 +384,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_snail"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_snail.png"
 platforms = ["web"]
 size = "128x128"
@@ -366,6 +400,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_fox"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_fox.png"
 platforms = ["web"]
 size = "192x192"
@@ -381,6 +416,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_penguin"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_penguin.png"
 platforms = ["web"]
 size = "192x192"
@@ -396,6 +432,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_owl"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_owl.png"
 platforms = ["web"]
 size = "192x192"
@@ -411,6 +448,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_frog"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_frog.png"
 platforms = ["web"]
 size = "192x192"
@@ -426,6 +464,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_whale"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_whale.png"
 platforms = ["web"]
 size = "192x192"
@@ -441,6 +480,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_panda"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_panda.png"
 platforms = ["web"]
 size = "256x256"
@@ -456,6 +496,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_turtle"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_turtle.png"
 platforms = ["web"]
 size = "256x256"
@@ -471,6 +512,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_hedgehog"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_hedgehog.png"
 platforms = ["web"]
 size = "256x256"
@@ -486,6 +528,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_parrot"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_parrot.png"
 platforms = ["web"]
 size = "512x512"
@@ -501,6 +544,7 @@ scale = 16
 [[asset]]
 name = "puzzle_animals_bee"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_bee.png"
 platforms = ["web"]
 size = "512x512"
@@ -516,6 +560,7 @@ scale = 16
 [[asset]]
 name = "puzzle_animals_hamster"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_hamster.png"
 platforms = ["web"]
 size = "320x320"
@@ -531,6 +576,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_koala"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_koala.png"
 platforms = ["web"]
 size = "640x640"
@@ -546,6 +592,7 @@ scale = 16
 [[asset]]
 name = "puzzle_animals_otter"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_otter.png"
 platforms = ["web"]
 size = "320x320"
@@ -561,6 +608,7 @@ scale = 8
 [[asset]]
 name = "puzzle_animals_lion"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_lion.png"
 platforms = ["web"]
 size = "640x640"
@@ -576,6 +624,7 @@ scale = 16
 [[asset]]
 name = "puzzle_animals_elephant"
 kind = "image"
+maker = "local"
 source = "design/assets/puzzle_animals_elephant.png"
 platforms = ["web"]
 size = "640x640"
